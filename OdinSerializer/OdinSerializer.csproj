@@ -1,0 +1,241 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{F1111936-6086-412C-AB26-D7D8D3448A2A}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>OdinSerializer</RootNamespace>
+    <AssemblyName>OdinSerializer</AssemblyName>
+    <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <TargetFrameworkProfile>Unity Subset v3.5</TargetFrameworkProfile>
+    <ProjectTypeGuids>{E097FAD1-6243-4DAD-9C02-E9B9EFC3FFC1};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>..\Build\Debug\</OutputPath>
+    <DefineConstants>UNITY_5_3_OR_NEWER;UNITY_5_3;DEBUG;CAN_EMIT;UNITY_EDITOR;ENABLE_PROFILER</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DocumentationFile>..\Build\Debug\OdinSerializer.xml</DocumentationFile>
+    <LangVersion>4</LangVersion>
+    <NoWarn>CS1723, CS1723, CS1574, CS1584, CS1658</NoWarn>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>..\Build\Release\</OutputPath>
+    <DefineConstants>UNITY_5_3_OR_NEWER;UNITY_5_3;DEBUG;CAN_EMIT;UNITY_EDITOR;ENABLE_PROFILER</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DebugSymbols>true</DebugSymbols>
+    <DocumentationFile>..\Build\Release\OdinSerializer.xml</DocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="UnityEditor">
+      <HintPath>..\Libraries\Unity\UnityEditor.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine">
+      <HintPath>..\Libraries\Unity\UnityEngine.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.Networking">
+      <HintPath>..\Libraries\Unity\UnityEngine.Networking.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+    <Reference Include="UnityEngine.UI">
+      <HintPath>..\Libraries\Unity\UnityEngine.UI.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Utilities\Extensions\FieldInfoExtensions.cs" />
+    <Compile Include="Utilities\Extensions\GarbageFreeIterators.cs" />
+    <Compile Include="Utilities\Extensions\LinqExtensions.cs" />
+    <Compile Include="Utilities\Extensions\MemberInfoExtensions.cs" />
+    <Compile Include="Utilities\Extensions\MethodInfoExtensions.cs" />
+    <Compile Include="Utilities\Extensions\Operator.cs" />
+    <Compile Include="Utilities\Extensions\PathUtilities.cs" />
+    <Compile Include="Utilities\Extensions\PropertyInfoExtensions.cs" />
+    <Compile Include="Utilities\Extensions\StringExtensions.cs" />
+    <Compile Include="Utilities\Extensions\TypeExtensions.cs" />
+    <Compile Include="Utilities\Extensions\UnityExtensions.cs" />
+    <Compile Include="Utilities\Misc\AssemblyTypeFlags.cs" />
+    <Compile Include="Utilities\Misc\AssemblyUtilities.cs" />
+    <Compile Include="Utilities\Misc\Cache.cs" />
+    <Compile Include="Utilities\Misc\DoubleLookupDictionary.cs" />
+    <Compile Include="Utilities\Misc\EmitUtilities.cs" />
+    <Compile Include="Utilities\Misc\Flags.cs" />
+    <Compile Include="Utilities\Misc\ICacheNotificationReceiver.cs" />
+    <Compile Include="Utilities\Misc\ImmutableList.cs" />
+    <Compile Include="Utilities\Misc\MemberAliasFieldInfo.cs" />
+    <Compile Include="Utilities\Misc\MemberAliasMethodInfo.cs" />
+    <Compile Include="Utilities\Misc\MemberAliasPropertyInfo.cs" />
+    <Compile Include="Utilities\Misc\ProjectPathFinder.cs" />
+    <Compile Include="Utilities\Misc\ReferenceEqualityComparer.cs" />
+    <Compile Include="Utilities\Misc\SirenixAssetPaths.cs" />
+    <Compile Include="Utilities\Misc\UnityVersion.cs" />
+    <Compile Include="Utilities\Misc\UnsafeUtilities.cs" />
+    <Compile Include="Core\Misc\CustomLogger.cs" />
+    <Compile Include="Core\Misc\DataFormat.cs" />
+    <Compile Include="Core\DataReaderWriters\BaseDataReader.cs" />
+    <Compile Include="Core\DataReaderWriters\BaseDataReaderWriter.cs" />
+    <Compile Include="Core\DataReaderWriters\BaseDataWriter.cs" />
+    <Compile Include="Core\DataReaderWriters\Binary\BinaryDataReader.cs" />
+    <Compile Include="Core\DataReaderWriters\Binary\BinaryDataWriter.cs" />
+    <Compile Include="Core\DataReaderWriters\Binary\BinaryEntryType.cs" />
+    <Compile Include="Core\DataReaderWriters\IDataReader.cs" />
+    <Compile Include="Core\DataReaderWriters\IDataWriter.cs" />
+    <Compile Include="Core\DataReaderWriters\Json\JsonConfig.cs" />
+    <Compile Include="Core\DataReaderWriters\Json\JsonDataReader.cs" />
+    <Compile Include="Core\DataReaderWriters\Json\JsonDataWriter.cs" />
+    <Compile Include="Core\DataReaderWriters\Json\JsonTextReader.cs" />
+    <Compile Include="Core\DataReaderWriters\SerializationNodes\SerializationNode.cs" />
+    <Compile Include="Core\DataReaderWriters\SerializationNodes\SerializationNodeDataReader.cs" />
+    <Compile Include="Core\DataReaderWriters\SerializationNodes\SerializationNodeDataReaderWriterConfig.cs" />
+    <Compile Include="Core\DataReaderWriters\SerializationNodes\SerializationNodeDataWriter.cs" />
+    <Compile Include="Core\Misc\DefaultLoggers.cs" />
+    <Compile Include="Core\Misc\ErrorHandlingPolicy.cs" />
+    <Compile Include="Core\Formatters\ArrayFormatter.cs" />
+    <Compile Include="Core\Formatters\ArrayListFormatter.cs" />
+    <Compile Include="Core\Formatters\BaseFormatter.cs" />
+    <Compile Include="Core\Formatters\DateTimeFormatter.cs" />
+    <Compile Include="Core\Formatters\DateTimeOffsetFormatter.cs" />
+    <Compile Include="Core\Formatters\DelegateFormatter.cs" />
+    <Compile Include="Core\Formatters\DerivedDictionaryFormatter.cs" />
+    <Compile Include="Core\Formatters\DictionaryFormatter.cs" />
+    <Compile Include="Core\Formatters\DoubleLookupDictionaryFormatter.cs" />
+    <Compile Include="Core\Formatters\EasyBaseFormatter.cs" />
+    <Compile Include="Core\Formatters\EmittedFormatterAttribute.cs" />
+    <Compile Include="Core\Formatters\EmptyTypeFormatter.cs" />
+    <Compile Include="Core\Formatters\FormatterEmitter.cs" />
+    <Compile Include="Core\Formatters\GenericCollectionFormatter.cs" />
+    <Compile Include="Core\Formatters\HashSetFormatter.cs" />
+    <Compile Include="Core\Formatters\IFormatter.cs" />
+    <Compile Include="Core\Formatters\KeyValuePairFormatter.cs" />
+    <Compile Include="Core\Formatters\ListFormatter.cs" />
+    <Compile Include="Core\Formatters\MinimalBaseFormatter.cs" />
+    <Compile Include="Core\Formatters\MultiDimensionalArrayFormatter.cs" />
+    <Compile Include="Core\Formatters\NullableFormatter.cs" />
+    <Compile Include="Core\Formatters\PrimitiveArrayFormatter.cs" />
+    <Compile Include="Core\Formatters\ReflectionFormatter.cs" />
+    <Compile Include="Core\Formatters\SelfFormatterFormatter.cs" />
+    <Compile Include="Core\Formatters\SerializableFormatter.cs" />
+    <Compile Include="Core\Formatters\TimeSpanFormatter.cs" />
+    <Compile Include="Core\Formatters\TypeFormatter.cs" />
+    <Compile Include="Config\GlobalSerializationConfig.cs" />
+    <Compile Include="Core\Misc\ILogger.cs" />
+    <Compile Include="Core\Misc\LoggingPolicy.cs" />
+    <Compile Include="Core\Misc\CustomSerializationPolicy.cs" />
+    <Compile Include="Core\Misc\AlwaysFormatsSelfAttribute.cs" />
+    <Compile Include="Core\Misc\CustomFormatterAttribute.cs" />
+    <Compile Include="Core\Misc\CustomGenericFormatterAttribute.cs" />
+    <Compile Include="Core\Misc\DefaultSerializationBinder.cs" />
+    <Compile Include="Core\Misc\DeserializationContext.cs" />
+    <Compile Include="Core\Misc\EntryType.cs" />
+    <Compile Include="Core\Misc\ExcludeDataFromInspectorAttribute.cs" />
+    <Compile Include="Core\Misc\IExternalGuidReferenceResolver.cs" />
+    <Compile Include="Core\Misc\IExternalIndexReferenceResolver.cs" />
+    <Compile Include="Core\Misc\IExternalStringReferenceResolver.cs" />
+    <Compile Include="Core\Misc\ISelfFormatter.cs" />
+    <Compile Include="Core\Misc\ISerializationPolicy.cs" />
+    <Compile Include="Core\Misc\NodeInfo.cs" />
+    <Compile Include="Core\Misc\PreviouslySerializedAsAttribute.cs" />
+    <Compile Include="Core\Misc\SerializationAbortException.cs" />
+    <Compile Include="Core\Misc\SerializationConfig.cs" />
+    <Compile Include="Core\Misc\SerializationContext.cs" />
+    <Compile Include="Core\Misc\OdinSerializeAttribute.cs" />
+    <Compile Include="Core\Misc\TwoWaySerializationBinder.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Core\Misc\SerializationPolicies.cs" />
+    <Compile Include="Core\Serializers\BooleanSerializer.cs" />
+    <Compile Include="Core\Serializers\ByteSerializer.cs" />
+    <Compile Include="Core\Serializers\CharSerializer.cs" />
+    <Compile Include="Core\Serializers\ComplexTypeSerializer.cs" />
+    <Compile Include="Core\Serializers\DecimalSerializer.cs" />
+    <Compile Include="Core\Serializers\DoubleSerializer.cs" />
+    <Compile Include="Core\Serializers\EnumSerializer.cs" />
+    <Compile Include="Core\Serializers\GuidSerializer.cs" />
+    <Compile Include="Core\Serializers\Int16Serializer.cs" />
+    <Compile Include="Core\Serializers\Int32Serializer.cs" />
+    <Compile Include="Core\Serializers\Int64Serializer.cs" />
+    <Compile Include="Core\Serializers\IntPtrSerializer.cs" />
+    <Compile Include="Core\Serializers\SByteSerializer.cs" />
+    <Compile Include="Core\Serializers\Serializer.cs" />
+    <Compile Include="Core\Serializers\SingleSerializer.cs" />
+    <Compile Include="Core\Serializers\StringSerializer.cs" />
+    <Compile Include="Core\Serializers\UInt16Serializer.cs" />
+    <Compile Include="Core\Serializers\UInt32Serializer.cs" />
+    <Compile Include="Core\Serializers\UInt64Serializer.cs" />
+    <Compile Include="Core\Serializers\UIntPtrSerializer.cs" />
+    <Compile Include="Unity Integration\AOTSupportUtilities.cs" />
+    <Compile Include="Unity Integration\Formatters\AnimationCurveFormatter.cs" />
+    <Compile Include="Unity Integration\Formatters\BoundsFormatter.cs" />
+    <Compile Include="Unity Integration\Formatters\Color32Formatter.cs" />
+    <Compile Include="Unity Integration\Formatters\ColorBlockFormatter.cs" />
+    <Compile Include="Unity Integration\Formatters\ColorFormatter.cs" />
+    <Compile Include="Unity Integration\Formatters\CoroutineFormatter.cs" />
+    <Compile Include="Unity Integration\DictionaryKeySupport\BaseDictionaryKeyPathProvider.cs" />
+    <Compile Include="Unity Integration\DictionaryKeySupport\IDictionaryKeyPathProvider.cs" />
+    <Compile Include="Unity Integration\DictionaryKeySupport\RegisterDictionaryKeyPathProviderAttribute.cs" />
+    <Compile Include="Unity Integration\DictionaryKeySupport\Vector2DictionaryKeyPathProvider.cs" />
+    <Compile Include="Unity Integration\DictionaryKeySupport\Vector3DictionaryKeyPathProvider.cs" />
+    <Compile Include="Unity Integration\DictionaryKeySupport\Vector4DictionaryKeyPathProvider.cs" />
+    <Compile Include="Unity Integration\Formatters\GradientAlphaKeyFormatter.cs" />
+    <Compile Include="Unity Integration\Formatters\GradientColorKeyFormatter.cs" />
+    <Compile Include="Unity Integration\Formatters\GradientFormatter.cs" />
+    <Compile Include="Unity Integration\SerializedUnityObjects\IOverridesSerializationFormat.cs" />
+    <Compile Include="Unity Integration\SerializedUnityObjects\ISupportsPrefabSerialization.cs" />
+    <Compile Include="Unity Integration\Formatters\KeyframeFormatter.cs" />
+    <Compile Include="Unity Integration\Formatters\LayerMaskFormatter.cs" />
+    <Compile Include="Unity Integration\Formatters\QuaternionFormatter.cs" />
+    <Compile Include="Unity Integration\Formatters\RectFormatter.cs" />
+    <Compile Include="Unity Integration\SerializedUnityObjects\SerializationData.cs" />
+    <Compile Include="Unity Integration\SerializedUnityObjects\SerializedBehaviour.cs" />
+    <Compile Include="Unity Integration\SerializedUnityObjects\SerializedComponent.cs" />
+    <Compile Include="Unity Integration\SerializedUnityObjects\SerializedMonoBehaviour.cs" />
+    <Compile Include="Unity Integration\SerializedUnityObjects\SerializedNetworkBehaviour.cs" />
+    <Compile Include="Unity Integration\SerializedUnityObjects\SerializedScriptableObject.cs" />
+    <Compile Include="Unity Integration\SerializedUnityObjects\SerializedStateMachineBehaviour.cs" />
+    <Compile Include="Unity Integration\SerializedUnityObjects\SerializedUnityObject.cs" />
+    <Compile Include="Unity Integration\Formatters\UnityEventFormatter.cs" />
+    <Compile Include="Unity Integration\UnityReferenceResolver.cs" />
+    <Compile Include="Unity Integration\UnitySerializationInitializer.cs" />
+    <Compile Include="Unity Integration\Formatters\Vector2Formatter.cs" />
+    <Compile Include="Unity Integration\Formatters\Vector3Formatter.cs" />
+    <Compile Include="Unity Integration\Formatters\Vector4Formatter.cs" />
+    <Compile Include="Core\Misc\Buffer.cs" />
+    <Compile Include="Core\Misc\CachedMemoryStream.cs" />
+    <Compile Include="Core\Misc\EmittedAssemblyAttribute.cs" />
+    <Compile Include="Core\Misc\FormatterLocator.cs" />
+    <Compile Include="Core\Misc\FormatterUtilities.cs" />
+    <Compile Include="Unity Integration\DictionaryKeySupport\DictionaryKeyUtility.cs" />
+    <Compile Include="Core\Misc\PrefabModification.cs" />
+    <Compile Include="Core\Misc\PrefabModificationType.cs" />
+    <Compile Include="Core\Misc\ProperBitConverter.cs" />
+    <Compile Include="Core\Misc\SerializationUtility.cs" />
+    <Compile Include="Unity Integration\UnitySerializationUtility.cs" />
+  </ItemGroup>
+  <ItemGroup />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <PropertyGroup>
+    <PostBuildEvent>
+    </PostBuildEvent>
+  </PropertyGroup>
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

@@ -1,0 +1,58 @@
+﻿//-----------------------------------------------------------------------
+// <copyright file="ColorFormatter.cs" company="Sirenix IVS">
+// Copyright (c) 2018 Sirenix IVS
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+// </copyright>
+//-----------------------------------------------------------------------
+
+namespace OdinSerializer
+{
+    using UnityEngine;
+
+    /// <summary>
+    /// Custom formatter for the <see cref="Color"/> type.
+    /// </summary>
+    /// <seealso cref="OdinSerializer.MinimalBaseFormatter{UnityEngine.Color}" />
+    [CustomFormatter]
+    public class ColorFormatter : MinimalBaseFormatter<Color>
+    {
+        private static readonly Serializer<float> Serializer = OdinSerializer.Serializer.Get<float>();
+
+        /// <summary>
+        /// Reads into the specified value using the specified reader.
+        /// </summary>
+        /// <param name="value">The value to read into.</param>
+        /// <param name="reader">The reader to use.</param>
+        protected override void Read(ref Color value, IDataReader reader)
+        {
+            value.r = ColorFormatter.Serializer.ReadValue(reader);
+            value.g = ColorFormatter.Serializer.ReadValue(reader);
+            value.b = ColorFormatter.Serializer.ReadValue(reader);
+            value.a = ColorFormatter.Serializer.ReadValue(reader);
+        }
+
+        /// <summary>
+        /// Writes from the specified value using the specified writer.
+        /// </summary>
+        /// <param name="value">The value to write from.</param>
+        /// <param name="writer">The writer to use.</param>
+        protected override void Write(ref Color value, IDataWriter writer)
+        {
+            ColorFormatter.Serializer.WriteValue(value.r, writer);
+            ColorFormatter.Serializer.WriteValue(value.g, writer);
+            ColorFormatter.Serializer.WriteValue(value.b, writer);
+            ColorFormatter.Serializer.WriteValue(value.a, writer);
+        }
+    }
+}
