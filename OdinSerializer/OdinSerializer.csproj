@@ -82,7 +82,6 @@
     <Compile Include="Utilities\Misc\MemberAliasPropertyInfo.cs" />
     <Compile Include="Utilities\Misc\ProjectPathFinder.cs" />
     <Compile Include="Utilities\Misc\ReferenceEqualityComparer.cs" />
-    <Compile Include="Utilities\Misc\SirenixAssetPaths.cs" />
     <Compile Include="Utilities\Misc\UnityVersion.cs" />
     <Compile Include="Utilities\Misc\UnsafeUtilities.cs" />
     <Compile Include="Core\Misc\CustomLogger.cs" />
