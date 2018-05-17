@@ -58,6 +58,16 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Core\FormatterLocators\ArrayFormatterLocator.cs" />
+    <Compile Include="Core\Misc\IAskIfCanFormatTypes.cs" />
+    <Compile Include="Core\FormatterLocators\IFormatterLocator.cs" />
+    <Compile Include="Core\Misc\FormatterLocationStep.cs" />
+    <Compile Include="Core\FormatterLocators\GenericCollectionFormatterLocator.cs" />
+    <Compile Include="Core\FormatterLocators\ISerializableFormatterLocator.cs" />
+    <Compile Include="Core\Misc\RegisterFormatterAttribute.cs" />
+    <Compile Include="Core\Misc\RegisterFormatterLocatorAttribute.cs" />
+    <Compile Include="Core\FormatterLocators\SelfFormatterLocator.cs" />
+    <Compile Include="Core\FormatterLocators\TypeFormatterLocator.cs" />
     <Compile Include="Utilities\Extensions\FieldInfoExtensions.cs" />
     <Compile Include="Utilities\Extensions\GarbageFreeIterators.cs" />
     <Compile Include="Utilities\Extensions\LinqExtensions.cs" />
@@ -215,7 +225,7 @@
     <Compile Include="Core\Misc\Buffer.cs" />
     <Compile Include="Core\Misc\CachedMemoryStream.cs" />
     <Compile Include="Core\Misc\EmittedAssemblyAttribute.cs" />
-    <Compile Include="Core\Misc\FormatterLocator.cs" />
+    <Compile Include="Core\FormatterLocators\FormatterLocator.cs" />
     <Compile Include="Core\Misc\FormatterUtilities.cs" />
     <Compile Include="Unity Integration\DictionaryKeySupport\DictionaryKeyUtility.cs" />
     <Compile Include="Core\Misc\PrefabModification.cs" />

@@ -29,6 +29,7 @@ namespace OdinSerializer
     /// </summary>
     /// <seealso cref="OdinSerializer.CustomFormatterAttribute" />
     [AttributeUsage(AttributeTargets.Class)]
+    [Obsolete("Use a RegisterFormatterAttribute applied to the containing assembly instead.", true)]
     public class CustomGenericFormatterAttribute : CustomFormatterAttribute
     {
         /// <summary>

@@ -16,6 +16,10 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+using OdinSerializer;
+
+[assembly: RegisterFormatter(typeof(AnimationCurveFormatter))]
+
 namespace OdinSerializer
 {
     using UnityEngine;
@@ -24,7 +28,6 @@ namespace OdinSerializer
     /// Custom formatter for the <see cref="AnimationCurve"/> type.
     /// </summary>
     /// <seealso cref="OdinSerializer.MinimalBaseFormatter{UnityEngine.AnimationCurve}" />
-    [CustomFormatter]
     public class AnimationCurveFormatter : MinimalBaseFormatter<AnimationCurve>
     {
         private static readonly Serializer<Keyframe[]> KeyframeSerializer = Serializer.Get<Keyframe[]>();

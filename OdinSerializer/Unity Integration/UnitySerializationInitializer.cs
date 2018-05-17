@@ -18,10 +18,7 @@
 
 namespace OdinSerializer
 {
-    using OdinSerializer.Utilities;
-    using System;
     using UnityEngine;
-    using UnityEngine.Events;
 
     /// <summary>
     /// Utility class which initializes the Sirenix serialization system to be compatible with Unity.
@@ -46,24 +43,6 @@ namespace OdinSerializer
                         // If we try to load it during deserialization, Unity will throw exceptions, as a lot of
                         // the Unity API is disallowed during serialization and deserialization.
                         GlobalSerializationConfig.LoadInstanceIfAssetExists();
-
-                        // Custom UnityEvent formatter resolution
-                        FormatterLocator.FormatterResolve += (type) =>
-                        {
-                            if (type != typeof(UnityEvent)
-                                && type.ImplementsOrInherits(typeof(UnityEventBase))
-                                && (type.ImplementsOrInherits(typeof(UnityEvent))
-                                || type.ImplementsOpenGenericClass(typeof(UnityEvent<>))
-                                || type.ImplementsOpenGenericClass(typeof(UnityEvent<,>))
-                                || type.ImplementsOpenGenericClass(typeof(UnityEvent<,,>))
-                                || type.ImplementsOpenGenericClass(typeof(UnityEvent<,,,>))))
-                            {
-                                return (IFormatter)Activator.CreateInstance(typeof(UnityEventFormatter<>).MakeGenericType(type));
-                            }
-
-                            return null;
-                        };
-
                         initialized = true;
                     }
                 }

@@ -16,17 +16,19 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
-using System.Globalization;
+using OdinSerializer;
+
+[assembly: RegisterFormatter(typeof(DateTimeOffsetFormatter))]
 
 namespace OdinSerializer
 {
+    using System.Globalization;
     using System;
 
     /// <summary>
     /// Custom formatter for the <see cref="DateTimeOffset"/> type.
     /// </summary>
     /// <seealso cref="OdinSerializer.MinimalBaseFormatter{System.DateTimeOffset}" />
-    [CustomFormatter]
     public sealed class DateTimeOffsetFormatter : MinimalBaseFormatter<DateTimeOffset>
     {
         /// <summary>

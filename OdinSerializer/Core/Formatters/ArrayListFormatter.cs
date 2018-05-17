@@ -15,6 +15,11 @@
 // limitations under the License.
 // </copyright>
 //-----------------------------------------------------------------------
+
+using OdinSerializer;
+
+[assembly: RegisterFormatter(typeof(ArrayListFormatter))]
+
 namespace OdinSerializer
 {
     using System;
@@ -24,7 +29,6 @@ namespace OdinSerializer
     /// Custom formatter for the type <see cref="ArrayList"/>.
     /// </summary>
     /// <seealso cref="OdinSerializer.BaseFormatter{System.Collections.Generic.List{T}}" />
-    [CustomFormatter()]
     public class ArrayListFormatter : BaseFormatter<ArrayList>
     {
         private static readonly Serializer<object> Serializer = OdinSerializer.Serializer.Get<object>();

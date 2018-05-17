@@ -16,6 +16,10 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+using OdinSerializer;
+
+[assembly: RegisterFormatter(typeof(KeyframeFormatter))]
+
 namespace OdinSerializer
 {
     using OdinSerializer.Utilities;
@@ -25,7 +29,6 @@ namespace OdinSerializer
     /// Custom formatter for the <see cref="Keyframe"/> type.
     /// </summary>
     /// <seealso cref="OdinSerializer.MinimalBaseFormatter{UnityEngine.Keyframe}" />
-    [CustomFormatter]
     public class KeyframeFormatter : MinimalBaseFormatter<Keyframe>
     {
         private static readonly Serializer<float> FloatSerializer = Serializer.Get<float>();

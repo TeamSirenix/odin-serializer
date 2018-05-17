@@ -15,15 +15,17 @@
 // limitations under the License.
 // </copyright>
 //-----------------------------------------------------------------------
+
 namespace OdinSerializer
 {
     using System;
+
+    // Registered by TypeFormatterLocator
 
     /// <summary>
     /// Formatter for the <see cref="Type"/> type which uses the reader/writer's <see cref="TwoWaySerializationBinder"/> to bind types.
     /// </summary>
     /// <seealso cref="Serialization.MinimalBaseFormatter{T}" />
-    [CustomFormatter]
     public sealed class TypeFormatter : MinimalBaseFormatter<Type>
     {
         /// <summary>

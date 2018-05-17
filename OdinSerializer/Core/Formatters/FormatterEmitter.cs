@@ -257,8 +257,6 @@ namespace OdinSerializer
                 typeof(AOTEmittedFormatter<>).MakeGenericType(formattedType)
             );
 
-            formatterType.SetCustomAttribute(new CustomAttributeBuilder(typeof(CustomFormatterAttribute).GetConstructor(Type.EmptyTypes), new object[0]));
-
             // Read
             {
                 MethodInfo readBaseMethod = formatterType.BaseType.GetMethod("ReadDataEntry", Flags.InstanceAnyVisibility);
@@ -289,7 +287,12 @@ namespace OdinSerializer
                 EmitWriteMethodContents(dynamicWriteMethod.GetILGenerator(), formattedType, serializerFields, memberNames, serializerWriteMethods);
             }
 
-            return formatterType.CreateType();
+            var result = formatterType.CreateType();
+
+            // Register the formatter on the assembly
+            ((AssemblyBuilder)moduleBuilder.Assembly).SetCustomAttribute(new CustomAttributeBuilder(typeof(RegisterFormatterAttribute).GetConstructor(new Type[] { typeof(Type), typeof(int) }), new object[] { formatterType, -1 }));
+
+            return result;
         }
 
         private static IFormatter CreateGenericFormatter(Type formattedType, ModuleBuilder moduleBuilder, ISerializationPolicy policy)

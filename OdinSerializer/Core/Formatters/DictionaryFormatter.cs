@@ -16,6 +16,10 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+using OdinSerializer;
+
+[assembly: RegisterFormatter(typeof(DictionaryFormatter<,>))]
+
 namespace OdinSerializer
 {
     using System;
@@ -27,7 +31,6 @@ namespace OdinSerializer
     /// <typeparam name="TKey">The type of the dictionary key.</typeparam>
     /// <typeparam name="TValue">The type of the dictionary value.</typeparam>
     /// <seealso cref="OdinSerializer.BaseFormatter{System.Collections.Generic.Dictionary{TKey, TValue}}" />
-    [CustomGenericFormatter(typeof(Dictionary<,>))]
     public sealed class DictionaryFormatter<TKey, TValue> : BaseFormatter<Dictionary<TKey, TValue>>
     {
         private static readonly bool KeyIsValueType = typeof(TKey).IsValueType;

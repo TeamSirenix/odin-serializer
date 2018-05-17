@@ -16,6 +16,10 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+using OdinSerializer;
+
+[assembly: RegisterFormatter(typeof(QuaternionFormatter))]
+
 namespace OdinSerializer
 {
     using UnityEngine;
@@ -24,7 +28,6 @@ namespace OdinSerializer
     /// Custom formatter for the <see cref="Quaternion"/> type.
     /// </summary>
     /// <seealso cref="OdinSerializer.MinimalBaseFormatter{UnityEngine.Quaternion}" />
-    [CustomFormatter]
     public class QuaternionFormatter : MinimalBaseFormatter<Quaternion>
     {
         private static readonly Serializer<float> Serializer = OdinSerializer.Serializer.Get<float>();

@@ -16,6 +16,10 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+using OdinSerializer;
+
+[assembly: RegisterFormatter(typeof(DateTimeFormatter))]
+
 namespace OdinSerializer
 {
     using System;
@@ -24,7 +28,6 @@ namespace OdinSerializer
     /// Custom formatter for the <see cref="DateTime"/> type.
     /// </summary>
     /// <seealso cref="OdinSerializer.MinimalBaseFormatter{System.DateTime}" />
-    [CustomFormatter]
     public sealed class DateTimeFormatter : MinimalBaseFormatter<DateTime>
     {
         /// <summary>

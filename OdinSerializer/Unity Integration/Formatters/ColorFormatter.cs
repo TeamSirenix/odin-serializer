@@ -16,6 +16,10 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+using OdinSerializer;
+
+[assembly: RegisterFormatter(typeof(ColorFormatter))]
+
 namespace OdinSerializer
 {
     using UnityEngine;
@@ -24,7 +28,6 @@ namespace OdinSerializer
     /// Custom formatter for the <see cref="Color"/> type.
     /// </summary>
     /// <seealso cref="OdinSerializer.MinimalBaseFormatter{UnityEngine.Color}" />
-    [CustomFormatter]
     public class ColorFormatter : MinimalBaseFormatter<Color>
     {
         private static readonly Serializer<float> Serializer = OdinSerializer.Serializer.Get<float>();

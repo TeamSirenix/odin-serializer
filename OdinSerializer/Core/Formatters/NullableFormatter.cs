@@ -16,6 +16,10 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+using OdinSerializer;
+
+[assembly: RegisterFormatter(typeof(NullableFormatter<>))]
+
 namespace OdinSerializer
 {
     using System;
@@ -25,7 +29,6 @@ namespace OdinSerializer
     /// </summary>
     /// <typeparam name="T">The type that is nullable.</typeparam>
     /// <seealso cref="OdinSerializer.BaseFormatter{T?}" />
-    [CustomGenericFormatter(typeof(Nullable<>))]
     public sealed class NullableFormatter<T> : BaseFormatter<T?> where T : struct
     {
         private static readonly Serializer<T> TSerializer = Serializer.Get<T>();

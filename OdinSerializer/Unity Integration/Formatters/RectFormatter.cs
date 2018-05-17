@@ -16,6 +16,10 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+using OdinSerializer;
+
+[assembly: RegisterFormatter(typeof(RectFormatter))]
+
 namespace OdinSerializer
 {
     using UnityEngine;
@@ -24,7 +28,6 @@ namespace OdinSerializer
     /// Custom formatter for the <see cref="Rect"/> type.
     /// </summary>
     /// <seealso cref="OdinSerializer.MinimalBaseFormatter{UnityEngine.Rect}" />
-    [CustomFormatter]
     public class RectFormatter : MinimalBaseFormatter<Rect>
     {
         private static readonly Serializer<float> Serializer = OdinSerializer.Serializer.Get<float>();

@@ -16,6 +16,10 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+using OdinSerializer;
+
+[assembly: RegisterFormatter(typeof(GradientColorKeyFormatter))]
+
 namespace OdinSerializer
 {
     using UnityEngine;
@@ -24,7 +28,6 @@ namespace OdinSerializer
     /// Custom formatter for the <see cref="GradientColorKey"/> type.
     /// </summary>
     /// <seealso cref="OdinSerializer.MinimalBaseFormatter{UnityEngine.GradientColorKey}" />
-    [CustomFormatter]
     public class GradientColorKeyFormatter : MinimalBaseFormatter<GradientColorKey>
     {
         private static readonly Serializer<Color> ColorSerializer = Serializer.Get<Color>();

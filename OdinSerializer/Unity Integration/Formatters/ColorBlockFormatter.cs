@@ -15,6 +15,11 @@
 // limitations under the License.
 // </copyright>
 //-----------------------------------------------------------------------
+
+using OdinSerializer;
+
+[assembly: RegisterFormatter(typeof(ColorBlockFormatter))]
+
 namespace OdinSerializer
 {
     using UnityEngine;
@@ -24,7 +29,6 @@ namespace OdinSerializer
     /// Custom formatter for the <see cref="ColorBlock"/> type.
     /// </summary>
     /// <seealso cref="OdinSerializer.MinimalBaseFormatter{UnityEngine.UI.ColorBlock}" />
-    [CustomFormatter]
     public class ColorBlockFormatter : MinimalBaseFormatter<ColorBlock>
     {
         private static readonly Serializer<float> FloatSerializer = OdinSerializer.Serializer.Get<float>();

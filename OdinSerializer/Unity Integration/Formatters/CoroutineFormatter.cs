@@ -16,6 +16,10 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+using OdinSerializer;
+
+[assembly: RegisterFormatter(typeof(CoroutineFormatter))]
+
 namespace OdinSerializer
 {
     using System;
@@ -34,7 +38,6 @@ namespace OdinSerializer
     /// they are garbage collected.
     /// </para>
     /// </summary>
-    [CustomFormatter]
     public sealed class CoroutineFormatter : IFormatter<Coroutine>
     {
         /// <summary>

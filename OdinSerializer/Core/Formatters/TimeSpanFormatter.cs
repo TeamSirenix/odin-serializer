@@ -16,6 +16,10 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+using OdinSerializer;
+
+[assembly: RegisterFormatter(typeof(TimeSpanFormatter))]
+
 namespace OdinSerializer
 {
     using System;
@@ -24,7 +28,6 @@ namespace OdinSerializer
     /// Custom formatter for the <see cref="TimeSpan"/> type.
     /// </summary>
     /// <seealso cref="OdinSerializer.MinimalBaseFormatter{System.TimeSpan}" />
-    [CustomFormatter]
     public sealed class TimeSpanFormatter : MinimalBaseFormatter<TimeSpan>
     {
         /// <summary>

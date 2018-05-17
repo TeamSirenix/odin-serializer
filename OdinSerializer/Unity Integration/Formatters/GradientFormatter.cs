@@ -16,9 +16,12 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+using OdinSerializer;
+
+[assembly: RegisterFormatter(typeof(GradientFormatter))]
+
 namespace OdinSerializer
 {
-    using System;
     using System.Reflection;
     using UnityEngine;
 
@@ -26,7 +29,6 @@ namespace OdinSerializer
     /// Custom formatter for the <see cref="Gradient"/> type.
     /// </summary>
     /// <seealso cref="OdinSerializer.MinimalBaseFormatter{UnityEngine.Gradient}" />
-    [CustomFormatter]
     public class GradientFormatter : MinimalBaseFormatter<Gradient>
     {
         private static readonly Serializer<GradientAlphaKey[]> AlphaKeysSerializer = Serializer.Get<GradientAlphaKey[]>();

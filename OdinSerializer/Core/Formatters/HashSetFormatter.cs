@@ -16,6 +16,10 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+using OdinSerializer;
+
+[assembly: RegisterFormatter(typeof(HashSetFormatter<>))]
+
 namespace OdinSerializer
 {
     using System;
@@ -26,7 +30,6 @@ namespace OdinSerializer
     /// </summary>
     /// <typeparam name="T">The element type of the formatted list.</typeparam>
     /// <seealso cref="OdinSerializer.BaseFormatter{System.Collections.Generic.HashSet{T}}" />
-    [CustomGenericFormatter(typeof(HashSet<>))]
     public class HashSetFormatter<T> : BaseFormatter<HashSet<T>>
     {
         private static readonly Serializer<T> Serializer = OdinSerializer.Serializer.Get<T>();

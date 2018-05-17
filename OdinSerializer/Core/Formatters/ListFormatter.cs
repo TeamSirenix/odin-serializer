@@ -16,6 +16,10 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+using OdinSerializer;
+
+[assembly: RegisterFormatter(typeof(ListFormatter<>))]
+
 namespace OdinSerializer
 {
     using System;
@@ -26,7 +30,6 @@ namespace OdinSerializer
     /// </summary>
     /// <typeparam name="T">The element type of the formatted list.</typeparam>
     /// <seealso cref="OdinSerializer.BaseFormatter{System.Collections.Generic.List{T}}" />
-    [CustomGenericFormatter(typeof(List<>))]
     public class ListFormatter<T> : BaseFormatter<List<T>>
     {
         private static readonly Serializer<T> Serializer = OdinSerializer.Serializer.Get<T>();

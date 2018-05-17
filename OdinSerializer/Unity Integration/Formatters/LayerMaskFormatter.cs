@@ -16,6 +16,10 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+using OdinSerializer;
+
+[assembly: RegisterFormatter(typeof(LayerMaskFormatter))]
+
 namespace OdinSerializer
 {
     using UnityEngine;
@@ -24,7 +28,6 @@ namespace OdinSerializer
     /// Custom formatter for the <see cref="LayerMask"/> type.
     /// </summary>
     /// <seealso cref="OdinSerializer.MinimalBaseFormatter{UnityEngine.LayerMask}" />
-    [CustomFormatter]
     public class LayerMaskFormatter : MinimalBaseFormatter<LayerMask>
     {
         private static readonly Serializer<int> Serializer = OdinSerializer.Serializer.Get<int>();

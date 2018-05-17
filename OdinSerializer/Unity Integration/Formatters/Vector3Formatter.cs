@@ -16,6 +16,10 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+using OdinSerializer;
+
+[assembly: RegisterFormatter(typeof(Vector3Formatter))]
+
 namespace OdinSerializer
 {
     using UnityEngine;
@@ -24,7 +28,6 @@ namespace OdinSerializer
     /// Custom formatter for the <see cref="Vector3"/> type.
     /// </summary>
     /// <seealso cref="OdinSerializer.MinimalBaseFormatter{UnityEngine.Vector3}" />
-    [CustomFormatter]
     public class Vector3Formatter : MinimalBaseFormatter<Vector3>
     {
         private static readonly Serializer<float> Serializer = OdinSerializer.Serializer.Get<float>();

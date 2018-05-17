@@ -16,6 +16,10 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+using OdinSerializer;
+
+[assembly: RegisterFormatter(typeof(KeyValuePairFormatter<,>))]
+
 namespace OdinSerializer
 {
     using System.Collections.Generic;
@@ -26,7 +30,6 @@ namespace OdinSerializer
     /// <typeparam name="TKey">The type of the key.</typeparam>
     /// <typeparam name="TValue">The type of the value.</typeparam>
     /// <seealso cref="OdinSerializer.BaseFormatter{System.Collections.Generic.KeyValuePair{TKey, TValue}}" />
-    [CustomGenericFormatter(typeof(KeyValuePair<,>))]
     public sealed class KeyValuePairFormatter<TKey, TValue> : BaseFormatter<KeyValuePair<TKey, TValue>>
     {
         private static readonly Serializer<TKey> KeySerializer = Serializer.Get<TKey>();
