@@ -16,6 +16,10 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+using OdinSerializer;
+
+[assembly: RegisterFormatter(typeof(DerivedDictionaryFormatter<,,>))]
+
 namespace OdinSerializer
 {
     using System;
