@@ -433,8 +433,27 @@ namespace OdinSerializer
             IFormatter formatter;
             if (!FormatterInstances.TryGetValue(type, out formatter))
             {
-                formatter = (IFormatter)Activator.CreateInstance(type);
-                FormatterInstances.Add(type, formatter);
+                try
+                {
+                    formatter = (IFormatter)Activator.CreateInstance(type);
+                    FormatterInstances.Add(type, formatter);
+                }
+                catch (TargetInvocationException ex)
+                {
+                    throw ex;
+                }
+                catch (TypeInitializationException ex)
+                {
+                    throw ex;
+                }
+                catch (ExecutionEngineException ex)
+                {
+                    throw ex;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogException(new Exception("Exception was thrown while instantiating formatter '" + type.GetNiceFullName() + "'.", ex));
+                }
             }
             return formatter;
         }
