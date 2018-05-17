@@ -345,7 +345,7 @@ namespace OdinSerializer
 
                 if (type == info.TargetType)
                 {
-                    formatterType = info.TargetType;
+                    formatterType = info.FormatterType;
                 }
                 else if (info.FormatterType.IsGenericType && info.TargetType.IsGenericParameter)
                 {
