@@ -90,7 +90,6 @@
     <Compile Include="Utilities\Misc\MemberAliasFieldInfo.cs" />
     <Compile Include="Utilities\Misc\MemberAliasMethodInfo.cs" />
     <Compile Include="Utilities\Misc\MemberAliasPropertyInfo.cs" />
-    <Compile Include="Utilities\Misc\ProjectPathFinder.cs" />
     <Compile Include="Utilities\Misc\ReferenceEqualityComparer.cs" />
     <Compile Include="Utilities\Misc\UnityVersion.cs" />
     <Compile Include="Utilities\Misc\UnsafeUtilities.cs" />
