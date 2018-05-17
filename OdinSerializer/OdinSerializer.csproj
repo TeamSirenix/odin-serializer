@@ -58,6 +58,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Config\AssemblyBuildInfo.cs" />
     <Compile Include="Core\FormatterLocators\ArrayFormatterLocator.cs" />
     <Compile Include="Core\Misc\IAskIfCanFormatTypes.cs" />
     <Compile Include="Core\FormatterLocators\IFormatterLocator.cs" />
