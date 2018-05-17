@@ -27,7 +27,7 @@ namespace OdinSerializer
     /// <summary>
     /// Writes json data to a stream that can be read by a <see cref="JsonDataReader"/>.
     /// </summary>
-    /// <seealso cref="OdinSerializer.BaseDataWriter" />
+    /// <seealso cref="BaseDataWriter" />
     public class JsonDataWriter : BaseDataWriter
     {
         private bool justStarted;

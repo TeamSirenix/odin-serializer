@@ -26,7 +26,7 @@ namespace OdinSerializer
     /// Final fallback formatter for all types which have no other formatters. This formatter relies on reflection to work, and is thus comparatively slow and creates more garbage than a custom formatter.
     /// </summary>
     /// <typeparam name="T">The type which can be serialized and deserialized by the formatter.</typeparam>
-    /// <seealso cref="OdinSerializer.BaseFormatter{T}" />
+    /// <seealso cref="BaseFormatter{T}" />
     public class ReflectionFormatter<T> : BaseFormatter<T>
     {
         public ReflectionFormatter()

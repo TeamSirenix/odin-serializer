@@ -26,7 +26,7 @@ namespace OdinSerializer
     /// <summary>
     /// The context of a given deserialization session. This class maintains all internal and external references during deserialization.
     /// </summary>
-    /// <seealso cref="OdinSerializer.ICacheNotificationReceiver" />
+    /// <seealso cref="ICacheNotificationReceiver" />
     public sealed class DeserializationContext : ICacheNotificationReceiver
     {
         private SerializationConfig config;

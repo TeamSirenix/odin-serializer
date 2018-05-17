@@ -18,15 +18,14 @@
 
 namespace OdinSerializer
 {
-    using System;
     using System.Collections.Generic;
     using Utilities;
 
     /// <summary>
     /// Resolves external index references to Unity objects.
     /// </summary>
-    /// <seealso cref="OdinSerializer.IExternalIndexReferenceResolver" />
-    /// <seealso cref="OdinSerializer.ICacheNotificationReceiver" />
+    /// <seealso cref="IExternalIndexReferenceResolver" />
+    /// <seealso cref="ICacheNotificationReceiver" />
     public sealed class UnityReferenceResolver : IExternalIndexReferenceResolver, ICacheNotificationReceiver
     {
         private Dictionary<UnityEngine.Object, int> referenceIndexMapping = new Dictionary<UnityEngine.Object, int>(32);

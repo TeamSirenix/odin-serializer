@@ -28,11 +28,11 @@ namespace OdinSerializer
     /// <summary>
     /// Custom formatter for the <see cref="ColorBlock"/> type.
     /// </summary>
-    /// <seealso cref="OdinSerializer.MinimalBaseFormatter{UnityEngine.UI.ColorBlock}" />
+    /// <seealso cref="MinimalBaseFormatter{UnityEngine.UI.ColorBlock}" />
     public class ColorBlockFormatter : MinimalBaseFormatter<ColorBlock>
     {
-        private static readonly Serializer<float> FloatSerializer = OdinSerializer.Serializer.Get<float>();
-        private static readonly Serializer<Color> ColorSerializer = OdinSerializer.Serializer.Get<Color>();
+        private static readonly Serializer<float> FloatSerializer = Serializer.Get<float>();
+        private static readonly Serializer<Color> ColorSerializer = Serializer.Get<Color>();
 
         /// <summary>
         /// Reads into the specified value using the specified reader.

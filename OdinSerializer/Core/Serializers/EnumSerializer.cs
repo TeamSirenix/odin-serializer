@@ -26,7 +26,7 @@ namespace OdinSerializer
     /// Serializer for all enums.
     /// </summary>
     /// <typeparam name="T">The type of the enum to serialize and deserialize.</typeparam>
-    /// <seealso cref="OdinSerializer.Serializer{T}" />
+    /// <seealso cref="Serializer{T}" />
     public sealed class EnumSerializer<T> : Serializer<T>
     {
         static EnumSerializer()

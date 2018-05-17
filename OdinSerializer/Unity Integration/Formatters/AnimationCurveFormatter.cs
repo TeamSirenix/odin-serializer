@@ -27,7 +27,7 @@ namespace OdinSerializer
     /// <summary>
     /// Custom formatter for the <see cref="AnimationCurve"/> type.
     /// </summary>
-    /// <seealso cref="OdinSerializer.MinimalBaseFormatter{UnityEngine.AnimationCurve}" />
+    /// <seealso cref="MinimalBaseFormatter{UnityEngine.AnimationCurve}" />
     public class AnimationCurveFormatter : MinimalBaseFormatter<AnimationCurve>
     {
         private static readonly Serializer<Keyframe[]> KeyframeSerializer = Serializer.Get<Keyframe[]>();

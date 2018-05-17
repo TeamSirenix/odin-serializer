@@ -31,7 +31,7 @@ namespace OdinSerializer
     /// This formatter can handle anything but delegates for dynamic methods.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    /// <seealso cref="OdinSerializer.BaseFormatter{T}" />
+    /// <seealso cref="BaseFormatter{T}" />
     public sealed class DelegateFormatter<T> : BaseFormatter<T> where T : class
     {
         private static readonly Serializer<object> ObjectSerializer = Serializer.Get<object>();

@@ -71,7 +71,7 @@ namespace OdinSerializer
         }
 
         /// <summary>
-        /// Gets or sets the debug context. This value is never null; if set to null, a new default instance of <see cref="OdinSerializer.DebugContext"/> will be created upon the next get.
+        /// Gets or sets the debug context. This value is never null; if set to null, a new default instance of <see cref="DebugContext"/> will be created upon the next get.
         /// </summary>
         /// <value>
         /// The debug context.

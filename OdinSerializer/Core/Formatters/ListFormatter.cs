@@ -29,10 +29,10 @@ namespace OdinSerializer
     /// Custom generic formatter for the generic type definition <see cref="List{T}"/>.
     /// </summary>
     /// <typeparam name="T">The element type of the formatted list.</typeparam>
-    /// <seealso cref="OdinSerializer.BaseFormatter{System.Collections.Generic.List{T}}" />
+    /// <seealso cref="BaseFormatter{System.Collections.Generic.List{T}}" />
     public class ListFormatter<T> : BaseFormatter<List<T>>
     {
-        private static readonly Serializer<T> Serializer = OdinSerializer.Serializer.Get<T>();
+        private static readonly Serializer<T> TSerializer = Serializer.Get<T>();
 
         static ListFormatter()
         {
@@ -88,7 +88,7 @@ namespace OdinSerializer
                             break;
                         }
 
-                        value.Add(Serializer.ReadValue(reader));
+                        value.Add(TSerializer.ReadValue(reader));
 
                         if (reader.IsInArrayNode == false)
                         {
@@ -124,7 +124,7 @@ namespace OdinSerializer
                 {
                     try
                     {
-                        Serializer.WriteValue(value[i], writer);
+                        TSerializer.WriteValue(value[i], writer);
                     }
                     catch (Exception ex)
                     {

@@ -26,8 +26,8 @@ namespace OdinSerializer
     /// <para />
     /// If you inherit this class, it is VERY IMPORTANT that you implement each abstract method to the *exact* specifications the documentation specifies.
     /// </summary>
-    /// <seealso cref="OdinSerializer.BaseDataReaderWriter" />
-    /// <seealso cref="OdinSerializer.IDataWriter" />
+    /// <seealso cref="BaseDataReaderWriter" />
+    /// <seealso cref="IDataWriter" />
     public abstract class BaseDataWriter : BaseDataReaderWriter, IDataWriter
     {
         private SerializationContext context;

@@ -71,7 +71,7 @@ namespace OdinSerializer
     /// <summary>
     /// Provides a default, catch-all <see cref="TwoWaySerializationBinder"/> implementation. This binder only includes assembly names, without versions and tokens, in order to increase compatibility.
     /// </summary>
-    /// <seealso cref="OdinSerializer.TwoWaySerializationBinder" />
+    /// <seealso cref="TwoWaySerializationBinder" />
     /// <seealso cref="BindTypeNameToTypeAttribute" />
     public class DefaultSerializationBinder : TwoWaySerializationBinder
     {

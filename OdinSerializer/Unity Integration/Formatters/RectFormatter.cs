@@ -27,10 +27,10 @@ namespace OdinSerializer
     /// <summary>
     /// Custom formatter for the <see cref="Rect"/> type.
     /// </summary>
-    /// <seealso cref="OdinSerializer.MinimalBaseFormatter{UnityEngine.Rect}" />
+    /// <seealso cref="MinimalBaseFormatter{UnityEngine.Rect}" />
     public class RectFormatter : MinimalBaseFormatter<Rect>
     {
-        private static readonly Serializer<float> Serializer = OdinSerializer.Serializer.Get<float>();
+        private static readonly Serializer<float> FloatSerializer = Serializer.Get<float>();
 
         /// <summary>
         /// Reads into the specified value using the specified reader.
@@ -39,10 +39,10 @@ namespace OdinSerializer
         /// <param name="reader">The reader to use.</param>
         protected override void Read(ref Rect value, IDataReader reader)
         {
-            value.x = RectFormatter.Serializer.ReadValue(reader);
-            value.y = RectFormatter.Serializer.ReadValue(reader);
-            value.width = RectFormatter.Serializer.ReadValue(reader);
-            value.height = RectFormatter.Serializer.ReadValue(reader);
+            value.x = RectFormatter.FloatSerializer.ReadValue(reader);
+            value.y = RectFormatter.FloatSerializer.ReadValue(reader);
+            value.width = RectFormatter.FloatSerializer.ReadValue(reader);
+            value.height = RectFormatter.FloatSerializer.ReadValue(reader);
         }
 
         /// <summary>
@@ -52,10 +52,10 @@ namespace OdinSerializer
         /// <param name="writer">The writer to use.</param>
         protected override void Write(ref Rect value, IDataWriter writer)
         {
-            RectFormatter.Serializer.WriteValue(value.x, writer);
-            RectFormatter.Serializer.WriteValue(value.y, writer);
-            RectFormatter.Serializer.WriteValue(value.width, writer);
-            RectFormatter.Serializer.WriteValue(value.height, writer);
+            RectFormatter.FloatSerializer.WriteValue(value.x, writer);
+            RectFormatter.FloatSerializer.WriteValue(value.y, writer);
+            RectFormatter.FloatSerializer.WriteValue(value.width, writer);
+            RectFormatter.FloatSerializer.WriteValue(value.height, writer);
         }
     }
 }

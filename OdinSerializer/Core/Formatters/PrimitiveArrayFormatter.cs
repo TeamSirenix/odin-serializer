@@ -22,7 +22,7 @@ namespace OdinSerializer
     /// Formatter for all primitive one-dimensional arrays.
     /// </summary>
     /// <typeparam name="T">The element type of the formatted array. This type must be an eligible primitive array type, as determined by <see cref="FormatterUtilities.IsPrimitiveArrayType(System.Type)"/>.</typeparam>
-    /// <seealso cref="OdinSerializer.MinimalBaseFormatter{T[]}" />
+    /// <seealso cref="MinimalBaseFormatter{T[]}" />
     public sealed class PrimitiveArrayFormatter<T> : MinimalBaseFormatter<T[]> where T : struct
     {
         /// <summary>

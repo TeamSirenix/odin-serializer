@@ -15,7 +15,10 @@
 // limitations under the License.
 // </copyright>
 //-----------------------------------------------------------------------
-[assembly: OdinSerializer.RegisterDictionaryKeyPathProvider(typeof(OdinSerializer.Vector4DictionaryKeyPathProvider))]
+
+using OdinSerializer;
+
+[assembly: RegisterDictionaryKeyPathProvider(typeof(Vector4DictionaryKeyPathProvider))]
 
 namespace OdinSerializer
 {

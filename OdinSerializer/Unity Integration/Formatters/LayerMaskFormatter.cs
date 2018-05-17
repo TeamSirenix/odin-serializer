@@ -27,10 +27,10 @@ namespace OdinSerializer
     /// <summary>
     /// Custom formatter for the <see cref="LayerMask"/> type.
     /// </summary>
-    /// <seealso cref="OdinSerializer.MinimalBaseFormatter{UnityEngine.LayerMask}" />
+    /// <seealso cref="MinimalBaseFormatter{UnityEngine.LayerMask}" />
     public class LayerMaskFormatter : MinimalBaseFormatter<LayerMask>
     {
-        private static readonly Serializer<int> Serializer = OdinSerializer.Serializer.Get<int>();
+        private static readonly Serializer<int> IntSerializer = Serializer.Get<int>();
 
         /// <summary>
         /// Reads into the specified value using the specified reader.
@@ -39,7 +39,7 @@ namespace OdinSerializer
         /// <param name="reader">The reader to use.</param>
         protected override void Read(ref LayerMask value, IDataReader reader)
         {
-            value.value = LayerMaskFormatter.Serializer.ReadValue(reader);
+            value.value = LayerMaskFormatter.IntSerializer.ReadValue(reader);
         }
 
         /// <summary>
@@ -49,7 +49,7 @@ namespace OdinSerializer
         /// <param name="writer">The writer to use.</param>
         protected override void Write(ref LayerMask value, IDataWriter writer)
         {
-            LayerMaskFormatter.Serializer.WriteValue(value.value, writer);
+            LayerMaskFormatter.IntSerializer.WriteValue(value.value, writer);
         }
     }
 }

@@ -28,7 +28,7 @@ namespace OdinSerializer
     /// <summary>
     /// Custom formatter for the <see cref="DateTimeOffset"/> type.
     /// </summary>
-    /// <seealso cref="OdinSerializer.MinimalBaseFormatter{System.DateTimeOffset}" />
+    /// <seealso cref="MinimalBaseFormatter{System.DateTimeOffset}" />
     public sealed class DateTimeOffsetFormatter : MinimalBaseFormatter<DateTimeOffset>
     {
         /// <summary>

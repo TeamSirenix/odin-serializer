@@ -25,7 +25,7 @@ namespace OdinSerializer
     /// Serializer for all complex types; IE, types which are not primitives as determined by the <see cref="FormatterUtilities.IsPrimitiveType(Type)" /> method.
     /// </summary>
     /// <typeparam name="T">The type which the <see cref="ComplexTypeSerializer{T}" /> can serialize and deserialize.</typeparam>
-    /// <seealso cref="OdinSerializer.Serializer{T}" />
+    /// <seealso cref="Serializer{T}" />
     public sealed class ComplexTypeSerializer<T> : Serializer<T>
     {
         private static readonly bool ComplexTypeMayBeBoxedValueType = typeof(T) == typeof(object) || typeof(T) == typeof(ValueType);

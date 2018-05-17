@@ -26,7 +26,7 @@ namespace OdinSerializer
     /// Formatter for all types that implement the ISerializable interface.
     /// </summary>
     /// <typeparam name="T">The type which can be serialized and deserialized by the formatter.</typeparam>
-    /// <seealso cref="OdinSerializer.BaseFormatter{T}" />
+    /// <seealso cref="BaseFormatter{T}" />
     public sealed class SerializableFormatter<T> : BaseFormatter<T> where T : ISerializable
     {
         private static readonly Func<SerializationInfo, StreamingContext, T> ISerializableConstructor;

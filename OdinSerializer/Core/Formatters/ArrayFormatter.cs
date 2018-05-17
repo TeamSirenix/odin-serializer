@@ -22,7 +22,7 @@ namespace OdinSerializer
     /// Formatter for all non-primitive one-dimensional arrays.
     /// </summary>
     /// <typeparam name="T">The element type of the formatted array.</typeparam>
-    /// <seealso cref="OdinSerializer.BaseFormatter{T[]}" />
+    /// <seealso cref="BaseFormatter{T[]}" />
     public sealed class ArrayFormatter<T> : BaseFormatter<T[]>
     {
         private static Serializer<T> valueReaderWriter = Serializer.Get<T>();

@@ -16,7 +16,9 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
-[assembly: OdinSerializer.RegisterDictionaryKeyPathProvider(typeof(OdinSerializer.Vector2DictionaryKeyPathProvider))]
+using OdinSerializer;
+
+[assembly: RegisterDictionaryKeyPathProvider(typeof(Vector2DictionaryKeyPathProvider))]
 
 namespace OdinSerializer
 {

@@ -15,7 +15,6 @@
 // limitations under the License.
 // </copyright>
 //-----------------------------------------------------------------------
-using System;
 
 namespace OdinSerializer
 {
@@ -23,7 +22,7 @@ namespace OdinSerializer
     /// Formatter for types that implement the <see cref="ISelfFormatter"/> interface.
     /// </summary>
     /// <typeparam name="T"></typeparam>
-    /// <seealso cref="OdinSerializer.BaseFormatter{T}" />
+    /// <seealso cref="BaseFormatter{T}" />
     public sealed class SelfFormatterFormatter<T> : BaseFormatter<T> where T : ISelfFormatter
     {
         /// <summary>

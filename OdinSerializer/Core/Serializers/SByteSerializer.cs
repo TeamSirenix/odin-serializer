@@ -16,14 +16,12 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
-using System.Globalization;
-
 namespace OdinSerializer
 {
     /// <summary>
     /// Serializer for the <see cref="sbyte"/> type.
     /// </summary>
-    /// <seealso cref="OdinSerializer.Serializer{System.SByte}" />
+    /// <seealso cref="Serializer{System.SByte}" />
     public sealed class SByteSerializer : Serializer<sbyte>
     {
         /// <summary>

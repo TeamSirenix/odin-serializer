@@ -16,14 +16,12 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
-using System.Globalization;
-
 namespace OdinSerializer
 {
     /// <summary>
     /// Serializer for the <see cref="ulong"/> type.
     /// </summary>
-    /// <seealso cref="OdinSerializer.Serializer{System.UInt64}" />
+    /// <seealso cref="Serializer{System.UInt64}" />
     public sealed class UInt64Serializer : Serializer<ulong>
     {
         /// <summary>

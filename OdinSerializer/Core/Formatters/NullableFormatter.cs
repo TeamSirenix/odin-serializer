@@ -28,7 +28,7 @@ namespace OdinSerializer
     /// Formatter for all <see cref="System.Nullable{T}"/> types.
     /// </summary>
     /// <typeparam name="T">The type that is nullable.</typeparam>
-    /// <seealso cref="OdinSerializer.BaseFormatter{T?}" />
+    /// <seealso cref="BaseFormatter{T?}" />
     public sealed class NullableFormatter<T> : BaseFormatter<T?> where T : struct
     {
         private static readonly Serializer<T> TSerializer = Serializer.Get<T>();

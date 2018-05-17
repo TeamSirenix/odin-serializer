@@ -28,10 +28,10 @@ namespace OdinSerializer
     /// <summary>
     /// Custom formatter for the type <see cref="ArrayList"/>.
     /// </summary>
-    /// <seealso cref="OdinSerializer.BaseFormatter{System.Collections.Generic.List{T}}" />
+    /// <seealso cref="BaseFormatter{System.Collections.Generic.List{T}}" />
     public class ArrayListFormatter : BaseFormatter<ArrayList>
     {
-        private static readonly Serializer<object> Serializer = OdinSerializer.Serializer.Get<object>();
+        private static readonly Serializer<object> ObjectSerializer = Serializer.Get<object>();
 
         /// <summary>
         /// Returns null.
@@ -75,7 +75,7 @@ namespace OdinSerializer
                             break;
                         }
 
-                        value.Add(Serializer.ReadValue(reader));
+                        value.Add(ObjectSerializer.ReadValue(reader));
 
                         if (reader.IsInArrayNode == false)
                         {
@@ -111,7 +111,7 @@ namespace OdinSerializer
                 {
                     try
                     {
-                        Serializer.WriteValue(value[i], writer);
+                        ObjectSerializer.WriteValue(value[i], writer);
                     }
                     catch (Exception ex)
                     {

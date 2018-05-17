@@ -16,8 +16,6 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
-using System.Globalization;
-
 namespace OdinSerializer
 {
     using System;
@@ -25,7 +23,7 @@ namespace OdinSerializer
     /// <summary>
     /// Serializer for the <see cref="IntPtr"/> type.
     /// </summary>
-    /// <seealso cref="OdinSerializer.Serializer{System.IntPtr}" />
+    /// <seealso cref="Serializer{System.IntPtr}" />
     public sealed class IntPtrSerializer : Serializer<IntPtr>
     {
         /// <summary>

@@ -228,10 +228,10 @@ namespace OdinSerializer.Utilities
         }
 
         /// <summary>
-        /// Gets the <see cref="OdinSerializer.Utilities.AssemblyTypeFlags"/> for a given assembly.
+        /// Gets the <see cref="AssemblyTypeFlags"/> for a given assembly.
         /// </summary>
         /// <param name="assembly">The assembly.</param>
-        /// <returns>The <see cref="OdinSerializer.Utilities.AssemblyTypeFlags"/> for a given assembly.</returns>
+        /// <returns>The <see cref="AssemblyTypeFlags"/> for a given assembly.</returns>
         /// <exception cref="System.NullReferenceException"><paramref name="assembly"/> is null.</exception>
         public static AssemblyTypeFlags GetAssemblyTypeFlag(this Assembly assembly)
         {
@@ -515,10 +515,10 @@ namespace OdinSerializer.Utilities
         }
 
         /// <summary>
-        /// Get types from the current AppDomain with a specified <see cref="OdinSerializer.Utilities.AssemblyTypeFlags"/> filter.
+        /// Get types from the current AppDomain with a specified <see cref="AssemblyTypeFlags"/> filter.
         /// </summary>
-        /// <param name="assemblyTypeFlags">The <see cref="OdinSerializer.Utilities.AssemblyTypeFlags"/> filters.</param>
-        /// <returns>Types from the current AppDomain with the specified <see cref="OdinSerializer.Utilities.AssemblyTypeFlags"/> filters.</returns>
+        /// <param name="assemblyTypeFlags">The <see cref="AssemblyTypeFlags"/> filters.</param>
+        /// <returns>Types from the current AppDomain with the specified <see cref="AssemblyTypeFlags"/> filters.</returns>
         public static IEnumerable<Type> GetTypes(AssemblyTypeFlags assemblyTypeFlags)
         {
             bool includeUserTypes = (assemblyTypeFlags & AssemblyTypeFlags.UserTypes) == AssemblyTypeFlags.UserTypes;

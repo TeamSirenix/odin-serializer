@@ -27,10 +27,10 @@ namespace OdinSerializer
     /// <summary>
     /// Custom formatter for the <see cref="Vector2"/> type.
     /// </summary>
-    /// <seealso cref="OdinSerializer.MinimalBaseFormatter{UnityEngine.Vector2}" />
+    /// <seealso cref="MinimalBaseFormatter{UnityEngine.Vector2}" />
     public class Vector2Formatter : MinimalBaseFormatter<Vector2>
     {
-        private static readonly Serializer<float> Serializer = OdinSerializer.Serializer.Get<float>();
+        private static readonly Serializer<float> FloatSerializer = Serializer.Get<float>();
 
         /// <summary>
         /// Reads into the specified value using the specified reader.
@@ -39,8 +39,8 @@ namespace OdinSerializer
         /// <param name="reader">The reader to use.</param>
         protected override void Read(ref Vector2 value, IDataReader reader)
         {
-            value.x = Vector2Formatter.Serializer.ReadValue(reader);
-            value.y = Vector2Formatter.Serializer.ReadValue(reader);
+            value.x = Vector2Formatter.FloatSerializer.ReadValue(reader);
+            value.y = Vector2Formatter.FloatSerializer.ReadValue(reader);
         }
 
         /// <summary>
@@ -50,8 +50,8 @@ namespace OdinSerializer
         /// <param name="writer">The writer to use.</param>
         protected override void Write(ref Vector2 value, IDataWriter writer)
         {
-            Vector2Formatter.Serializer.WriteValue(value.x, writer);
-            Vector2Formatter.Serializer.WriteValue(value.y, writer);
+            Vector2Formatter.FloatSerializer.WriteValue(value.x, writer);
+            Vector2Formatter.FloatSerializer.WriteValue(value.y, writer);
         }
     }
 }

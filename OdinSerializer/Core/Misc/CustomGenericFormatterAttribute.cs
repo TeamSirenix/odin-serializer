@@ -27,7 +27,7 @@ namespace OdinSerializer
     /// <para />
     /// For example, <see cref="DictionaryFormatter{TKey, TValue}"/> implements <see cref="IFormatter{T}"/>, where T is <see cref="System.Collections.Generic.Dictionary{TKey, TValue}"/>.
     /// </summary>
-    /// <seealso cref="OdinSerializer.CustomFormatterAttribute" />
+    /// <seealso cref="CustomFormatterAttribute" />
     [AttributeUsage(AttributeTargets.Class)]
     [Obsolete("Use a RegisterFormatterAttribute applied to the containing assembly instead.", true)]
     public class CustomGenericFormatterAttribute : CustomFormatterAttribute

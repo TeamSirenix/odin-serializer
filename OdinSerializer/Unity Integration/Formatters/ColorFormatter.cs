@@ -27,10 +27,10 @@ namespace OdinSerializer
     /// <summary>
     /// Custom formatter for the <see cref="Color"/> type.
     /// </summary>
-    /// <seealso cref="OdinSerializer.MinimalBaseFormatter{UnityEngine.Color}" />
+    /// <seealso cref="MinimalBaseFormatter{UnityEngine.Color}" />
     public class ColorFormatter : MinimalBaseFormatter<Color>
     {
-        private static readonly Serializer<float> Serializer = OdinSerializer.Serializer.Get<float>();
+        private static readonly Serializer<float> FloatSerializer = Serializer.Get<float>();
 
         /// <summary>
         /// Reads into the specified value using the specified reader.
@@ -39,10 +39,10 @@ namespace OdinSerializer
         /// <param name="reader">The reader to use.</param>
         protected override void Read(ref Color value, IDataReader reader)
         {
-            value.r = ColorFormatter.Serializer.ReadValue(reader);
-            value.g = ColorFormatter.Serializer.ReadValue(reader);
-            value.b = ColorFormatter.Serializer.ReadValue(reader);
-            value.a = ColorFormatter.Serializer.ReadValue(reader);
+            value.r = ColorFormatter.FloatSerializer.ReadValue(reader);
+            value.g = ColorFormatter.FloatSerializer.ReadValue(reader);
+            value.b = ColorFormatter.FloatSerializer.ReadValue(reader);
+            value.a = ColorFormatter.FloatSerializer.ReadValue(reader);
         }
 
         /// <summary>
@@ -52,10 +52,10 @@ namespace OdinSerializer
         /// <param name="writer">The writer to use.</param>
         protected override void Write(ref Color value, IDataWriter writer)
         {
-            ColorFormatter.Serializer.WriteValue(value.r, writer);
-            ColorFormatter.Serializer.WriteValue(value.g, writer);
-            ColorFormatter.Serializer.WriteValue(value.b, writer);
-            ColorFormatter.Serializer.WriteValue(value.a, writer);
+            ColorFormatter.FloatSerializer.WriteValue(value.r, writer);
+            ColorFormatter.FloatSerializer.WriteValue(value.g, writer);
+            ColorFormatter.FloatSerializer.WriteValue(value.b, writer);
+            ColorFormatter.FloatSerializer.WriteValue(value.a, writer);
         }
     }
 }

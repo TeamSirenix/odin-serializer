@@ -16,14 +16,12 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
-using System.Globalization;
-
 namespace OdinSerializer
 {
     /// <summary>
     /// Serializer for the <see cref="uint"/> type.
     /// </summary>
-    /// <seealso cref="OdinSerializer.Serializer{System.UInt32}" />
+    /// <seealso cref="Serializer{System.UInt32}" />
     public sealed class UInt32Serializer : Serializer<uint>
     {
         /// <summary>

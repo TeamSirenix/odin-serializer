@@ -27,7 +27,7 @@ namespace OdinSerializer
     /// <summary>
     /// Custom formatter for the <see cref="DateTime"/> type.
     /// </summary>
-    /// <seealso cref="OdinSerializer.MinimalBaseFormatter{System.DateTime}" />
+    /// <seealso cref="MinimalBaseFormatter{System.DateTime}" />
     public sealed class DateTimeFormatter : MinimalBaseFormatter<DateTime>
     {
         /// <summary>

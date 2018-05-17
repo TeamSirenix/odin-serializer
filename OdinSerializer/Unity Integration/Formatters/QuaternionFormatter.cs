@@ -27,10 +27,10 @@ namespace OdinSerializer
     /// <summary>
     /// Custom formatter for the <see cref="Quaternion"/> type.
     /// </summary>
-    /// <seealso cref="OdinSerializer.MinimalBaseFormatter{UnityEngine.Quaternion}" />
+    /// <seealso cref="MinimalBaseFormatter{UnityEngine.Quaternion}" />
     public class QuaternionFormatter : MinimalBaseFormatter<Quaternion>
     {
-        private static readonly Serializer<float> Serializer = OdinSerializer.Serializer.Get<float>();
+        private static readonly Serializer<float> FloatSerializer = Serializer.Get<float>();
 
         /// <summary>
         /// Reads into the specified value using the specified reader.
@@ -39,10 +39,10 @@ namespace OdinSerializer
         /// <param name="reader">The reader to use.</param>
         protected override void Read(ref Quaternion value, IDataReader reader)
         {
-            value.x = QuaternionFormatter.Serializer.ReadValue(reader);
-            value.y = QuaternionFormatter.Serializer.ReadValue(reader);
-            value.z = QuaternionFormatter.Serializer.ReadValue(reader);
-            value.w = QuaternionFormatter.Serializer.ReadValue(reader);
+            value.x = QuaternionFormatter.FloatSerializer.ReadValue(reader);
+            value.y = QuaternionFormatter.FloatSerializer.ReadValue(reader);
+            value.z = QuaternionFormatter.FloatSerializer.ReadValue(reader);
+            value.w = QuaternionFormatter.FloatSerializer.ReadValue(reader);
         }
 
         /// <summary>
@@ -52,10 +52,10 @@ namespace OdinSerializer
         /// <param name="writer">The writer to use.</param>
         protected override void Write(ref Quaternion value, IDataWriter writer)
         {
-            QuaternionFormatter.Serializer.WriteValue(value.x, writer);
-            QuaternionFormatter.Serializer.WriteValue(value.y, writer);
-            QuaternionFormatter.Serializer.WriteValue(value.z, writer);
-            QuaternionFormatter.Serializer.WriteValue(value.w, writer);
+            QuaternionFormatter.FloatSerializer.WriteValue(value.x, writer);
+            QuaternionFormatter.FloatSerializer.WriteValue(value.y, writer);
+            QuaternionFormatter.FloatSerializer.WriteValue(value.z, writer);
+            QuaternionFormatter.FloatSerializer.WriteValue(value.w, writer);
         }
     }
 }

@@ -16,14 +16,12 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
-using System.Globalization;
-
 namespace OdinSerializer
 {
     /// <summary>
     /// Serializer for the <see cref="string"/> type.
     /// </summary>
-    /// <seealso cref="OdinSerializer.Serializer{System.String}" />
+    /// <seealso cref="Serializer{System.String}" />
     public sealed class StringSerializer : Serializer<string>
     {
         /// <summary>

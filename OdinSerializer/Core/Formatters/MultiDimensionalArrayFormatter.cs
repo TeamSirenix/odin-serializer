@@ -28,7 +28,7 @@ namespace OdinSerializer
     /// </summary>
     /// <typeparam name="TArray">The type of the formatted array.</typeparam>
     /// <typeparam name="TElement">The element type of the formatted array.</typeparam>
-    /// <seealso cref="OdinSerializer.BaseFormatter{TArray}" />
+    /// <seealso cref="BaseFormatter{TArray}" />
     public sealed class MultiDimensionalArrayFormatter<TArray, TElement> : BaseFormatter<TArray> where TArray : class
     {
         private const string RANKS_NAME = "ranks";

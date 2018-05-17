@@ -22,7 +22,7 @@ namespace OdinSerializer.Utilities
     /// <summary>
     /// AssemblyTypeFlags is a bitmask used to filter types and assemblies related to Unity.
     /// </summary>
-    /// <seealso cref="OdinSerializer.Utilities.AssemblyUtilities"/>
+    /// <seealso cref="AssemblyUtilities"/>
     [Flags]
     public enum AssemblyTypeFlags
     {

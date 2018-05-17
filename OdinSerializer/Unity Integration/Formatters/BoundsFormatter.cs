@@ -27,10 +27,10 @@ namespace OdinSerializer
     /// <summary>
     /// Custom formatter for the <see cref="Bounds"/> type.
     /// </summary>
-    /// <seealso cref="OdinSerializer.MinimalBaseFormatter{UnityEngine.Bounds}" />
+    /// <seealso cref="MinimalBaseFormatter{UnityEngine.Bounds}" />
     public class BoundsFormatter : MinimalBaseFormatter<Bounds>
     {
-        private static readonly Serializer<Vector3> Serializer = OdinSerializer.Serializer.Get<Vector3>();
+        private static readonly Serializer<Vector3> Vector3Serializer = Serializer.Get<Vector3>();
 
         /// <summary>
         /// Reads into the specified value using the specified reader.
@@ -39,8 +39,8 @@ namespace OdinSerializer
         /// <param name="reader">The reader to use.</param>
         protected override void Read(ref Bounds value, IDataReader reader)
         {
-            value.center = Serializer.ReadValue(reader);
-            value.size = Serializer.ReadValue(reader);
+            value.center = Vector3Serializer.ReadValue(reader);
+            value.size = Vector3Serializer.ReadValue(reader);
         }
 
         /// <summary>
@@ -50,8 +50,8 @@ namespace OdinSerializer
         /// <param name="writer">The writer to use.</param>
         protected override void Write(ref Bounds value, IDataWriter writer)
         {
-            Serializer.WriteValue(value.center, writer);
-            Serializer.WriteValue(value.size, writer);
+            Vector3Serializer.WriteValue(value.center, writer);
+            Vector3Serializer.WriteValue(value.size, writer);
         }
     }
 }

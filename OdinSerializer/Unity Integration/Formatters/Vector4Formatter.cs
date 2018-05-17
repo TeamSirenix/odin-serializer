@@ -27,10 +27,10 @@ namespace OdinSerializer
     /// <summary>
     /// Custom formatter for the <see cref="Vector4"/> type.
     /// </summary>
-    /// <seealso cref="OdinSerializer.MinimalBaseFormatter{UnityEngine.Vector4}" />
+    /// <seealso cref="MinimalBaseFormatter{UnityEngine.Vector4}" />
     public class Vector4Formatter : MinimalBaseFormatter<Vector4>
     {
-        private static readonly Serializer<float> Serializer = OdinSerializer.Serializer.Get<float>();
+        private static readonly Serializer<float> FloatSerializer = Serializer.Get<float>();
 
         /// <summary>
         /// Reads into the specified value using the specified reader.
@@ -39,10 +39,10 @@ namespace OdinSerializer
         /// <param name="reader">The reader to use.</param>
         protected override void Read(ref Vector4 value, IDataReader reader)
         {
-            value.x = Vector4Formatter.Serializer.ReadValue(reader);
-            value.y = Vector4Formatter.Serializer.ReadValue(reader);
-            value.z = Vector4Formatter.Serializer.ReadValue(reader);
-            value.w = Vector4Formatter.Serializer.ReadValue(reader);
+            value.x = Vector4Formatter.FloatSerializer.ReadValue(reader);
+            value.y = Vector4Formatter.FloatSerializer.ReadValue(reader);
+            value.z = Vector4Formatter.FloatSerializer.ReadValue(reader);
+            value.w = Vector4Formatter.FloatSerializer.ReadValue(reader);
         }
 
         /// <summary>
@@ -52,10 +52,10 @@ namespace OdinSerializer
         /// <param name="writer">The writer to use.</param>
         protected override void Write(ref Vector4 value, IDataWriter writer)
         {
-            Vector4Formatter.Serializer.WriteValue(value.x, writer);
-            Vector4Formatter.Serializer.WriteValue(value.y, writer);
-            Vector4Formatter.Serializer.WriteValue(value.z, writer);
-            Vector4Formatter.Serializer.WriteValue(value.w, writer);
+            Vector4Formatter.FloatSerializer.WriteValue(value.x, writer);
+            Vector4Formatter.FloatSerializer.WriteValue(value.y, writer);
+            Vector4Formatter.FloatSerializer.WriteValue(value.z, writer);
+            Vector4Formatter.FloatSerializer.WriteValue(value.w, writer);
         }
     }
 }

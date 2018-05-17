@@ -30,7 +30,7 @@ namespace OdinSerializer
     /// <see cref="IObjectReference"/>, <see cref="ISerializationCallbackReceiver"/>, <see cref="OnSerializingAttribute"/>, <see cref="OnSerializedAttribute"/>, <see cref="OnDeserializingAttribute"/> and <see cref="OnDeserializedAttribute"/>.
     /// </summary>
     /// <typeparam name="T">The type which can be serialized and deserialized by the formatter.</typeparam>
-    /// <seealso cref="OdinSerializer.IFormatter{T}" />
+    /// <seealso cref="IFormatter{T}" />
     public abstract class BaseFormatter<T> : IFormatter<T>
     {
         /// <summary>

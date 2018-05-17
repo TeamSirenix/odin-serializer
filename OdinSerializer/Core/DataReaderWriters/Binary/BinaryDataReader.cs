@@ -26,7 +26,7 @@ namespace OdinSerializer
     /// <summary>
     /// Reads data from a stream that has been written by a <see cref="BinaryDataWriter"/>.
     /// </summary>
-    /// <seealso cref="OdinSerializer.BaseDataReader" />
+    /// <seealso cref="BaseDataReader" />
     public class BinaryDataReader : BaseDataReader
     {
         private static readonly Dictionary<Type, Delegate> PrimitiveFromByteMethods = new Dictionary<Type, Delegate>()

@@ -27,10 +27,10 @@ namespace OdinSerializer
     /// <summary>
     /// Custom formatter for the <see cref="Color32"/> type.
     /// </summary>
-    /// <seealso cref="OdinSerializer.MinimalBaseFormatter{UnityEngine.Color32}" />
+    /// <seealso cref="MinimalBaseFormatter{UnityEngine.Color32}" />
     public class Color32Formatter : MinimalBaseFormatter<Color32>
     {
-        private static readonly Serializer<byte> Serializer = OdinSerializer.Serializer.Get<byte>();
+        private static readonly Serializer<byte> ByteSerializer = Serializer.Get<byte>();
 
         /// <summary>
         /// Reads into the specified value using the specified reader.
@@ -39,10 +39,10 @@ namespace OdinSerializer
         /// <param name="reader">The reader to use.</param>
         protected override void Read(ref Color32 value, IDataReader reader)
         {
-            value.r = Color32Formatter.Serializer.ReadValue(reader);
-            value.g = Color32Formatter.Serializer.ReadValue(reader);
-            value.b = Color32Formatter.Serializer.ReadValue(reader);
-            value.a = Color32Formatter.Serializer.ReadValue(reader);
+            value.r = Color32Formatter.ByteSerializer.ReadValue(reader);
+            value.g = Color32Formatter.ByteSerializer.ReadValue(reader);
+            value.b = Color32Formatter.ByteSerializer.ReadValue(reader);
+            value.a = Color32Formatter.ByteSerializer.ReadValue(reader);
         }
 
         /// <summary>
@@ -52,10 +52,10 @@ namespace OdinSerializer
         /// <param name="writer">The writer to use.</param>
         protected override void Write(ref Color32 value, IDataWriter writer)
         {
-            Color32Formatter.Serializer.WriteValue(value.r, writer);
-            Color32Formatter.Serializer.WriteValue(value.g, writer);
-            Color32Formatter.Serializer.WriteValue(value.b, writer);
-            Color32Formatter.Serializer.WriteValue(value.a, writer);
+            Color32Formatter.ByteSerializer.WriteValue(value.r, writer);
+            Color32Formatter.ByteSerializer.WriteValue(value.g, writer);
+            Color32Formatter.ByteSerializer.WriteValue(value.b, writer);
+            Color32Formatter.ByteSerializer.WriteValue(value.a, writer);
         }
     }
 }

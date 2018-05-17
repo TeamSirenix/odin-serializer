@@ -29,10 +29,10 @@ namespace OdinSerializer
     /// Custom generic formatter for the generic type definition <see cref="HashSet{T}"/>.
     /// </summary>
     /// <typeparam name="T">The element type of the formatted list.</typeparam>
-    /// <seealso cref="OdinSerializer.BaseFormatter{System.Collections.Generic.HashSet{T}}" />
+    /// <seealso cref="BaseFormatter{System.Collections.Generic.HashSet{T}}" />
     public class HashSetFormatter<T> : BaseFormatter<HashSet<T>>
     {
-        private static readonly Serializer<T> Serializer = OdinSerializer.Serializer.Get<T>();
+        private static readonly Serializer<T> TSerializer = Serializer.Get<T>();
 
         static HashSetFormatter()
         {
@@ -88,7 +88,7 @@ namespace OdinSerializer
                             break;
                         }
 
-                        value.Add(Serializer.ReadValue(reader));
+                        value.Add(TSerializer.ReadValue(reader));
 
                         if (reader.IsInArrayNode == false)
                         {
@@ -124,7 +124,7 @@ namespace OdinSerializer
                 {
                     try
                     {
-                        Serializer.WriteValue(item, writer);
+                        TSerializer.WriteValue(item, writer);
                     }
                     catch (Exception ex)
                     {

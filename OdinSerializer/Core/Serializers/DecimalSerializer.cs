@@ -16,14 +16,12 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
-using System.Globalization;
-
 namespace OdinSerializer
 {
     /// <summary>
     /// Serializer for the <see cref="decimal"/> type.
     /// </summary>
-    /// <seealso cref="OdinSerializer.Serializer{System.Decimal}" />
+    /// <seealso cref="Serializer{System.Decimal}" />
     public sealed class DecimalSerializer : Serializer<decimal>
     {
         /// <summary>
