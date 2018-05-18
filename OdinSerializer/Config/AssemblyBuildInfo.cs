@@ -44,7 +44,7 @@ namespace OdinSerializer.Utilities.Editor
             {
                 var buildGroup = EditorUserBuildSettings.selectedBuildTargetGroup;
 
-#if UNITY_2017_1_OR_NEWER
+#if UNITY_5_6_OR_NEWER
                 var backend = PlayerSettings.GetScriptingBackend(buildGroup);
 #else
                 var backend = (ScriptingImplementation)PlayerSettings.GetPropertyInt("ScriptingBackend", buildGroup);
