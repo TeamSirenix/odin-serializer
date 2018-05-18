@@ -29,7 +29,7 @@ namespace OdinSerializer
         public bool TryGetFormatter(Type type, FormatterLocationStep step, ISerializationPolicy policy, out IFormatter formatter)
         {
             Type elementType;
-            if (!GenericCollectionFormatter.CanFormat(type, out elementType))
+            if (step != FormatterLocationStep.AfterRegisteredFormatters || !GenericCollectionFormatter.CanFormat(type, out elementType))
             {
                 formatter = null;
                 return false;
