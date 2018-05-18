@@ -34,7 +34,7 @@ namespace OdinSerializer.Editor
 
     public static class AOTSupportUtilities
     {
-        public static bool ScanProjectForSerializedTypes(out List<Type> serializedTypes, bool excludeAssemblyDefinitionsWithEditorReference = true)
+        public static bool ScanProjectForSerializedTypes(out List<Type> serializedTypes, bool excludeAssemblyDefinitionsWithEditorReference = false)
         {
             serializedTypes = null;
 
