@@ -18,12 +18,12 @@
 namespace OdinSerializer
 {
     /// <summary>
-    /// Not yet documented.
+    /// Indicates that an Odin-serialized Unity object supports prefab serialization.
     /// </summary>
     public interface ISupportsPrefabSerialization
     {
         /// <summary>
-        /// Not yet documented.
+        /// Gets or sets the serialization data of the object.
         /// </summary>
         SerializationData SerializationData { get; set; }
     }

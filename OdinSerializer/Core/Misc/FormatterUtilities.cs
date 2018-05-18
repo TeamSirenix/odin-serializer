@@ -346,7 +346,7 @@ You probably need to assign the nullValue variable of the {0} script in the insp
         }
 
         /// <summary>
-        /// Not yet documented.
+        /// Gets an aliased version of a member, with the declaring type name included in the member name, so that there are no conflicts with private fields and properties with the same name in different classes in the same inheritance hierarchy.
         /// </summary>
         public static MemberInfo GetPrivateMemberAlias(MemberInfo member, string prefixString = null, string separatorString = null)
         {

@@ -31,7 +31,7 @@ namespace OdinSerializer
         private Action<Exception> logExceptionDelegate;
 
         /// <summary>
-        /// Not yet documented.
+        /// Creates a new custom logger using a set of given delegates.
         /// </summary>
         public CustomLogger(Action<string> logWarningDelegate, Action<string> logErrorDelegate, Action<Exception> logExceptionDelegate)
         {
@@ -56,24 +56,27 @@ namespace OdinSerializer
         }
 
         /// <summary>
-        /// Not yet documented.
+        /// Logs a warning.
         /// </summary>
+        /// <param name="warning">The warning to log.</param>
         public void LogWarning(string warning)
         {
             this.logWarningDelegate(warning);
         }
 
         /// <summary>
-        /// Not yet documented.
+        /// Logs an error.
         /// </summary>
+        /// <param name="error">The error to log.</param>
         public void LogError(string error)
         {
             this.logErrorDelegate(error);
         }
 
         /// <summary>
-        /// Not yet documented.
+        /// Logs an exception.
         /// </summary>
+        /// <param name="exception">The exception to log.</param>
         public void LogException(Exception exception)
         {
             this.logExceptionDelegate(exception);

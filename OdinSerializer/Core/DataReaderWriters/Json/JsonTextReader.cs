@@ -56,7 +56,7 @@ namespace OdinSerializer
         private Queue<char> emergencyPlayback;
 
         /// <summary>
-        /// Not yet documented.
+        /// The current deserialization context used by the text reader.
         /// </summary>
         public DeserializationContext Context { get; private set; }
 
@@ -89,7 +89,7 @@ namespace OdinSerializer
         }
 
         /// <summary>
-        /// Not yet documented.
+        /// Resets the reader instance's currently peeked char and emergency playback queue.
         /// </summary>
         public void Reset()
         {

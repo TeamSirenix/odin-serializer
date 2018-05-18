@@ -62,7 +62,7 @@ namespace OdinSerializer.Utilities
         }
 
         /// <summary>
-        /// Not yet documented.
+        /// The backing PropertyInfo that is being aliased.
         /// </summary>
         public PropertyInfo AliasedProperty { get { return this.aliasedProperty; } }
 

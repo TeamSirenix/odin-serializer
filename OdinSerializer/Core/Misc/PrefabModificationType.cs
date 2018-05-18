@@ -18,22 +18,22 @@
 namespace OdinSerializer
 {
     /// <summary>
-    /// Not yet documented.
+    /// Types of prefab modification that can be applied.
     /// </summary>
     public enum PrefabModificationType
     {
         /// <summary>
-        /// Not yet documented.
+        /// A value has been changed at a given path.
         /// </summary>
         Value,
 
         /// <summary>
-        /// Not yet documented.
+        /// A list length has been changed at a given path.
         /// </summary>
         ListLength,
 
         /// <summary>
-        /// Not yet documented.
+        /// A dictionary has been changed at a given path.
         /// </summary>
         Dictionary
     }

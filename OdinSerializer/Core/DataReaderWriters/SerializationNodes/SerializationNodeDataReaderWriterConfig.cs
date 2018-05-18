@@ -18,12 +18,12 @@
 namespace OdinSerializer
 {
     /// <summary>
-    /// Not yet documented.
+    /// Shared config class for <see cref="SerializationNodeDataReader"/> and <see cref="SerializationNodeDataWriter"/>.
     /// </summary>
     public static class SerializationNodeDataReaderWriterConfig
     {
         /// <summary>
-        /// Not yet documented.
+        /// The string to use to separate node id's from their names.
         /// </summary>
         public const string NodeIdSeparator = "|";
     }

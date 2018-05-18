@@ -24,12 +24,8 @@ namespace OdinSerializer
     public class EmptyTypeFormatter<T> : EasyBaseFormatter<T>
     {
         /// <summary>
-        /// Not yet documented.
+        /// Skips the entry to read.
         /// </summary>
-        /// <param name="value">Not yet documented.</param>
-        /// <param name="entryName">Not yet documented.</param>
-        /// <param name="entryType">Not yet documented.</param>
-        /// <param name="reader">Not yet documented.</param>
         protected override void ReadDataEntry(ref T value, string entryName, EntryType entryType, IDataReader reader)
         {
             // Just skip
@@ -37,10 +33,8 @@ namespace OdinSerializer
         }
 
         /// <summary>
-        /// Not yet documented.
+        /// Does nothing at all.
         /// </summary>
-        /// <param name="value">Not yet documented.</param>
-        /// <param name="writer">Not yet documented.</param>
         protected override void WriteDataEntries(ref T value, IDataWriter writer)
         {
             // Do nothing

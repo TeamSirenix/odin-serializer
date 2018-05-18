@@ -43,7 +43,7 @@ namespace OdinSerializer
         private static volatile ISerializationPolicy strictPolicy;
 
         /// <summary>
-        /// Not yet documented.
+        /// Tries to get a serialization policy by its id, in case a serialization graph has the policy used for serialization stored by name.
         /// </summary>
         public static bool TryGetByID(string name, out ISerializationPolicy policy)
         {

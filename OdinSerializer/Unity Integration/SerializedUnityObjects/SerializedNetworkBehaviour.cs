@@ -49,14 +49,14 @@ namespace OdinSerializer
         }
 
         /// <summary>
-        /// Not yet documented.
+        /// Invoked after deserialization has taken place.
         /// </summary>
         protected virtual void OnAfterDeserialize()
         {
         }
 
         /// <summary>
-        /// Not yet documented.
+        /// Invoked before serialization has taken place.
         /// </summary>
         protected virtual void OnBeforeSerialize()
         {

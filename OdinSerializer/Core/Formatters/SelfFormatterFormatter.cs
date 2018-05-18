@@ -26,7 +26,7 @@ namespace OdinSerializer
     public sealed class SelfFormatterFormatter<T> : BaseFormatter<T> where T : ISelfFormatter
     {
         /// <summary>
-        /// Not yet documented.
+        /// Calls <see cref="ISelfFormatter.Deserialize" />  on the value to deserialize.
         /// </summary>
         protected override void DeserializeImplementation(ref T value, IDataReader reader)
         {
@@ -34,7 +34,7 @@ namespace OdinSerializer
         }
 
         /// <summary>
-        /// Not yet documented.
+        /// Calls <see cref="ISelfFormatter.Serialize" />  on the value to deserialize.
         /// </summary>
         protected override void SerializeImplementation(ref T value, IDataWriter writer)
         {

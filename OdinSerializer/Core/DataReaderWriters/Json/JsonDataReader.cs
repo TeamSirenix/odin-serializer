@@ -68,8 +68,11 @@ namespace OdinSerializer
 #endif
 
         /// <summary>
-        /// Not yet documented.
+        /// Gets or sets the base stream of the reader.
         /// </summary>
+        /// <value>
+        /// The base stream of the reader.
+        /// </value>
         public override Stream Stream
         {
             get

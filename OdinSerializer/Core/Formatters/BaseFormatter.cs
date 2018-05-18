@@ -54,7 +54,7 @@ namespace OdinSerializer
         protected static readonly Action<T, StreamingContext>[] OnDeserializedCallbacks;
 
         /// <summary>
-        /// Not yet documented.
+        /// Whether the serialized value is a value type.
         /// </summary>
         protected static readonly bool IsValueType = typeof(T).IsValueType;
 

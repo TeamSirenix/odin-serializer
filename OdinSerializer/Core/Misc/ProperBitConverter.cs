@@ -81,7 +81,7 @@ namespace OdinSerializer
         }
 
         /// <summary>
-        /// Not yet documented.
+        /// Converts a byte array into a hexadecimal string.
         /// </summary>
         public static string BytesToHexString(byte[] bytes, bool lowerCaseHexChars = true)
         {
@@ -100,7 +100,7 @@ namespace OdinSerializer
         }
 
         /// <summary>
-        /// Not yet documented.
+        /// Converts a hexadecimal string into a byte array.
         /// </summary>
         public static byte[] HexStringToBytes(string hex)
         {

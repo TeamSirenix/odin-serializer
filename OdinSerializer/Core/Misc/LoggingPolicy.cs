@@ -6,17 +6,17 @@
     public enum LoggingPolicy
     {
         /// <summary>
-        /// Not yet documented.
+        /// Log errors.
         /// </summary>
         LogErrors,
 
         /// <summary>
-        /// Not yet documented.
+        /// Log both warnings and errors.
         /// </summary>
         LogWarningsAndErrors,
 
         /// <summary>
-        /// Not yet documented.
+        /// Log nothing at all. Note: Some extremely severe categories of errors are logged regardless of this setting.
         /// </summary>
         Silent
     }

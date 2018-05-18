@@ -30,7 +30,7 @@ namespace OdinSerializer
         private volatile DebugContext debugContext;
 
         /// <summary>
-        /// Not yet documented.
+        /// Initializes a new instance of the <see cref="SerializationConfig"/> class.
         /// </summary>
         public SerializationConfig()
         {
@@ -128,7 +128,7 @@ namespace OdinSerializer
         private volatile ErrorHandlingPolicy errorHandlingPolicy;
 
         /// <summary>
-        /// Not yet documented.
+        /// The logger to use for logging messages.
         /// </summary>
         public ILogger Logger
         {
@@ -157,7 +157,7 @@ namespace OdinSerializer
         }
 
         /// <summary>
-        /// Not yet documented.
+        /// The logging policy to use.
         /// </summary>
         public LoggingPolicy LoggingPolicy
         {
@@ -166,7 +166,7 @@ namespace OdinSerializer
         }
 
         /// <summary>
-        /// Not yet documented.
+        /// The error handling policy to use.
         /// </summary>
         public ErrorHandlingPolicy ErrorHandlingPolicy
         {
@@ -175,7 +175,7 @@ namespace OdinSerializer
         }
 
         /// <summary>
-        /// Not yet documented.
+        /// Log a warning. Depending on the logging policy and error handling policy, this message may be suppressed or result in an exception being thrown.
         /// </summary>
         public void LogWarning(string message)
         {
@@ -191,7 +191,7 @@ namespace OdinSerializer
         }
 
         /// <summary>
-        /// Not yet documented.
+        /// Log an error. Depending on the logging policy and error handling policy, this message may be suppressed or result in an exception being thrown.
         /// </summary>
         public void LogError(string message)
         {
@@ -207,7 +207,7 @@ namespace OdinSerializer
         }
 
         /// <summary>
-        /// Not yet documented.
+        /// Log an exception. Depending on the logging policy and error handling policy, this message may be suppressed or result in an exception being thrown.
         /// </summary>
         public void LogException(Exception exception)
         {

@@ -44,14 +44,14 @@ namespace OdinSerializer
         }
 
         /// <summary>
-        /// See ISerializationCallbackReceiver.OnBeforeSerialize for documentation on how to use this method.
+        /// Invoked after deserialization has taken place.
         /// </summary>
         protected virtual void OnAfterDeserialize()
         {
         }
 
         /// <summary>
-        /// Implement this method to receive a callback after unity serialized your object.
+        /// Invoked before serialization has taken place.
         /// </summary>
         protected virtual void OnBeforeSerialize()
         {

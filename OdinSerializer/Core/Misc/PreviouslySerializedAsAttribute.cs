@@ -21,19 +21,22 @@ namespace OdinSerializer
 
     /// <summary>
     /// Indicates that an instance field or auto-property was previously serialized with a different name, so that values serialized with the old name will be properly deserialized into this member.
+    ///
+    /// This does the same as Unity's FormerlySerializedAs attribute, except it can also be applied to properties.
     /// </summary>
     /// <seealso cref="System.Attribute" />
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
     public class PreviouslySerializedAsAttribute : Attribute
     {
         /// <summary>
-        /// Not yet documented.
+        /// The former name.
         /// </summary>
         public string Name { get; private set; }
 
         /// <summary>
-        /// Not yet documented.
+        /// Initializes a new instance of the <see cref="PreviouslySerializedAsAttribute"/> class.
         /// </summary>
+        /// <param name="name">The former name.</param>
         public PreviouslySerializedAsAttribute(string name)
         {
             this.Name = name;

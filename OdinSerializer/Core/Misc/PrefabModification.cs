@@ -25,47 +25,47 @@ namespace OdinSerializer
     using Utilities;
 
     /// <summary>
-    /// Not yet documented.
+    /// An Odin-serialized prefab modification, containing all the information necessary to apply the modification.
     /// </summary>
     public sealed class PrefabModification
     {
         /// <summary>
-        /// Not yet documented.
+        /// The type of modification to be made.
         /// </summary>
         public PrefabModificationType ModificationType;
 
         /// <summary>
-        /// Not yet documented.
+        /// The deep reflection path at which to make the modification.
         /// </summary>
         public string Path;
 
         /// <summary>
-        /// Not yet documented.
+        /// A list of all deep reflection paths in the target object where the value referenced by this modification was also located.
         /// </summary>
         public List<string> ReferencePaths;
 
         /// <summary>
-        /// Not yet documented.
+        /// The modified value to set.
         /// </summary>
         public object ModifiedValue;
 
         /// <summary>
-        /// Not yet documented.
+        /// The new list length to set.
         /// </summary>
         public int NewLength;
 
         /// <summary>
-        /// Not yet documented.
+        /// The dictionary keys to add.
         /// </summary>
         public object[] DictionaryKeysAdded;
 
         /// <summary>
-        /// Not yet documented.
+        /// The dictionary keys to remove.
         /// </summary>
         public object[] DictionaryKeysRemoved;
 
         /// <summary>
-        /// Not yet documented.
+        /// Applies the modification to the given Object.
         /// </summary>
         public void Apply(UnityEngine.Object unityObject)
         {

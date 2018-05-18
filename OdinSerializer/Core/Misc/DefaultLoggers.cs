@@ -9,7 +9,7 @@
         private static volatile ILogger unityLogger;
 
         /// <summary>
-        /// Not yet documented.
+        /// The default logger - usually this is <see cref="UnityLogger"/>.
         /// </summary>
         public static ILogger DefaultLogger
         {
@@ -20,7 +20,7 @@
         }
 
         /// <summary>
-        /// Not yet documented.
+        /// Logs messages using Unity's <see cref="UnityEngine.Debug"/> class.
         /// </summary>
         public static ILogger UnityLogger
         {

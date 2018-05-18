@@ -18,12 +18,12 @@
 namespace OdinSerializer
 {
     /// <summary>
-    /// Not yet documented.
+    /// Indicates that an Odin-serialized Unity object controls its own serialization format. Every time it is serialized, it will be asked which format to use.
     /// </summary>
     public interface IOverridesSerializationFormat
     {
         /// <summary>
-        /// Not yet documented.
+        /// Gets the format to use for serialization.
         /// </summary>
         DataFormat GetFormatToSerializeAs(bool isPlayer);
     }

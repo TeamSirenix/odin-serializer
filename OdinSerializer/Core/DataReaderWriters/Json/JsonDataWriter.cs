@@ -77,13 +77,16 @@ namespace OdinSerializer
         public bool FormatAsReadable { get; set; }
 
         /// <summary>
-        /// Not yet documented.
+        /// Whether to enable an optimization that ensures any given type name is only written once into the json stream, and thereafter kept track of by ID.
         /// </summary>
         public bool EnableTypeOptimization { get; set; }
 
         /// <summary>
-        /// Not yet documented.
+        /// Gets or sets the base stream of the writer.
         /// </summary>
+        /// <value>
+        /// The base stream of the writer.
+        /// </value>
         public override Stream Stream
         {
             get
@@ -99,7 +102,7 @@ namespace OdinSerializer
         }
 
         /// <summary>
-        /// Not yet documented.
+        /// Enable the "just started" flag, causing the writer to start a new "base" json object container.
         /// </summary>
         public void MarkJustStarted()
         {

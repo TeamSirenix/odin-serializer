@@ -50,17 +50,18 @@ namespace OdinSerializer
         }
 
         /// <summary>
-        /// Not yet documented.
+        /// Returns null.
         /// </summary>
-        /// <returns></returns>
         protected override DoubleLookupDictionary<TPrimary, TSecondary, TValue> GetUninitializedObject()
         {
             return null;
         }
 
         /// <summary>
-        /// Not yet documented.
+        /// Provides the actual implementation for serializing a value of type <see cref="!:T" />.
         /// </summary>
+        /// <param name="value">The value to serialize.</param>
+        /// <param name="writer">The writer to serialize with.</param>
         protected override void SerializeImplementation(ref DoubleLookupDictionary<TPrimary, TSecondary, TValue> value, IDataWriter writer)
         {
             try
@@ -102,8 +103,10 @@ namespace OdinSerializer
         }
 
         /// <summary>
-        /// Not yet documented.
+        /// Provides the actual implementation for deserializing a value of type <see cref="!:T" />.
         /// </summary>
+        /// <param name="value">The uninitialized value to serialize into. This value will have been created earlier using <see cref="M:OdinSerializer.BaseFormatter`1.GetUninitializedObject" />.</param>
+        /// <param name="reader">The reader to deserialize with.</param>
         protected override void DeserializeImplementation(ref DoubleLookupDictionary<TPrimary, TSecondary, TValue> value, IDataReader reader)
         {
             string name;

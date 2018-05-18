@@ -21,12 +21,12 @@ namespace OdinSerializer.Utilities.Unsafe
     using System.Runtime.InteropServices;
 
     /// <summary>
-    /// Not yet documented.
+    /// Contains utilities for performing common unsafe operations.
     /// </summary>
     public static class UnsafeUtilities
     {
         /// <summary>
-        /// Not yet documented.
+        /// Blindly creates an array of structs from an array of bytes via direct memory copy/blit.
         /// </summary>
         public static unsafe T[] StructArrayFromBytes<T>(byte[] bytes, int byteLength) where T : struct
         {
@@ -34,7 +34,7 @@ namespace OdinSerializer.Utilities.Unsafe
         }
 
         /// <summary>
-        /// Not yet documented.
+        /// Blindly creates an array of structs from an array of bytes via direct memory copy/blit.
         /// </summary>
         public static unsafe T[] StructArrayFromBytes<T>(byte[] bytes, int byteLength, int byteOffset) where T : struct
         {
@@ -77,7 +77,7 @@ namespace OdinSerializer.Utilities.Unsafe
         }
 
         /// <summary>
-        /// Not yet documented.
+        /// Blindly copies an array of structs into an array of bytes via direct memory copy/blit.
         /// </summary>
         public static unsafe byte[] StructArrayToBytes<T>(T[] array) where T : struct
         {
@@ -86,7 +86,7 @@ namespace OdinSerializer.Utilities.Unsafe
         }
 
         /// <summary>
-        /// Not yet documented.
+        /// Blindly copies an array of structs into an array of bytes via direct memory copy/blit.
         /// </summary>
         public static unsafe byte[] StructArrayToBytes<T>(T[] array, ref byte[] bytes, int byteOffset) where T : struct
         {
@@ -117,7 +117,7 @@ namespace OdinSerializer.Utilities.Unsafe
         }
 
         /// <summary>
-        /// Not yet documented.
+        /// Creates a new string from the contents of a given byte buffer.
         /// </summary>
         public static unsafe string StringFromBytes(byte[] buffer, int charLength, bool needs16BitSupport)
         {
@@ -217,7 +217,7 @@ namespace OdinSerializer.Utilities.Unsafe
         }
 
         /// <summary>
-        /// Not yet documented.
+        /// Writes the contents of a string into a given byte buffer.
         /// </summary>
         public static unsafe int StringToBytes(byte[] buffer, string value, bool needs16BitSupport)
         {
@@ -311,7 +311,7 @@ namespace OdinSerializer.Utilities.Unsafe
         }
 
         /// <summary>
-        /// Not yet documented.
+        /// Blindly mem-copies a given number of bytes from the memory location of one object to another. WARNING: This method is ridiculously dangerous. Only use if you know what you're doing.
         /// </summary>
         public static unsafe void MemoryCopy(object from, object to, int byteCount, int fromByteOffset, int toByteOffset)
         {

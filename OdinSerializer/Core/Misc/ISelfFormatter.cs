@@ -31,12 +31,12 @@ namespace OdinSerializer
     public interface ISelfFormatter
     {
         /// <summary>
-        /// Not yet documented.
+        /// Serializes the instance's data using the given writer.
         /// </summary>
         void Serialize(IDataWriter writer);
 
         /// <summary>
-        /// Not yet documented.
+        /// Deserializes data into the instance using the given reader.
         /// </summary>
         void Deserialize(IDataReader reader);
     }
