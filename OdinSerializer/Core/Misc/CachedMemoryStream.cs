@@ -82,6 +82,7 @@ namespace OdinSerializer
             if (bytes != null)
             {
                 cache.Value.MemoryStream.Write(bytes, 0, bytes.Length);
+                cache.Value.MemoryStream.Position = 0;
             }
 
             return cache;
