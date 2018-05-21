@@ -18,11 +18,13 @@
 
 using OdinSerializer;
 
-[assembly: RegisterFormatterLocator(typeof(ISerializableFormatterLocator), -90)]
+[assembly: RegisterFormatterLocator(typeof(ISerializableFormatterLocator), -110)]
 
 namespace OdinSerializer
 {
+    using Utilities;
     using System;
+    using System.Collections.Generic;
     using System.Runtime.Serialization;
 
     internal class ISerializableFormatterLocator : IFormatterLocator
