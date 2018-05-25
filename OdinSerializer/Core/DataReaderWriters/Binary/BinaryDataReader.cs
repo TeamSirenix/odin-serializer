@@ -566,7 +566,7 @@ namespace OdinSerializer
                         array = new T[elementCount];
 
                         // We always store in little endian, so we can do a direct memory mapping, which is a lot faster
-                        if (!BitConverter.IsLittleEndian)
+                        if (BitConverter.IsLittleEndian)
                         {
                             UnsafeUtilities.MemoryCopy(tempBuffer.Array, array, byteCount, 0, 0);
                         }

@@ -206,7 +206,7 @@ namespace OdinSerializer
                 // Otherwise we copy to a buffer in order to write the entire array into the stream with one call
                 using (var tempBuffer = Buffer<byte>.Claim(byteCount))
                 {
-                    if (!BitConverter.IsLittleEndian)
+                    if (BitConverter.IsLittleEndian)
                     {
                         // We always store in little endian, so we can do a direct memory mapping, which is a lot faster
                         UnsafeUtilities.MemoryCopy(array, tempBuffer.Array, byteCount, 0, 0);
