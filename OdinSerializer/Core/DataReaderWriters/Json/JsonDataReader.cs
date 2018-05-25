@@ -37,6 +37,10 @@ namespace OdinSerializer
 
         private readonly Dictionary<Type, Delegate> primitiveArrayReaders;
 
+        public JsonDataReader() : base(null, null)
+        {
+        }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonDataReader" /> class.
         /// </summary>
@@ -1155,6 +1159,7 @@ namespace OdinSerializer
         /// </summary>
         public override void PrepareNewSerializationSession()
         {
+            base.PrepareNewSerializationSession();
             this.peekedEntryType = null;
             this.peekedEntryContent = null;
             this.peekedEntryName = null;

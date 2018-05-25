@@ -42,11 +42,6 @@ namespace OdinSerializer
         /// <exception cref="System.ArgumentException">Cannot write to the stream.</exception>
         protected BaseDataWriter(Stream stream, SerializationContext context)
         {
-            if (context == null)
-            {
-                throw new ArgumentNullException("context");
-            }
-
             this.context = context;
 
             if (stream != null)
@@ -307,6 +302,9 @@ namespace OdinSerializer
         /// Tells the writer that a new serialization session is about to begin, and that it should clear all cached values left over from any prior serialization sessions.
         /// This method is only relevant when the same writer is used to serialize several different, unrelated values.
         /// </summary>
-        public abstract void PrepareNewSerializationSession();
+        public virtual void PrepareNewSerializationSession()
+        {
+            this.ClearNodes();
+        }
     }
 }

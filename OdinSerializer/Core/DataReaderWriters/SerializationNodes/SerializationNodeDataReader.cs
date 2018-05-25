@@ -110,6 +110,7 @@ namespace OdinSerializer
         /// </summary>
         public override void PrepareNewSerializationSession()
         {
+            base.PrepareNewSerializationSession();
             this.currentIndex = -1;
         }
 

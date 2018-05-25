@@ -27,7 +27,7 @@ namespace OdinSerializer
     public abstract class BaseDataReaderWriter
     {
         private TwoWaySerializationBinder binder;
-        private Stack<NodeInfo> nodes = new Stack<NodeInfo>();
+        private Stack<NodeInfo> nodes = new Stack<NodeInfo>(32);
 
         /// <summary>
         /// Gets or sets the reader's or writer's serialization binder.
@@ -41,7 +41,7 @@ namespace OdinSerializer
             {
                 if (this.binder == null)
                 {
-                    this.binder = new DefaultSerializationBinder();
+                    this.binder = DefaultSerializationBinder.Default;
                 }
 
                 return this.binder;
@@ -154,6 +154,11 @@ namespace OdinSerializer
             }
 
             this.nodes.Pop();
+        }
+
+        protected void ClearNodes()
+        {
+            this.nodes.Clear();
         }
     }
 }

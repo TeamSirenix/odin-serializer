@@ -31,6 +31,7 @@ namespace OdinSerializer
         private static readonly bool ComplexTypeMayBeBoxedValueType = typeof(T) == typeof(object) || typeof(T) == typeof(ValueType);
         private static readonly bool ComplexTypeIsAbstract = typeof(T).IsAbstract || typeof(T).IsInterface;
         private static readonly bool ComplexTypeIsNullable = typeof(T).IsGenericType && typeof(T).GetGenericTypeDefinition() == typeof(Nullable<>);
+        private static readonly bool ComplexTypeIsValueType = typeof(T).IsValueType;
 
         /// <summary>
         /// Reads a value of type <see cref="T" />.
@@ -54,7 +55,7 @@ namespace OdinSerializer
             string name;
             var entry = reader.PeekEntry(out name);
 
-            if (typeof(T).IsValueType)
+            if (ComplexTypeIsValueType)
             {
                 if (entry == EntryType.Null)
                 {
@@ -242,6 +243,8 @@ namespace OdinSerializer
                                         bool success = false;
                                         var isPrimitive = FormatterUtilities.IsPrimitiveType(serializedType);
 
+                                        bool assignableCast;
+
                                         if (ComplexTypeMayBeBoxedValueType && isPrimitive)
                                         {
                                             // It's a boxed primitive type, so simply read that straight and register success
@@ -249,7 +252,7 @@ namespace OdinSerializer
                                             result = (T)serializer.ReadValueWeak(reader);
                                             success = true;
                                         }
-                                        else if (serializedType.IsCastableTo(expectedType))
+                                        else if ((assignableCast = expectedType.IsAssignableFrom(serializedType)) || serializedType.HasCastDefined(expectedType, false))
                                         {
                                             try
                                             {
@@ -271,7 +274,7 @@ namespace OdinSerializer
                                                 // We cannot unbox here, as the serialized type is weakly typed
                                                 // Therefore we need to explicity invoke the actual cast operator method
                                                 // (unless we are trying to deserialize to an object, which makes everything easier)
-                                                if (serializedType.IsValueType)
+                                                if (!assignableCast && serializedType.IsValueType)
                                                 {
                                                     if (ComplexTypeMayBeBoxedValueType)
                                                     {
@@ -476,7 +479,7 @@ namespace OdinSerializer
 
             FireOnSerializedType();
 
-            if (typeof(T).IsValueType)
+            if (ComplexTypeIsValueType)
             {
                 bool endNode = true;
 

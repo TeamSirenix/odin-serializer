@@ -42,11 +42,6 @@ namespace OdinSerializer
         /// <exception cref="System.ArgumentException">Cannot read from stream.</exception>
         protected BaseDataReader(Stream stream, DeserializationContext context)
         {
-            if (context == null)
-            {
-                throw new ArgumentNullException("context");
-            }
-
             this.context = context;
 
             if (stream != null)
@@ -524,7 +519,10 @@ namespace OdinSerializer
         /// Tells the reader that a new serialization session is about to begin, and that it should clear all cached values left over from any prior serialization sessions.
         /// This method is only relevant when the same reader is used to deserialize several different, unrelated values.
         /// </summary>
-        public abstract void PrepareNewSerializationSession();
+        public virtual void PrepareNewSerializationSession()
+        {
+            this.ClearNodes();
+        }
 
         /// <summary>
         /// Peeks the current entry.

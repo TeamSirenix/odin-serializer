@@ -71,6 +71,10 @@ namespace OdinSerializer
         // A dictionary over all seen types, so short type ids can be written after a type's full name has already been written to the stream once
         private readonly Dictionary<Type, int> types = new Dictionary<Type, int>(16);
 
+        public BinaryDataWriter() : base(null, null)
+        {
+        }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="BinaryDataWriter" /> class.
         /// </summary>
@@ -651,6 +655,7 @@ namespace OdinSerializer
         /// </summary>
         public override void PrepareNewSerializationSession()
         {
+            base.PrepareNewSerializationSession();
             this.types.Clear();
         }
 

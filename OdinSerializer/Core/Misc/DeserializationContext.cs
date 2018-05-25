@@ -255,7 +255,11 @@ namespace OdinSerializer
         /// </summary>
         public void Reset()
         {
-            this.config = null;
+            if (!object.ReferenceEquals(this.config, null))
+            {
+                this.config.ResetToDefault();
+            }
+
             this.internalIdReferenceMap.Clear();
             this.IndexReferenceResolver = null;
             this.GuidReferenceResolver = null;

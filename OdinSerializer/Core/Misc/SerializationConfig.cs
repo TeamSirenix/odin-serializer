@@ -111,7 +111,10 @@ namespace OdinSerializer
             lock (this.LOCK)
             {
                 this.serializationPolicy = null;
-                this.debugContext = null;
+                if (!object.ReferenceEquals(this.debugContext, null))
+                {
+                    this.debugContext.ResetToDefault();
+                }
             }
         }
     }
@@ -232,6 +235,16 @@ namespace OdinSerializer
             if (this.loggingPolicy != LoggingPolicy.Silent)
             {
                 this.Logger.LogException(exception);
+            }
+        }
+
+        public void ResetToDefault()
+        {
+            lock (LOCK)
+            {
+                this.logger = null;
+                this.loggingPolicy = default(LoggingPolicy);
+                this.errorHandlingPolicy = default(ErrorHandlingPolicy);
             }
         }
     }

@@ -29,6 +29,11 @@ namespace OdinSerializer
     public abstract class MinimalBaseFormatter<T> : IFormatter<T>
     {
         /// <summary>
+        /// Whether the serialized value is a value type.
+        /// </summary>
+        protected static readonly bool IsValueType = typeof(T).IsValueType;
+
+        /// <summary>
         /// Gets the type that the formatter can serialize.
         /// </summary>
         /// <value>
@@ -51,7 +56,7 @@ namespace OdinSerializer
             //  where the size of the array cannot be known yet, and thus we cannot create an object instance at this time.
             //
             // Therefore, those who override GetUninitializedObject and return null must call RegisterReferenceID manually.
-            if (typeof(T).IsValueType == false && object.ReferenceEquals(result, null) == false)
+            if (IsValueType == false && object.ReferenceEquals(result, null) == false)
             {
                 this.RegisterReferenceID(result, reader);
             }
@@ -102,7 +107,7 @@ namespace OdinSerializer
         /// <returns>An uninitialized object of type <see cref="T"/>.</returns>
         protected virtual T GetUninitializedObject()
         {
-            if (typeof(T).IsValueType)
+            if (IsValueType)
             {
                 return default(T);
             }
@@ -135,7 +140,7 @@ namespace OdinSerializer
         /// <param name="reader">The reader which is currently being used.</param>
         protected void RegisterReferenceID(T value, IDataReader reader)
         {
-            if (typeof(T).IsValueType == false)
+            if (!IsValueType)
             {
                 // Get ID and register object reference
                 int id = reader.CurrentNodeId;

@@ -29,6 +29,10 @@ namespace OdinSerializer
     /// </summary>
     public static class SerializationUtility
     {
+        private static readonly object CACHE_LOCK = new object();
+
+        private static readonly Dictionary<object, object> CacheMappings = new Dictionary<object, object>(ReferenceEqualityComparer<object>.Default);
+
         /// <summary>
         /// Creates an <see cref="IDataWriter" /> for a given format.
         /// </summary>
@@ -84,6 +88,136 @@ namespace OdinSerializer
 
                 default:
                     throw new NotImplementedException(format.ToString());
+            }
+        }
+
+        private static IDataWriter GetCachedWriter(Stream stream, SerializationContext context, DataFormat format)
+        {
+            lock (CACHE_LOCK)
+            {
+                switch (format)
+                {
+                    case DataFormat.Binary:
+                        {
+                            var cache = Cache<BinaryDataWriter>.Claim();
+                            var value = cache.Value;
+                            CacheMappings[value] = cache;
+
+                            value.Stream = stream;
+                            value.Context = context;
+                            value.PrepareNewSerializationSession();
+
+                            return value;
+                        }
+
+                    case DataFormat.JSON:
+                        {
+                            var cache = Cache<JsonDataWriter>.Claim();
+                            var value = cache.Value;
+                            CacheMappings[value] = cache;
+
+                            value.Stream = stream;
+                            value.Context = context;
+                            value.PrepareNewSerializationSession();
+
+                            return value;
+                        }
+
+                    case DataFormat.Nodes:
+                        Debug.LogError("Cannot automatically create a writer for the format '" + DataFormat.Nodes + "', because it does not use a stream.");
+                        return null;
+
+                    default:
+                        throw new NotImplementedException(format.ToString());
+                }
+            }
+        }
+
+        private static IDataReader GetCachedReader(Stream stream, DeserializationContext context, DataFormat format)
+        {
+            lock (CACHE_LOCK)
+            {
+                switch (format)
+                {
+                    case DataFormat.Binary:
+                        {
+                            var cache = Cache<BinaryDataReader>.Claim();
+                            var value = cache.Value;
+                            CacheMappings[value] = cache;
+
+                            value.Stream = stream;
+                            value.Context = context;
+                            value.PrepareNewSerializationSession();
+
+                            return value;
+                        }
+
+                    case DataFormat.JSON:
+                        {
+                            var cache = Cache<JsonDataReader>.Claim();
+                            var value = cache.Value;
+                            CacheMappings[value] = cache;
+
+                            value.Stream = stream;
+                            value.Context = context;
+                            value.PrepareNewSerializationSession();
+
+                            return value;
+                        }
+
+                    case DataFormat.Nodes:
+                        Debug.LogError("Cannot automatically create a writer for the format '" + DataFormat.Nodes + "', because it does not use a stream.");
+                        return null;
+
+                    default:
+                        throw new NotImplementedException(format.ToString());
+                }
+            }
+        }
+
+        private static void FreeCachedReader(IDataReader reader)
+        {
+            lock (CACHE_LOCK)
+            {
+                object cache;
+
+                if (CacheMappings.TryGetValue(reader, out cache))
+                {
+                    CacheMappings.Remove(reader);
+
+                    if (reader.GetType() == typeof(BinaryDataReader))
+                    {
+                        Cache<BinaryDataReader>.Release((Cache<BinaryDataReader>)cache);
+                    }
+                    else if (reader.GetType() == typeof(JsonDataReader))
+                    {
+                        Cache<JsonDataReader>.Release((Cache<JsonDataReader>)cache);
+                    }
+                    else throw new NotImplementedException(reader.GetType().FullName);
+                }
+            }
+        }
+
+        private static void FreeCachedWriter(IDataWriter writer)
+        {
+            lock (CACHE_LOCK)
+            {
+                object cache;
+
+                if (CacheMappings.TryGetValue(writer, out cache))
+                {
+                    CacheMappings.Remove(writer);
+
+                    if (writer.GetType() == typeof(BinaryDataWriter))
+                    {
+                        Cache<BinaryDataWriter>.Release((Cache<BinaryDataWriter>)cache);
+                    }
+                    else if (writer.GetType() == typeof(JsonDataWriter))
+                    {
+                        Cache<JsonDataWriter>.Release((Cache<JsonDataWriter>)cache);
+                    }
+                    else throw new NotImplementedException(writer.GetType().FullName);
+                }
             }
         }
 
@@ -154,16 +288,26 @@ namespace OdinSerializer
         /// <param name="context">The context.</param>
         public static void SerializeValueWeak(object value, Stream stream, DataFormat format, SerializationContext context = null)
         {
-            if (context != null)
+            var writer = GetCachedWriter(stream, context, format);
+
+            try
             {
-                SerializeValueWeak(value, CreateWriter(stream, context, format));
-            }
-            else
-            {
-                using (var con = Cache<SerializationContext>.Claim())
+                if (context != null)
                 {
-                    SerializeValueWeak(value, CreateWriter(stream, con, format));
+                    SerializeValueWeak(value, writer);
                 }
+                else
+                {
+                    using (var con = Cache<SerializationContext>.Claim())
+                    {
+                        writer.Context = con;
+                        SerializeValueWeak(value, writer);
+                    }
+                }
+            }
+            finally
+            {
+                FreeCachedWriter(writer);
             }
         }
 
@@ -177,16 +321,26 @@ namespace OdinSerializer
         /// <param name="context">The context.</param>
         public static void SerializeValueWeak(object value, Stream stream, DataFormat format, out List<UnityEngine.Object> unityObjects, SerializationContext context = null)
         {
-            if (context != null)
+            var writer = GetCachedWriter(stream, context, format);
+
+            try
             {
-                SerializeValueWeak(value, CreateWriter(stream, context, format), out unityObjects);
-            }
-            else
-            {
-                using (var con = Cache<SerializationContext>.Claim())
+                if (context != null)
                 {
-                    SerializeValueWeak(value, CreateWriter(stream, con, format), out unityObjects);
+                    SerializeValueWeak(value, writer, out unityObjects);
                 }
+                else
+                {
+                    using (var con = Cache<SerializationContext>.Claim())
+                    {
+                        writer.Context = con;
+                        SerializeValueWeak(value, writer, out unityObjects);
+                    }
+                }
+            }
+            finally
+            {
+                FreeCachedWriter(writer);
             }
         }
 
@@ -200,16 +354,26 @@ namespace OdinSerializer
         /// <param name="context">The context.</param>
         public static void SerializeValue<T>(T value, Stream stream, DataFormat format, SerializationContext context = null)
         {
-            if (context != null)
+            var writer = GetCachedWriter(stream, context, format);
+
+            try
             {
-                SerializeValue(value, CreateWriter(stream, context, format));
-            }
-            else
-            {
-                using (var con = Cache<SerializationContext>.Claim())
+                if (context != null)
                 {
-                    SerializeValue(value, CreateWriter(stream, con, format));
+                    SerializeValue(value, writer);
                 }
+                else
+                {
+                    using (var con = Cache<SerializationContext>.Claim())
+                    {
+                        writer.Context = con;
+                        SerializeValue(value, writer);
+                    }
+                }
+            }
+            finally
+            {
+                FreeCachedWriter(writer);
             }
         }
 
@@ -224,16 +388,26 @@ namespace OdinSerializer
         /// <param name="context">The context.</param>
         public static void SerializeValue<T>(T value, Stream stream, DataFormat format, out List<UnityEngine.Object> unityObjects, SerializationContext context = null)
         {
-            if (context != null)
+            var writer = GetCachedWriter(stream, context, format);
+
+            try
             {
-                SerializeValue(value, CreateWriter(stream, context, format), out unityObjects);
-            }
-            else
-            {
-                using (var con = Cache<SerializationContext>.Claim())
+                if (context != null)
                 {
-                    SerializeValue(value, CreateWriter(stream, con, format), out unityObjects);
+                    SerializeValue(value, writer, out unityObjects);
                 }
+                else
+                {
+                    using (var con = Cache<SerializationContext>.Claim())
+                    {
+                        writer.Context = con;
+                        SerializeValue(value, writer, out unityObjects);
+                    }
+                }
+            }
+            finally
+            {
+                FreeCachedWriter(writer);
             }
         }
 
@@ -372,16 +546,26 @@ namespace OdinSerializer
         /// </returns>
         public static object DeserializeValueWeak(Stream stream, DataFormat format, DeserializationContext context = null)
         {
-            if (context != null)
+            var reader = GetCachedReader(stream, context, format);
+
+            try
             {
-                return DeserializeValueWeak(CreateReader(stream, context, format));
-            }
-            else
-            {
-                using (var con = Cache<DeserializationContext>.Claim())
+                if (context != null)
                 {
-                    return DeserializeValueWeak(CreateReader(stream, con, format));
+                    return DeserializeValueWeak(reader);
                 }
+                else
+                {
+                    using (var con = Cache<DeserializationContext>.Claim())
+                    {
+                        reader.Context = con;
+                        return DeserializeValueWeak(reader);
+                    }
+                }
+            }
+            finally
+            {
+                FreeCachedReader(reader);
             }
         }
 
@@ -397,16 +581,26 @@ namespace OdinSerializer
         /// </returns>
         public static object DeserializeValueWeak(Stream stream, DataFormat format, List<UnityEngine.Object> referencedUnityObjects, DeserializationContext context = null)
         {
-            if (context != null)
+            var reader = GetCachedReader(stream, context, format);
+
+            try
             {
-                return DeserializeValueWeak(CreateReader(stream, context, format), referencedUnityObjects);
-            }
-            else
-            {
-                using (var con = Cache<DeserializationContext>.Claim())
+                if (context != null)
                 {
-                    return DeserializeValueWeak(CreateReader(stream, con, format), referencedUnityObjects);
+                    return DeserializeValueWeak(reader, referencedUnityObjects);
                 }
+                else
+                {
+                    using (var con = Cache<DeserializationContext>.Claim())
+                    {
+                        reader.Context = con;
+                        return DeserializeValueWeak(reader, referencedUnityObjects);
+                    }
+                }
+            }
+            finally
+            {
+                FreeCachedReader(reader);
             }
         }
 
@@ -422,16 +616,26 @@ namespace OdinSerializer
         /// </returns>
         public static T DeserializeValue<T>(Stream stream, DataFormat format, DeserializationContext context = null)
         {
-            if (context != null)
+            var reader = GetCachedReader(stream, context, format);
+
+            try
             {
-                return DeserializeValue<T>(CreateReader(stream, context, format));
-            }
-            else
-            {
-                using (var con = Cache<DeserializationContext>.Claim())
+                if (context != null)
                 {
-                    return DeserializeValue<T>(CreateReader(stream, con, format));
+                    return DeserializeValue<T>(reader);
                 }
+                else
+                {
+                    using (var con = Cache<DeserializationContext>.Claim())
+                    {
+                        reader.Context = con;
+                        return DeserializeValue<T>(reader);
+                    }
+                }
+            }
+            finally
+            {
+                FreeCachedReader(reader);
             }
         }
 
@@ -448,16 +652,26 @@ namespace OdinSerializer
         /// </returns>
         public static T DeserializeValue<T>(Stream stream, DataFormat format, List<UnityEngine.Object> referencedUnityObjects, DeserializationContext context = null)
         {
-            if (context != null)
+            var reader = GetCachedReader(stream, context, format);
+
+            try
             {
-                return DeserializeValue<T>(CreateReader(stream, context, format), referencedUnityObjects);
-            }
-            else
-            {
-                using (var con = Cache<DeserializationContext>.Claim())
+                if (context != null)
                 {
-                    return DeserializeValue<T>(CreateReader(stream, con, format), referencedUnityObjects);
+                    return DeserializeValue<T>(reader, referencedUnityObjects);
                 }
+                else
+                {
+                    using (var con = Cache<DeserializationContext>.Claim())
+                    {
+                        reader.Context = con;
+                        return DeserializeValue<T>(reader, referencedUnityObjects);
+                    }
+                }
+            }
+            finally
+            {
+                FreeCachedReader(reader);
             }
         }
 

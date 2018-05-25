@@ -263,7 +263,7 @@ namespace OdinSerializer.Utilities
             { typeof(UIntPtr) }
         };
 
-        private static bool HasCastDefined(this Type from, Type to, bool requireImplicitCast)
+        internal static bool HasCastDefined(this Type from, Type to, bool requireImplicitCast)
         {
             if (from.IsEnum)
             {

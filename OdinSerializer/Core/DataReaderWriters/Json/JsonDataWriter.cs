@@ -37,6 +37,10 @@ namespace OdinSerializer
         private Dictionary<Type, Delegate> primitiveTypeWriters;
         private Dictionary<Type, int> seenTypes = new Dictionary<Type, int>(16);
 
+        public JsonDataWriter() : this(null, null, true)
+        {
+        }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="JsonDataWriter" /> class.
         /// </summary>
@@ -444,6 +448,7 @@ namespace OdinSerializer
         /// </summary>
         public override void PrepareNewSerializationSession()
         {
+            base.PrepareNewSerializationSession();
             this.seenTypes.Clear();
             this.justStarted = true;
         }

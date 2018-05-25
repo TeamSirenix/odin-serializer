@@ -135,17 +135,16 @@ namespace OdinSerializer
             lock (LOCK)
             {
                 // Search for a free buffer of sufficient size
-                if (Buffer<T>.FreeBuffers.Count > 0)
+                for (int i = 0; i < Buffer<T>.FreeBuffers.Count; i++)
                 {
-                    for (int i = 0; i < Buffer<T>.FreeBuffers.Count; i++)
+                    var buffer = Buffer<T>.FreeBuffers[i];
+
+                    if (buffer != null && buffer.count >= minimumCapacity)
                     {
-                        if (Buffer<T>.FreeBuffers[i].count >= minimumCapacity)
-                        {
-                            result = FreeBuffers[i];
-                            result.isFree = false;
-                            Buffer<T>.FreeBuffers.RemoveAt(i);
-                            break;
-                        }
+                        result = buffer;
+                        result.isFree = false;
+                        Buffer<T>.FreeBuffers[i] = null;
+                        break;
                     }
                 }
             }
@@ -178,7 +177,22 @@ namespace OdinSerializer
                     if (buffer.isFree == false)
                     {
                         buffer.isFree = true;
-                        Buffer<T>.FreeBuffers.Add(buffer);
+
+                        bool added = false;
+
+                        for (int i = 0; i < Buffer<T>.FreeBuffers.Count; i++)
+                        {
+                            if (Buffer<T>.FreeBuffers[i] == null)
+                            {
+                                Buffer<T>.FreeBuffers[i] = buffer;
+                                added = true;
+                            }
+                        }
+
+                        if (!added)
+                        {
+                            Buffer<T>.FreeBuffers.Add(buffer);
+                        }
                     }
                 }
             }

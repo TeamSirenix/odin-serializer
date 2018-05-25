@@ -180,6 +180,7 @@ namespace OdinSerializer
         /// </summary>
         public override void PrepareNewSerializationSession()
         {
+            base.PrepareNewSerializationSession();
         }
 
         /// <summary>

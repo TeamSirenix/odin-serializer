@@ -269,7 +269,7 @@ namespace OdinSerializer
         /// </summary>
         public void ResetToDefault()
         {
-            if (this.config != null)
+            if (!object.ReferenceEquals(this.config, null))
             {
                 this.config.ResetToDefault();
             }

@@ -54,6 +54,10 @@ namespace OdinSerializer
         private string peekedEntryName;
         private Dictionary<int, Type> types = new Dictionary<int, Type>(16);
 
+        public BinaryDataReader() : base(null, null)
+        {
+        }
+
         /// <summary>
         /// Initializes a new instance of the <see cref="BinaryDataReader" /> class.
         /// </summary>
@@ -1508,6 +1512,7 @@ namespace OdinSerializer
         /// </summary>
         public override void PrepareNewSerializationSession()
         {
+            base.PrepareNewSerializationSession();
             this.peekedEntryType = null;
             this.peekedEntryName = null;
             this.peekedBinaryEntryType = BinaryEntryType.Invalid;

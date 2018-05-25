@@ -58,6 +58,10 @@ namespace OdinSerializer
         /// </summary>
         protected static readonly bool IsValueType = typeof(T).IsValueType;
 
+        protected static readonly bool ImplementsISerializationCallbackReceiver = typeof(T).ImplementsOrInherits(typeof(UnityEngine.ISerializationCallbackReceiver));
+        protected static readonly bool ImplementsIDeserializationCallback = typeof(T).ImplementsOrInherits(typeof(IDeserializationCallback));
+        protected static readonly bool ImplementsIObjectReference = typeof(T).ImplementsOrInherits(typeof(IObjectReference));
+
         static BaseFormatter()
         {
             if (typeof(T).ImplementsOrInherits(typeof(UnityEngine.Object)))
@@ -164,7 +168,7 @@ namespace OdinSerializer
                     this.RegisterReferenceID(value, reader);
                     this.InvokeOnDeserializingCallbacks(value, context);
 
-                    if (typeof(T).ImplementsOrInherits(typeof(IObjectReference)))
+                    if (ImplementsIObjectReference)
                     {
                         try
                         {
@@ -203,20 +207,16 @@ namespace OdinSerializer
                     }
                 }
 
-                var callback = value as IDeserializationCallback;
-
-                if (!object.ReferenceEquals(callback, null))
+                if (ImplementsIDeserializationCallback)
                 {
-                    callback.OnDeserialization(this);
+                    (value as IDeserializationCallback).OnDeserialization(this);
                 }
 
-                var receiver = value as UnityEngine.ISerializationCallbackReceiver;
-
-                if (!object.ReferenceEquals(receiver, null))
+                if (ImplementsISerializationCallbackReceiver)
                 {
                     try
                     {
-                        receiver.OnAfterDeserialize();
+                        (value as UnityEngine.ISerializationCallbackReceiver).OnAfterDeserialize();
                     }
                     catch (Exception ex)
                     {
@@ -249,7 +249,7 @@ namespace OdinSerializer
                 }
             }
 
-            if (typeof(T).ImplementsOrInherits(typeof(UnityEngine.ISerializationCallbackReceiver)))
+            if (ImplementsISerializationCallbackReceiver)
             {
                 try
                 {
@@ -290,7 +290,7 @@ namespace OdinSerializer
         /// <returns>An uninitialized object of type <see cref="T"/>.</returns>
         protected virtual T GetUninitializedObject()
         {
-            if (typeof(T).IsValueType)
+            if (BaseFormatter<T>.IsValueType)
             {
                 return default(T);
             }
@@ -309,7 +309,7 @@ namespace OdinSerializer
         /// <param name="reader">The reader which is currently being used.</param>
         protected void RegisterReferenceID(T value, IDataReader reader)
         {
-            if (typeof(T).IsValueType == false)
+            if (!BaseFormatter<T>.IsValueType)
             {
                 int id = reader.CurrentNodeId;
 
