@@ -7,9 +7,9 @@ Readme is still WIP...
 
 This section is currently under construction...
 
-### Using OdinSerializer out of the box
+#### Using OdinSerializer out of the box
 
-### Forking OdinSerializer
+#### Forking OdinSerializer
 
 ## Performance charts and comparisons
 
@@ -48,7 +48,7 @@ This is how OdinSerializer works, on the highest level:
 
 ### "Stack-only", forward-only
 
-OdinSerializer is a forward-only serializer, meaning that when it serializes, it writes data immediately as it inspects the object graph, and as it deserializes, it recreates the object graph immediately as it parses the data. Unlike some other serializers, there is no "meta-graph" data structure that is allocated containing all the data to be saved down later.
+OdinSerializer is a forward-only serializer, meaning that when it serializes, it writes data immediately as it inspects the object graph, and as it deserializes, it recreates the object graph immediately as it parses the data. The serializer only ever moves forward - it cannot "go back" and look at previous data, since we retain no state and are doing everything on the fly, as we move forward. Unlike some other serializers, there is no "meta-graph" data structure that is allocated containing all the data to be saved down later.
 
 This means that we can serialize and deserialize data entirely without allocating anything on the heap, meaning that after the system has run once and all the writer, reader, formatter and serializer instances have been created, there will often be literally zero superfluous GC allocations made, depending on the data format used.
 
