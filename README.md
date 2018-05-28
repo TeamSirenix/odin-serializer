@@ -20,9 +20,9 @@ This section is currently under construction...
 We are taking contributions under the Apache 2.0 license, so please feel free to submit pull requests. Please keep in mind the following rules when submitting contributions:
 
 * Follow the pre-existing coding style and standards in the OdinSerializer code.
-* If you work in your own fork with a modified OdinSerializer namespace, please ensure that the pull request uses the correct namespaces for this repository and otherwise compiles right out of the bat, so we don't need to sit and clean that up when accepting the pull request.
+* If you work in your own fork with a modified OdinSerializer namespace, please ensure that the pull request uses the correct namespaces for this repository and otherwise compiles right away, so we don't need to clean that sort of stuff up when accepting the pull request.
 
-We are taking any contributions that add value to the serializer without adding undue bloat. However, these are the areas that we are particularly interested in seeing contributions in:
+We are taking any contributions that add value to OdinSerializer without also adding undue bloat or feature creep. However, these are the areas that we are particularly interested in seeing contributions in:
 
 #### Bugfixes
 * We would be very grateful if you could submit pull requests for any bugs that you encounter and fix.
@@ -30,7 +30,7 @@ We are taking any contributions that add value to the serializer without adding 
 #### Performance
 * General overall performance: faster code is always better, as long as the increase in speed does not sacrifice any robustness.
 * Json format performance: the performance of the json format (JsonDataWriter/JsonDataReader) is currently indescribably awful. The format was originally written as a testbed format for use during the development of OdinSerializer, since it is human-readable and thus very useful for debugging purposes, and has remained largely untouched since.
-* EnumSerializer<T> currently allocates garbage via boxing serialized and deserialized enum values. Any approaches for fixing this would be most welcome. Some unsafe code may be required, but we haven't yet had time to really look into this properly.
+* EnumSerializer currently allocates garbage via boxing serialized and deserialized enum values. Any approaches for fixing this would be most welcome. Some unsafe code may be required, but we haven't yet had time to really look into this properly.
 
 #### Testing
 * A thorough set of standalone unit tests. Odin Inspector has its own internal integration tests for OdinSerializer, but currently we have no decent stand-alone unit tests that solely work with OdinSerializer.
@@ -85,16 +85,14 @@ The following types are considered atomic primitives:
 
 ### Serializers and formatters
 
-This is an important distinction - serializers are the outward "face" of the system, and are all hardcoded into the system. There is a hardcoded serializer type for all atomic primitives, and a catch-all ComplexTypeSerializer that handles all other types by wrapping the use of formatters.
+This is an important distinction - serializers are the outward "face" of the system, and are all hardcoded into the system. There is a hardcoded serializer type for each atomic primitive, and a catch-all ComplexTypeSerializer that handles all other types by wrapping the use of formatters.
 
 Formatters are what translates an actual C# object into the data that it consists of. They are the primary point of extension in OdinSerializer - they tell the system how to treat various special types. For example, there is a formatter that handles arrays, a formatter that handles multi-dimensional arrays, a formatter that handles dictionaries, and so on.
 
-OdinSerializer ships with a large number of custom formatters for commonly serialized .NET and Unity types.
-
-An example of a custom formatter might be the following formatter for Unity's Vector3 type:
+OdinSerializer ships with a large number of custom formatters for commonly serialized .NET and Unity types. An example of a custom formatter might be the following formatter for Unity's Vector3 type:
 
 ```csharp
-using Sirenix.Serialization;
+using OdinSerializer;
 using UnityEngine;
 
 [assembly: RegisterFormatter(typeof(Vector3Formatter))]
