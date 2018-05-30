@@ -17,18 +17,7 @@ OdinSerializer is an open-source version of the custom serializer built for and 
     <a href="https://www.assetstore.unity3d.com/#!/content/89041?aid=1011l36zv">Inspect all serialized data with Odin Inspector</a>
 </p>
 
-
-<h3 align="center" style="text-align:center;">
-Used in hundreds of games and supported by Asset Store developers such as
-</h3>
-
-<p align="center">
-    <img src="/Images/DevdogLogo.png" style="display:inline-block; margin-left:23px; margin-right:23px;">
-    <img src="/Images/DevdogLogo.png" style="display:inline-block; margin-left:23px; margin-right:23px;">
-    <img src="/Images/DevdogLogo.png" style="display:inline-block; margin-left:23px; margin-right:23px;">
-</p>
-
-## How to get started
+# How to get started
 
 This section is currently under construction...
 
@@ -36,7 +25,7 @@ This section is currently under construction...
 
 #### Forking OdinSerializer
 
-## Performance charts and comparisons
+# Performance charts and comparisons
 
 |                                       | Odin Serializer  | Unity JSON       | Full Serializer  | Binary Formatter | JSON .Net        |Protobuf          |
 |---------------------------------------|------------------|------------------|------------------|------------------|------------------|------------------|
