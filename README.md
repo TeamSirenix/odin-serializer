@@ -58,7 +58,7 @@ This section is currently under construction...
 ![Benchmark](/Images/ComplexObjectSerializationBenchmark.png)
 #### Serialization of various large arrays and lists
 ![Benchmark](/Images/HugeArraysSerializationBenchmark.png)
-#### Garbage collection of the 3 tests above
+#### Garbage allocation of the 3 tests above
 ![Benchmark](/Images/GarbageCollectionSerializationBenchmark.png)
 
 ## How to contribute
