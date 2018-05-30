@@ -15,6 +15,31 @@ This section is currently under construction...
 
 This section is currently under construction...
 
+|                                       | Odin Serializer                   | Unity JSON                        | Full Serializer                   | Binary Formatter                  | JSON .Net                         |Protobuf|
+|---------------------------------------|-----------------------------------|-----------------------------------|-----------------------------------|-----------------------------------|-----------------------------------|--------|
+|Open Source                            |<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center></center>
+|Cross Platform                         |<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>
+|Out of the box Unity Support           |<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:x:               </center>|<center>:x:</center>
+|Supports Unity structs                 |<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:x:               </center>|<center>?</center>
+|Prefab Modifications                   |<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:x:               </center>|<center>:x:               </center>|<center>:x:               </center>|<center>:x:</center>
+|Binary Formatter                       |<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>
+|Json Formatter                         |<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>:x:</center>
+|Merge friendly data in Unity objects   |<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:x:               </center>|<center>:x:               </center>|<center>:x:               </center>|<center>:x:</center>
+|Interfaces                             |<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>
+|Properties                             |<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>
+|Polymorphism                           |<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>
+|Generics                               |<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>
+|Dictionaries                           |<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>
+|Circular  References                   |<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>
+|Delegates                              |<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:x:</center>
+|Multi-dimensional arrays               |<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:x:</center>
+|Extendable                             |<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>
+|Renaming Members                       |<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>
+|Renaming Types                         |<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>
+|IL Optimized                           |<center>:heavy_check_mark:</center>|<center>-                 </center>|<center>:x:               </center>|<center>:x:               </center>|<center>:x:               </center>|<center>-</center>
+|Supports .Net interfaces               |<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>?                 </center>|<center>:x:</center>
+|Supports .Net callback attributes      |<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>
+
 ## How to contribute
 
 We are taking contributions under the Apache 2.0 license, so please feel free to submit pull requests. Please keep in mind the following rules when submitting contributions:
