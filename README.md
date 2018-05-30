@@ -15,30 +15,30 @@ This section is currently under construction...
 
 This section is currently under construction...
 
-|                                       | Odin Serializer                   | Unity JSON                        | Full Serializer                   | Binary Formatter                  | JSON .Net                         |Protobuf|
-|---------------------------------------|-----------------------------------|-----------------------------------|-----------------------------------|-----------------------------------|-----------------------------------|--------|
-|Open Source                            |<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center></center>
-|Cross Platform                         |<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>
-|Out of the box Unity Support           |<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:x:               </center>|<center>:x:</center>
-|Supports Unity structs                 |<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:x:               </center>|<center>?</center>
-|Prefab Modifications                   |<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:x:               </center>|<center>:x:               </center>|<center>:x:               </center>|<center>:x:</center>
-|Binary Formatter                       |<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>
-|Json Formatter                         |<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>:x:</center>
-|Merge friendly data in Unity objects   |<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:x:               </center>|<center>:x:               </center>|<center>:x:               </center>|<center>:x:</center>
-|Interfaces                             |<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>
-|Properties                             |<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>
-|Polymorphism                           |<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>
-|Generics                               |<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>
-|Dictionaries                           |<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>
-|Circular  References                   |<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>
-|Delegates                              |<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:x:</center>
-|Multi-dimensional arrays               |<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:x:</center>
-|Extendable                             |<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>
-|Renaming Members                       |<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>
-|Renaming Types                         |<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>
-|IL Optimized                           |<center>:heavy_check_mark:</center>|<center>-                 </center>|<center>:x:               </center>|<center>:x:               </center>|<center>:x:               </center>|<center>-</center>
-|Supports .Net interfaces               |<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>?                 </center>|<center>:x:</center>
-|Supports .Net callback attributes      |<center>:heavy_check_mark:</center>|<center>:x:               </center>|<center>:x:               </center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>|<center>:heavy_check_mark:</center>
+|                                       | Odin Serializer  | Unity JSON       | Full Serializer  | Binary Formatter | JSON .Net        |Protobuf          |
+|---------------------------------------|------------------|------------------|------------------|------------------|------------------|------------------|
+|Open Source                            |:heavy_check_mark:|:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|
+|Cross Platform                         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
+|Out of the box Unity Support           |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:x:               |:x:               |:x:
+|Supports Unity structs                 |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:x:               |:x:               |?
+|Prefab Modifications                   |:heavy_check_mark:|:x:               |:x:               |:x:               |:x:               |:x:
+|Binary Formatter                       |:heavy_check_mark:|:x:               |:x:               |:heavy_check_mark:|:x:               |:heavy_check_mark:
+|Json Formatter                         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:x:               |:heavy_check_mark:|:x:
+|Merge friendly data in Unity objects   |:heavy_check_mark:|:x:               |:x:               |:x:               |:x:               |:x:
+|Interfaces                             |:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
+|Properties                             |:heavy_check_mark:|:x:               |:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:
+|Polymorphism                           |:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
+|Generics                               |:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
+|Dictionaries                           |:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
+|Circular  References                   |:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
+|Delegates                              |:heavy_check_mark:|:x:               |:x:               |:heavy_check_mark:|:x:               |:x:
+|Multi-dimensional arrays               |:heavy_check_mark:|:x:               |:x:               |:heavy_check_mark:|:heavy_check_mark:|:x:
+|Extendable                             |:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
+|Renaming Members                       |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
+|Renaming Types                         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
+|IL Optimized                           |:heavy_check_mark:|-                 |:x:               |:x:               |:x:               |-
+|Supports .Net interfaces               |:heavy_check_mark:|:x:               |:x:               |:heavy_check_mark:|?                 |:x:
+|Supports .Net callback attributes      |:heavy_check_mark:|:x:               |:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
 
 ## How to contribute
 
