@@ -1,3 +1,5 @@
+![Odin Serializer Logo](/Images/OdinSerializerLogo.png)
+
 # OdinSerializer
 OdinSerializer is an open-source version of the custom serializer built for and used by [Odin - Inspector & Serializer](https://www.assetstore.unity3d.com/en/#!/content/89041).
 
@@ -12,8 +14,6 @@ This section is currently under construction...
 #### Forking OdinSerializer
 
 ## Performance charts and comparisons
-
-This section is currently under construction...
 
 |                                       | Odin Serializer  | Unity JSON       | Full Serializer  | Binary Formatter | JSON .Net        |Protobuf          |
 |---------------------------------------|------------------|------------------|------------------|------------------|------------------|------------------|
@@ -39,6 +39,15 @@ This section is currently under construction...
 |IL Optimized                           |:heavy_check_mark:|-                 |:x:               |:x:               |:x:               |-
 |Supports .Net interfaces               |:heavy_check_mark:|:x:               |:x:               |:heavy_check_mark:|?                 |:x:
 |Supports .Net callback attributes      |:heavy_check_mark:|:x:               |:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
+
+#### Serialization of a simple object with no polymorphism
+![Benchmark](/Images/SimpleObjectSerializationBenchmark.png)
+#### Serialization of a comple object with lots of polymorphism
+![Benchmark](/Images/ComplexObjectSerializationBenchmark.png)
+#### Serialization of various large arrays and lists
+![Benchmark](/Images/HugeArraysSerializationBenchmark.png)
+#### Garbage collection of the 3 tests above
+![Benchmark](/Images/GarbageCollectionSerializationBenchmark.png)
 
 ## How to contribute
 
