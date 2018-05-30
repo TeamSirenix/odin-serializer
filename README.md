@@ -6,7 +6,7 @@
 <h3 align="center" style="text-align:center;">
 Fast, robust, powerful and extendible .NET serializer built for Unity
 </h3>
-<p style="padding-left:20%; padding-right:20%;">
+<p align="center">
 OdinSerializer is an open-source version of the custom serializer built for and used by <a href="https://www.assetstore.unity3d.com/en/#!/content/89041">Odin - Inspector & Serializer</a>
 </p>
 <hr>
