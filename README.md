@@ -29,7 +29,7 @@ This section is currently under construction...
 
 |                                       | Odin Serializer  | Unity JSON       | Full Serializer  | Binary Formatter | JSON.NET        |Protobuf          |
 |---------------------------------------|------------------|------------------|------------------|------------------|------------------|------------------|
-|Open Source                            |:heavy_check_mark:|:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|
+|Open Source                            |:heavy_check_mark:|:x:|:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|
 |Cross Platform                         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
 |Out of the box Unity Support           |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:x:               |:x:               |:x:
 |Supports Unity structs                 |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:x:               |:x:               |?
