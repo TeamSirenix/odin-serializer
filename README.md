@@ -1,4 +1,17 @@
-![Odin Serializer Logo](/Images/OdinSerializerLogo.png)
+<p align="center">
+    <img src="/Images/OdinSerializerLogo.png" alt="Odin Serializer">
+</p>
+<br />
+<h3 align="center">
+Fast, robust, powerful and extendible .NET serializer built for Unity
+</h3>
+<br />
+<hr>
+<p align="center">
+    <a href="https://discord.gg/AgDmStu">Join us on Discord</a>
+    <a href="https://www.assetstore.unity3d.com/en/">Get it from the Asset Store</a>
+    <a href="https://www.assetstore.unity3d.com/#!/content/89041?aid=1011l36zv">Inspect all serialized data with Odin Inspector</a>
+</p>
 
 # OdinSerializer
 OdinSerializer is an open-source version of the custom serializer built for and used by [Odin - Inspector & Serializer](https://www.assetstore.unity3d.com/en/#!/content/89041).
