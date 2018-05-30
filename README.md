@@ -12,8 +12,8 @@ OdinSerializer is an open-source version of the custom serializer built for and 
 <hr>
 
 <p align="center">
-    <a href="https://discord.gg/AgDmStu">Join us on Discord</a>
-    <a href="https://www.assetstore.unity3d.com/en/">Get it from the Asset Store</a>
+    <a href="https://discord.gg/AgDmStu">Join us on Discord</a> | 
+    <a href="https://www.assetstore.unity3d.com/en/">Get it from the Asset Store</a> | 
     <a href="https://www.assetstore.unity3d.com/#!/content/89041?aid=1011l36zv">Inspect all serialized data with Odin Inspector</a>
 </p>
 
@@ -27,7 +27,7 @@ This section is currently under construction...
 
 ## Performance charts and comparisons
 
-|                                       | Odin Serializer  | Unity JSON       | Full Serializer  | Binary Formatter | JSON .Net        |Protobuf          |
+|                                       | Odin Serializer  | Unity JSON       | Full Serializer  | Binary Formatter | JSON.NET        |Protobuf          |
 |---------------------------------------|------------------|------------------|------------------|------------------|------------------|------------------|
 |Open Source                            |:heavy_check_mark:|:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|
 |Cross Platform                         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
@@ -36,25 +36,25 @@ This section is currently under construction...
 |Prefab Modifications                   |:heavy_check_mark:|:x:               |:x:               |:x:               |:x:               |:x:
 |Binary Formatter                       |:heavy_check_mark:|:x:               |:x:               |:heavy_check_mark:|:x:               |:heavy_check_mark:
 |Json Formatter                         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:x:               |:heavy_check_mark:|:x:
-|Merge friendly data in Unity objects   |:heavy_check_mark:|:x:               |:x:               |:x:               |:x:               |:x:
+|Merge-friendly data in Unity objects   |:heavy_check_mark:|:x:               |:x:               |:x:               |:x:               |:x:
 |Interfaces                             |:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
 |Properties                             |:heavy_check_mark:|:x:               |:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:
 |Polymorphism                           |:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
 |Generics                               |:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
 |Dictionaries                           |:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
-|Circular  References                   |:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
+|Circular References                   |:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
 |Delegates                              |:heavy_check_mark:|:x:               |:x:               |:heavy_check_mark:|:x:               |:x:
 |Multi-dimensional arrays               |:heavy_check_mark:|:x:               |:x:               |:heavy_check_mark:|:heavy_check_mark:|:x:
 |Extendable                             |:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
 |Renaming Members                       |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
 |Renaming Types                         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
 |IL Optimized                           |:heavy_check_mark:|-                 |:x:               |:x:               |:x:               |-
-|Supports .Net interfaces               |:heavy_check_mark:|:x:               |:x:               |:heavy_check_mark:|?                 |:x:
-|Supports .Net callback attributes      |:heavy_check_mark:|:x:               |:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
+|Supports .NET interfaces               |:heavy_check_mark:|:x:               |:x:               |:heavy_check_mark:|?                 |:x:
+|Supports .NET callback attributes      |:heavy_check_mark:|:x:               |:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
 
 #### Serialization of a simple object with no polymorphism
 ![Benchmark](/Images/SimpleObjectSerializationBenchmark.png)
-#### Serialization of a comple object with lots of polymorphism
+#### Serialization of a complex object with lots of polymorphism
 ![Benchmark](/Images/ComplexObjectSerializationBenchmark.png)
 #### Serialization of various large arrays and lists
 ![Benchmark](/Images/HugeArraysSerializationBenchmark.png)
