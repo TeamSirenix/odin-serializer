@@ -103,7 +103,8 @@ public static class Example
 		byte[] bytes = SerializationUtility.Serialize(data, DataFormat.Binary, ref unityReferences);
 		File.WriteAllBytes(bytes, filePath);
 		
-		// The unityReferences list will now be filled with all encountered UnityEngine.Object references, and the saved binary data contains index pointers into this list
+		// The unityReferences list will now be filled with all encountered UnityEngine.Object references, and the saved binary data contains index pointers into this list.
+		// It is your job to ensure that the list of references stays the same between serialization and deserialization.
 	}
 	
 	public static MyData Load(string filePath, List<UnityEngine.Object> unityReferences)
