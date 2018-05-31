@@ -50,7 +50,13 @@ If you intend to include OdinSerializer in one of your own product distributions
 
 The OdinSerializer project is set up as an independent code project that lives outside of Unity, and which can compile assemblies for use inside of a Unity project. Its build settings are set up to use a specific MSBuild distributable (Roslyn compiler) to build assemblies that are Unity-compatible, and the pdb2mdb tool to convert .pdb symbol files to .mdb symbol files to support proper step debugging in Unity. Simply building with the default MSBuild versions that ship with many recent distributions of Visual Studio appears to cause instant runtime crashes in some versions of Unity the moment the code enters an unsafe context.
 
-<I DON'T KNOW YET WHAT TO WRITE HERE> (how to actually build and make a full assembly set easily and so on - do we have a "build everything" profile?)
+The easiest way to build and test OdinSerializer, however, is to open the Build folder as a Unity project (any Unity version at or above 5.3 should work). When open, you will see three buttons in the project scene view: "Compile with debugging", "Compile release build" and "Open solution".
+
+*Compile with debugging* compiles an assembly into the open project, along with the proper symbol files for step debugging. Once this assembly is imported by Unity, you can step debug OdinSerializer by attaching a Visual Studio instance to it.
+
+*Compile release build* compiles three different OdinSerializer assemblies with release optimizations. The three assemblies are for use in respectively the editor, in builds with JIT support (Windows/Mac/Linux), and in AOT builds (IL2CPP). <TODO: WRITE STUFF ABOUT HOW TO LET THESE ASSEMBLIES AUTOMATICALLY CONFIGURE THEMSELVES>
+
+*Open solution* simply opens the OdinSerializer solution file using the default application.
 
 ### Basic usage of OdinSerializer
 
