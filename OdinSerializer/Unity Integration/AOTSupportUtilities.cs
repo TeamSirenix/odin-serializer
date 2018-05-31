@@ -34,7 +34,7 @@ namespace OdinSerializer.Editor
 
     public static class AOTSupportUtilities
     {
-        public static bool ScanProjectForSerializedTypes(out List<Type> serializedTypes, bool excludeAssemblyDefinitionsWithEditorReference = false)
+        public static bool ScanProjectForSerializedTypes(out List<Type> serializedTypes)
         {
             serializedTypes = null;
 
@@ -72,14 +72,6 @@ namespace OdinSerializer.Editor
                     return;
                 }
 
-                if (excludeAssemblyDefinitionsWithEditorReference)
-                {
-                    if ((typeFlags & AssemblyTypeFlags.PluginEditorTypes) == AssemblyTypeFlags.PluginEditorTypes)
-                    {
-                        return;
-                    }
-                }
-
                 registerType(type);
             };
 
@@ -99,14 +91,6 @@ namespace OdinSerializer.Editor
                     return;
                 }
 
-                if (excludeAssemblyDefinitionsWithEditorReference)
-                {
-                    if ((typeFlags & AssemblyTypeFlags.PluginEditorTypes) == AssemblyTypeFlags.PluginEditorTypes)
-                    {
-                        return;
-                    }
-                }
-
                 registerType(type);
             };
 
@@ -121,14 +105,6 @@ namespace OdinSerializer.Editor
                 if ((typeFlags & AssemblyTypeFlags.UserEditorTypes) == AssemblyTypeFlags.UserEditorTypes)
                 {
                     return;
-                }
-
-                if (excludeAssemblyDefinitionsWithEditorReference)
-                {
-                    if ((typeFlags & AssemblyTypeFlags.PluginEditorTypes) == AssemblyTypeFlags.PluginEditorTypes)
-                    {
-                        return;
-                    }
                 }
 
                 var type = formatter.SerializedType;

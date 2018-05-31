@@ -1,5 +1,5 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="SceneViewButtons.cs" company="Sirenix IVS">
+// <copyright file="SceneViewBuildButtons.cs" company="Sirenix IVS">
 // Copyright (c) 2018 Sirenix IVS
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -41,16 +41,15 @@ namespace OdinSerializer.Utilities.Editor
             AssetDatabase.StartAssetEditing();
             try
             {
-                Build("Release Editor");    //Sirenix/Odin Serializer/Assemblies/OdinSerializer.dll     - Editor Only
-                Build("Release JIT");       //Sirenix/Odin Serializer/Assemblies/JIT/OdinSerializer.dll - Standalone and Mono
-                Build("Release AOT");       //Sirenix/Odin Serializer/Assemblies/AOT/OdinSerializer.dll - AOT + IL2CPP
-
+                Build("Release Editor");    //Sirenix/Odin Serializer/EditorOnly/OdinSerializer.dll - Editor Only
+                Build("Release JIT");       //Sirenix/Odin Serializer/JIT/OdinSerializer.dll - Standalone and Mono
+                Build("Release AOT");       //Sirenix/Odin Serializer/AOT/OdinSerializer.dll - AOT + IL2CPP
                 // TODO: Create a unitypackage, make a downloadable release, increment version etc.. etc...
             }
             finally
             {
                 AssetDatabase.StopAssetEditing();
-                Debug.Log("Succeeded at building Assemblies/OdinSerializer.dll, Assemblies/AOT/OdinSerializer.dll and Assemblies/JIT/OdinSerializer.dll in release mode.");
+                Debug.Log("Succeeded at building EditorOnly/OdinSerializer.dll, AOT/OdinSerializer.dll and JIT/OdinSerializer.dll in release mode.");
             }
         }
 
@@ -85,7 +84,7 @@ namespace OdinSerializer.Utilities.Editor
             if (GUI.Button(GUILayoutUtility.GetRect(0, 34), "Compile with debugging"))
             {
                 Build("Debug Editor");
-                Debug.Log("Succeeded at building Assemblies/OdinSerializer.dll in debug mode.");
+                Debug.Log("Succeeded at building EditorOnly/OdinSerializer.dll in debug mode.");
             }
             GUI.color = Color.white;
 

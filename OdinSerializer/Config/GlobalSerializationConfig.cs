@@ -22,7 +22,7 @@ namespace OdinSerializer
     /// </summary>
     public class GlobalSerializationConfig
     {
-        private static GlobalSerializationConfig instance = new GlobalSerializationConfig();
+        private static readonly GlobalSerializationConfig instance = new GlobalSerializationConfig();
 
         /// <summary>
         /// Gets the global configuration instance.

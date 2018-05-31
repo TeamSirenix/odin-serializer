@@ -1,5 +1,5 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="OdinBuildConfigUtility.cs" company="Sirenix IVS">
+// <copyright file="AssemblyImportSettingsUtilities.cs" company="Sirenix IVS">
 // Copyright (c) 2018 Sirenix IVS
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -27,27 +27,6 @@ namespace OdinSerializer.Utilities.Editor
     using UnityEditor;
 
     /// <summary>
-    /// Defines how Odin's assemblies should be configured.
-    /// </summary>
-    public enum OdinPlaformConfig
-    {
-        /// <summary>
-        /// Ahead Of Time compilation platform.
-        /// </summary>
-        AOT,
-
-        /// <summary>
-        /// Just In Time compilation platform.
-        /// </summary>
-        JIT,
-
-        /// <summary>
-        /// Editor only. Exclude binaries from the build.
-        /// </summary>
-        EditorOnly,
-    }
-
-    /// <summary>
     /// Defines how an assembly's import settings should be configured.
     /// </summary>
     public enum AssemblyImportSettings
@@ -55,66 +34,51 @@ namespace OdinSerializer.Utilities.Editor
         /// <summary>
         /// Include the assembly in the build, but not in the editor.
         /// </summary>
-        BuildOnly,
+        IncludeInBuildOnly,
         /// <summary>
         /// Include the assembly in the editor, but not in the build.
         /// </summary>
-        EditorOnly,
+        IncludeInEditorOnly,
         /// <summary>
         /// Include the assembly in both the build and in the editor.
         /// </summary>
-        BuildAndEditor,
+        IncludeInAll,
         /// <summary>
         /// Exclude the assembly from both the build and from the editor.
         /// </summary>
-        Exclude,
+        ExcludeFromAll,
     }
 
     /// <summary>
     /// Utility for correctly setting import on OdinSerializer assemblies based on platform and scripting backend.
     /// </summary>
-    public static class OdinBuildConfigUtility
+    public static class AssemblyImportSettingsUtilities
     {
-        /// <summary>
-        /// The Path to the binary that is compiled for use in the Unity Editor.
-        /// </summary>
-        public static readonly string EditorAssemblyPath;
+        private static MethodInfo getPropertyIntMethod;
+        private static MethodInfo getScriptingBackendMethod;
 
-        /// <summary>
-        /// The Path to the binary that is compiled for use on JIT platforms.
-        /// </summary>
-        public static readonly string JITAssemblyPath;
-
-        /// <summary>
-        /// The Path to the binary that is compiled for use on AOT platforms.
-        /// </summary>
-        public static readonly string AOTAssemblyPath;
-        
         /// <summary>
         /// All valid Unity BuildTarget platforms.
         /// </summary>
-        public static readonly BuildTarget[] Platforms; 
+        public static readonly ImmutableList<BuildTarget> Platforms; 
 
         /// <summary>
         /// All valid Unity BuildTarget platforms that support Just In Time compilation.
         /// </summary>
-        public static readonly BuildTarget[] JITPlatforms;
-        
-        private static MethodInfo getPropertyIntMethod;
-        private static MethodInfo getScriptingBackendMethod;
+        public static readonly ImmutableList<BuildTarget> JITPlatforms;
 
-        static OdinBuildConfigUtility()
+        static AssemblyImportSettingsUtilities()
         {
             // This method is needed for getting the ScriptingBackend from Unity 5.6 and up.
             getPropertyIntMethod = typeof(PlayerSettings).GetMethod("GetPropertyInt", Flags.StaticPublic, null, new Type[] { typeof(string), typeof(BuildTargetGroup) }, null);
             getScriptingBackendMethod = typeof(PlayerSettings).GetMethod("GetScriptingBackend", Flags.StaticPublic);
 
-            Platforms = Enum.GetValues(typeof(BuildTarget))
+            Platforms = new ImmutableList<BuildTarget>(Enum.GetValues(typeof(BuildTarget))
                 .Cast<BuildTarget>()
                 .Where(t => t >= 0 && typeof(BuildTarget).GetMember(t.ToString())[0].IsDefined(typeof(ObsoleteAttribute), false) == false)
-                .ToArray();
-            
-            JITPlatforms = Platforms
+                .ToArray());
+
+            JITPlatforms = new ImmutableList<BuildTarget>(Platforms
                 .Where(i => i.ToString().StartsWith("StandaloneOSX")) // Unity 2017.3 replaced StandaloneOSXIntel, StandaloneOSXIntel64 and StandaloneOSXUniversal with StandaloneOSX.
                 .Append(new BuildTarget[]
                 {
@@ -125,80 +89,11 @@ namespace OdinSerializer.Utilities.Editor
                     BuildTarget.StandaloneLinuxUniversal,
                     BuildTarget.Android
                 })
-                .ToArray();
+                .ToArray());
 
             // Find the binary files.
-            var directory = new DirectoryInfo(typeof(OdinBuildConfigUtility).Assembly.GetAssemblyFilePath()).Parent.Parent.FullName.Replace('\\', '/').TrimEnd('/');
-            EditorAssemblyPath = directory + "/EditorOnly/OdinSerializer.dll";
-            AOTAssemblyPath = directory + "/AOT/OdinSerializer.dll";
-            JITAssemblyPath = directory + "/JIT/OdinSerializer.dll";
-        }
+            var directory = new DirectoryInfo(typeof(AssemblyImportSettingsUtilities).Assembly.GetAssemblyDirectory()).Parent.FullName.Replace('\\', '/').TrimEnd('/');
 
-        /// <summary>
-        /// Gets the platform config for the current build configuration of the project.
-        /// </summary>
-        /// <returns></returns>
-        public static OdinPlaformConfig GetConfigForCurrentBuildConfiguration()
-        {
-            var backend = GetCurrentScriptingBackend();
-            if (backend == ScriptingImplementation.IL2CPP)
-            {
-                return OdinPlaformConfig.AOT;
-            }
-
-            var target = EditorUserBuildSettings.activeBuildTarget;
-            if (JITPlatforms.Contains(target))
-            {
-                return OdinPlaformConfig.JIT;
-            }
-            else
-            {
-                return OdinPlaformConfig.AOT;
-            }
-        }
-
-        /// <summary>
-        /// Set the import settings for the specified platform.
-        /// </summary>
-        /// <param name="platform">The platform to configure for.</param>
-        public static void SetImportConfig(OdinPlaformConfig platform)
-        {
-            try
-            {
-                AssetDatabase.StartAssetEditing();
-
-                switch (platform)
-                {
-                    case OdinPlaformConfig.AOT:
-                       SetAssemblyImportSettings(AOTAssemblyPath, AssemblyImportSettings.BuildOnly);
-                       SetAssemblyImportSettings(JITAssemblyPath, AssemblyImportSettings.Exclude);
-                        break;
-                    case OdinPlaformConfig.JIT:
-                        SetAssemblyImportSettings(AOTAssemblyPath, AssemblyImportSettings.Exclude);
-                        SetAssemblyImportSettings(JITAssemblyPath, AssemblyImportSettings.BuildOnly);
-                        break;
-                    case OdinPlaformConfig.EditorOnly:
-                        SetAssemblyImportSettings(AOTAssemblyPath, AssemblyImportSettings.Exclude);
-                        SetAssemblyImportSettings(JITAssemblyPath, AssemblyImportSettings.Exclude);
-                        break;
-
-                    default:
-                        throw new InvalidOperationException("Invalid configuration value: " + platform);
-                }
-            }
-            finally
-            {
-
-                AssetDatabase.StopAssetEditing();
-            }
-        }
-
-        /// <summary>
-        /// Set the import settings based on the current build configuration of the project.
-        /// </summary>
-        public static void SetImportConfigForCurrentBuildConfiguration()
-        {
-            SetImportConfig(GetConfigForCurrentBuildConfiguration());
         }
 
         /// <summary>
@@ -213,20 +108,20 @@ namespace OdinSerializer.Utilities.Editor
 
             switch (importSettings)
             {
-                case AssemblyImportSettings.BuildAndEditor:
+                case AssemblyImportSettings.IncludeInAll:
                     includeInBuild = true;
                     includeInEditor = true;
                     break;
 
-                case AssemblyImportSettings.BuildOnly:
+                case AssemblyImportSettings.IncludeInBuildOnly:
                     includeInBuild = true;
                     break;
 
-                case AssemblyImportSettings.EditorOnly:
+                case AssemblyImportSettings.IncludeInEditorOnly:
                     includeInEditor = true;
                     break;
 
-                case AssemblyImportSettings.Exclude:
+                case AssemblyImportSettings.ExcludeFromAll:
                     break;
             }
 

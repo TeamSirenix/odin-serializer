@@ -4,6 +4,67 @@
         <name>OdinSerializer</name>
     </assembly>
     <members>
+        <member name="T:OdinSerializer.Utilities.Editor.AssemblyImportSettings">
+            <summary>
+            Defines how an assembly's import settings should be configured.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.Utilities.Editor.AssemblyImportSettings.IncludeInBuildOnly">
+            <summary>
+            Include the assembly in the build, but not in the editor.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.Utilities.Editor.AssemblyImportSettings.IncludeInEditorOnly">
+            <summary>
+            Include the assembly in the editor, but not in the build.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.Utilities.Editor.AssemblyImportSettings.IncludeInAll">
+            <summary>
+            Include the assembly in both the build and in the editor.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.Utilities.Editor.AssemblyImportSettings.ExcludeFromAll">
+            <summary>
+            Exclude the assembly from both the build and from the editor.
+            </summary>
+        </member>
+        <member name="T:OdinSerializer.Utilities.Editor.AssemblyImportSettingsUtilities">
+            <summary>
+            Utility for correctly setting import on OdinSerializer assemblies based on platform and scripting backend.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.Utilities.Editor.AssemblyImportSettingsUtilities.Platforms">
+            <summary>
+            All valid Unity BuildTarget platforms.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.Utilities.Editor.AssemblyImportSettingsUtilities.JITPlatforms">
+            <summary>
+            All valid Unity BuildTarget platforms that support Just In Time compilation.
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.Utilities.Editor.AssemblyImportSettingsUtilities.SetAssemblyImportSettings(System.String,OdinSerializer.Utilities.Editor.AssemblyImportSettings)">
+            <summary>
+            Set the import settings on the assembly.
+            </summary>
+            <param name="assemblyFilePath">The path to the assembly to configure import settings from.</param>
+            <param name="importSettings">The import settings to configure for the assembly at the path.</param>
+        </member>
+        <member name="M:OdinSerializer.Utilities.Editor.AssemblyImportSettingsUtilities.SetAssemblyImportSettings(System.String,System.Boolean,System.Boolean)">
+            <summary>
+            Set the import settings on the assembly.
+            </summary>
+            <param name="assemblyFilePath">The path to the assembly to configure import settings from.</param>
+            <param name="includeInBuild">Indicates if the assembly should be included in the build.</param>
+            <param name="includeInEditor">Indicates if the assembly should be included in the Unity editor.</param>
+        </member>
+        <member name="M:OdinSerializer.Utilities.Editor.AssemblyImportSettingsUtilities.GetCurrentScriptingBackend">
+            <summary>
+            Gets the current scripting backend for the build from the Unity editor. This method is Unity version independent.
+            </summary>
+            <returns></returns>
+        </member>
         <member name="T:OdinSerializer.Utilities.FieldInfoExtensions">
             <summary>
             FieldInfo method extensions.
@@ -6083,6 +6144,11 @@
             Common serialization conventions aren't automatically supported, and common deserialization callbacks are not automatically invoked.
             </summary>
             <typeparam name="T">The type which can be serialized and deserialized by the formatter.</typeparam>
+        </member>
+        <member name="F:OdinSerializer.MinimalBaseFormatter`1.IsValueType">
+            <summary>
+            Whether the serialized value is a value type.
+            </summary>
         </member>
         <member name="P:OdinSerializer.MinimalBaseFormatter`1.SerializedType">
             <summary>

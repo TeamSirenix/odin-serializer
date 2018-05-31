@@ -18,31 +18,31 @@
     <RunPostBuildEvent>Always</RunPostBuildEvent>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug Editor|AnyCPU'">
-    <OutputPath>..\Build\Assets\Plugins\Sirenix\Odin Serializer\Assemblies\EditorOnly\</OutputPath>
+    <OutputPath>..\Build\Assets\Plugins\Sirenix\Odin Serializer\EditorOnly\</OutputPath>
     <DefineConstants>DEBUG;CAN_EMIT;UNITY_EDITOR;ENABLE_PROFILER</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>CS1723, CS1723, CS1574, CS1584, CS1658</NoWarn>
-    <DocumentationFile>..\Build\Assets\Plugins\Sirenix\Odin Serializer\Assemblies\EditorOnly\OdinSerializer.xml</DocumentationFile>
+    <DocumentationFile>..\Build\Assets\Plugins\Sirenix\Odin Serializer\EditorOnly\OdinSerializer.xml</DocumentationFile>
     <LangVersion>4</LangVersion>
     <ErrorReport>prompt</ErrorReport>
     <DebugType>pdbonly</DebugType>
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release Editor|AnyCPU'">
-    <OutputPath>..\Build\Assets\Plugins\Sirenix\Odin Serializer\Assemblies\EditorOnly\</OutputPath>
+    <OutputPath>..\Build\Assets\Plugins\Sirenix\Odin Serializer\EditorOnly\</OutputPath>
     <PlatformTarget>AnyCPU</PlatformTarget>
     <NoWarn>CS1723, CS1723, CS1574, CS1584, CS1658</NoWarn>
     <DefineConstants>DEBUG;CAN_EMIT;UNITY_EDITOR;ENABLE_PROFILER</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Optimize>true</Optimize>
-    <DocumentationFile>..\Build\Assets\Plugins\Sirenix\Odin Serializer\Assemblies\EditorOnly\OdinSerializer.xml</DocumentationFile>
+    <DocumentationFile>..\Build\Assets\Plugins\Sirenix\Odin Serializer\EditorOnly\OdinSerializer.xml</DocumentationFile>
     <LangVersion>4</LangVersion>
     <ErrorReport>prompt</ErrorReport>
     <DebugType>pdbonly</DebugType>
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release JIT|AnyCPU'">
-    <OutputPath>..\Build\Assets\Plugins\Sirenix\Odin Serializer\Assemblies\JIT\</OutputPath>
+    <OutputPath>..\Build\Assets\Plugins\Sirenix\Odin Serializer\JIT\</OutputPath>
     <NoWarn>CS1723, CS1723, CS1574, CS1584, CS1658</NoWarn>
     <DefineConstants>CAN_EMIT</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -55,7 +55,7 @@
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release AOT|AnyCPU'">
-    <OutputPath>..\Build\Assets\Plugins\Sirenix\Odin Serializer\Assemblies\AOT\</OutputPath>
+    <OutputPath>..\Build\Assets\Plugins\Sirenix\Odin Serializer\AOT\</OutputPath>
     <NoWarn>CS1723, CS1723, CS1574, CS1584, CS1658</NoWarn>
     <DefineConstants>
     </DefineConstants>
@@ -88,7 +88,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Config\OdinBuildConfigUtility.cs" />
+    <Compile Include="Utilities\Misc\AssemblyImportSettingsUtilities.cs" />
     <Compile Include="Core\FormatterLocators\ArrayFormatterLocator.cs" />
     <Compile Include="Core\FormatterLocators\DelegateFormatterLocator.cs" />
     <Compile Include="Core\Misc\IAskIfCanFormatTypes.cs" />
