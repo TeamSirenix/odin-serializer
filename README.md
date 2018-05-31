@@ -87,7 +87,7 @@ The manual method requires that you implement Unity's ISerializationCallbackRece
 using UnityEngine;
 using OdinSerializer;
 
-public class YourSpeciallySerializedMonoBehaviour : MonoBehaviour, ISerializationCallbackReceiver
+public class YourSpeciallySerializedScriptableObject : ScriptableObject, ISerializationCallbackReceiver
 {
 	[SerializeField, HideInInspector]
 	private SerializationData serializationData;
@@ -114,12 +114,14 @@ The easier approach is to simply derive your type from one of many pre-created U
 ```csharp
 using OdinSerializer;
 
-public class YourSpeciallySerializedMonoBehaviour : SerializedMonoBehaviour
+public class YourSpeciallySerializedScriptableObject : SerializedScriptableObject
 {
 }
 ```
 
 NOTE: If you use OdinSerializer to extend the serialization of a Unity object, without having an inspector framework such as Odin Inspector installed, the Odin-serialized fields will not be rendered properly in Unity's inspector. You will either have to acquire such a framework, or write your own custom editor to be able to inspect and edit this data in Unity's inspector window.
+
+Finally, always remember that Unity doesn't strictly know that this extra serialized data exists - whenever you change it from your custom editor, remember to manually mark the relevant asset or scene dirty, so Unity knows that it needs to be re-serialized.
 
 ## Performance charts and comparisons
 
@@ -127,12 +129,12 @@ OdinSerializer compares very well to many popular serialization libraries in ter
 
 The performance graphs in this section are profiled with OdinSerializer's binary format.
 
-|                                       | Odin Serializer  | Unity JSON       | Full Serializer  | Binary Formatter | JSON.NET        |Protobuf          |
+|                                       | Odin Serializer  | Unity JSON       | Full Serializer  | Binary Formatter | JSON.NET        |Protobuf-net          |
 |---------------------------------------|------------------|------------------|------------------|------------------|------------------|------------------|
 |Open Source                            |:heavy_check_mark:|:x:|:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|
 |Cross Platform                         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
 |Out of the box Unity Support           |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:x:               |:x:               |:x:
-|Supports Unity structs                 |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:x:               |:x:               |?
+|Supports Unity structs                 |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:x:               |:x:               |:x:
 |Prefab Modifications                   |:heavy_check_mark:|:x:               |:x:               |:x:               |:x:               |:x:
 |Binary Formatter                       |:heavy_check_mark:|:x:               |:x:               |:heavy_check_mark:|:x:               |:heavy_check_mark:
 |Json Formatter                         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:x:               |:heavy_check_mark:|:x:
