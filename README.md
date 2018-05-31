@@ -1,21 +1,24 @@
-
 <br />
 <p align="center">
     <img src="/Images/OdinSerializerLogo.png" alt="Odin Serializer">
 </p>
+
 <h3 align="center" style="text-align:center;">
-Fast, robust, powerful and extendible .NET serializer built for Unity
+	Fast, robust, powerful and extendible .NET serializer built for Unity
 </h3>
+
 <p align="center">
-OdinSerializer is an open-source version of the custom serializer built for and used by <a href="https://www.assetstore.unity3d.com/en/#!/content/89041">Odin - Inspector & Serializer</a>
+	OdinSerializer is an open-source version of the custom serializer built for and used by 
+	<a href="https://www.assetstore.unity3d.com/en/#!/content/89041">Odin - Inspector & Serializer</a>
 </p>
 <hr>
-
-<p align="center">		
+<p align="center">	
 	<a href="https://discord.gg/AgDmStu">
 		<img src="https://discordapp.com/api/guilds/355444042009673728/embed.png" alt="Discord server">
 	</a>
-    <a href="https://www.assetstore.unity3d.com/#!/content/89041?aid=1011l36zv">Inspect all serialized data with Odin Inspector</a>
+	
+	<a href="https://www.assetstore.unity3d.com/#!/content/89041?aid=1011l36zv" class="button">Inspect all serialized data with Odin Inspector</a>
+	
 	<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=YFY8ZF347Z2PN"><img src="https://www.paypalobjects.com/en_US/i/btn/btn_donate_SM.gif" /></a>
 </p>
 
