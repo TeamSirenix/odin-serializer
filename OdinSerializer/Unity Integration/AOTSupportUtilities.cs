@@ -34,9 +34,12 @@ namespace OdinSerializer.Editor
 
     public static class AOTSupportUtilities
     {
+        private static bool allowRegisteringScannedTypes;
+
         public static bool ScanProjectForSerializedTypes(out List<Type> serializedTypes)
         {
             serializedTypes = null;
+            allowRegisteringScannedTypes = false;
 
             HashSet<Type> seenSerializedTypes = new HashSet<Type>();
 
@@ -44,11 +47,15 @@ namespace OdinSerializer.Editor
 
             registerType = (type) =>
             {
+                if (!allowRegisteringScannedTypes) return;
                 if (typeof(UnityEngine.Object).IsAssignableFrom(type)) return;
                 if (type.IsAbstract || type.IsInterface) return;
                 if (type.IsGenericType && (type.IsGenericTypeDefinition || !type.IsFullyConstructedGenericType())) return;
 
-                seenSerializedTypes.Add(type);
+                if (seenSerializedTypes.Add(type))
+                {
+                    Debug.Log("Added " + type.GetNiceFullName());
+                }
 
                 if (type.IsGenericType)
                 {
@@ -77,8 +84,8 @@ namespace OdinSerializer.Editor
 
             Action<Type> onSerializedType = (type) =>
             {
-                // We need variants of serializers for enums specifically
-                if (!type.IsEnum) return;
+                //// We need variants of serializers for enums specifically
+                //if (!type.IsEnum) return;
 
                 var typeFlags = AssemblyUtilities.GetAssemblyTypeFlag(type.Assembly);
                 if ((typeFlags & AssemblyTypeFlags.UnityEditorTypes) == AssemblyTypeFlags.UnityEditorTypes)
@@ -154,24 +161,29 @@ namespace OdinSerializer.Editor
 
         private static bool ProcessAssets()
         {
-            var assetPaths =
-                AssetDatabase.FindAssets("t:ScriptableObject")
-                .Append(AssetDatabase.FindAssets("t:GameObject"))
-                .Select(n => AssetDatabase.GUIDToAssetPath(n))
-                .ToList();
+            allowRegisteringScannedTypes = false;
 
-            if (assetPaths.Count == 0)
+            var scenePaths = EditorBuildSettings.scenes
+                .Where(n => n.enabled)
+                .Select(n => n.path)
+                .ToArray();
+
+            var assetPaths = AssetDatabase.GetDependencies(scenePaths, recursive: true)
+                .Where(n => n.EndsWith(".prefab", StringComparison.InvariantCultureIgnoreCase) || n.EndsWith(".asset", StringComparison.InvariantCultureIgnoreCase))
+                .ToArray();
+
+            if (assetPaths.Length == 0)
             {
                 return true;
             }
 
             try
             {
-                for (int i = 0; i < assetPaths.Count; i++)
+                for (int i = 0; i < assetPaths.Length; i++)
                 {
                     string assetPath = assetPaths[i];
 
-                    if (EditorUtility.DisplayCancelableProgressBar("Scanning asset " + i, assetPath, i / assetPaths.Count))
+                    if (EditorUtility.DisplayCancelableProgressBar("Scanning asset " + i + " for AOT support", assetPath, i / assetPaths.Length))
                     {
                         return false;
                     }
@@ -187,13 +199,49 @@ namespace OdinSerializer.Editor
                     {
                         if (asset is ISerializationCallbackReceiver)
                         {
+                            allowRegisteringScannedTypes = true;
                             (asset as ISerializationCallbackReceiver).OnBeforeSerialize();
+                            allowRegisteringScannedTypes = false;
+                        }
+                    }
+                }
+
+                if (EditorUtility.DisplayCancelableProgressBar("Scanning resources for AOT support", "Loading resource assets", 0f))
+                {
+                    return false;
+                }
+
+                var resources = Resources.LoadAll("");
+
+                for (int i = 0; i < resources.Length; i++)
+                {
+                    if (EditorUtility.DisplayCancelableProgressBar("Scanning resource " + i + " for AOT support", resources[i].name, i / resources.Length))
+                    {
+                        return false;
+                    }
+
+                    var assetPath = AssetDatabase.GetAssetPath(resources[i]);
+                    var assets = AssetDatabase.LoadAllAssetsAtPath(assetPath);
+
+                    if (assets == null || assets.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    foreach (var asset in assets)
+                    {
+                        if (asset is ISerializationCallbackReceiver)
+                        {
+                            allowRegisteringScannedTypes = true;
+                            (asset as ISerializationCallbackReceiver).OnBeforeSerialize();
+                            allowRegisteringScannedTypes = false;
                         }
                     }
                 }
             }
             finally
             {
+                allowRegisteringScannedTypes = false;
                 EditorUtility.ClearProgressBar();
             }
 
@@ -202,9 +250,11 @@ namespace OdinSerializer.Editor
 
         private static bool ProcessScenes()
         {
-            var scenePaths =
-                AssetDatabase.FindAssets("t:Scene")
-                .Select(n => AssetDatabase.GUIDToAssetPath(n))
+            allowRegisteringScannedTypes = false;
+
+            var scenePaths = EditorBuildSettings.scenes
+                .Where(n => n.enabled)
+                .Select(n => n.path)
                 .ToList();
 
             bool hasDirtyScenes = false;
@@ -231,7 +281,7 @@ namespace OdinSerializer.Editor
                 {
                     var scenePath = scenePaths[i];
 
-                    if (EditorUtility.DisplayCancelableProgressBar("Scanning Scenes", "Scene " + (i + 1) + "/" + scenePaths.Count + " - " + scenePath, (float)i / scenePaths.Count))
+                    if (EditorUtility.DisplayCancelableProgressBar("Scanning scenes for AOT support", "Scene " + (i + 1) + "/" + scenePaths.Count + " - " + scenePath, (float)i / scenePaths.Count))
                     {
                         return false;
                     }
@@ -246,6 +296,7 @@ namespace OdinSerializer.Editor
                         {
                             foreach (var component in go.GetComponents<ISerializationCallbackReceiver>())
                             {
+                                allowRegisteringScannedTypes = true;
                                 component.OnBeforeSerialize();
 
                                 var prefabSupporter = component as ISupportsPrefabSerialization;
@@ -258,6 +309,7 @@ namespace OdinSerializer.Editor
                                     var mods = UnitySerializationUtility.DeserializePrefabModifications(prefabSupporter.SerializationData.PrefabModifications, prefabSupporter.SerializationData.PrefabModificationsReferencedUnityObjects);
                                     UnitySerializationUtility.SerializePrefabModifications(mods, ref objs);
                                 }
+                                allowRegisteringScannedTypes = false;
                             }
                         }
                     }
@@ -268,6 +320,8 @@ namespace OdinSerializer.Editor
             }
             finally
             {
+                allowRegisteringScannedTypes = false;
+
                 try
                 {
                     if (oldSceneSetup != null && oldSceneSetup.Length > 0)
