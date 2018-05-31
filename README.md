@@ -30,13 +30,102 @@
 
 ## How to get started
 
-This section is currently under construction...
+There are many different use cases for OdinSerializer. If you just need a serialiation library to use in your own private project, we can recommend that you simply use it out of the box. If you would like to make your own tweaks and builds, or if you intend to include OdinSerializer in a package that you are distributing, you would be better served by forking the repository.
 
 #### Using OdinSerializer out of the box
 
+To use OdinSerializer as-is, simply click the download button at the top of this readme to download the latest release, and import the contained .unitypackage file into your Unity project. OdinSerializer will then be in your project, ready to use.
+
 #### Forking OdinSerializer
 
+*Note: currently, working with and building the OdinSerializer project has only been tested on Windows machines, using Visual Studio.*
+
+To get started, you may want to read [GitHub's guide to forking](https://guides.github.com/activities/forking/), to get the basics of forking down. 
+
+Once you've forked OdinSerializer, you can start making your own changes to the project. Perhaps you want to add a feature, or tweak a part of it to suit your own needs better.
+
+If you intend to include OdinSerializer in one of your own product distributions, you should modify all source files using a tool like search and replace to move the OdinSerializer namespace into an appropriate namespace for your project. This is to avoid namespace conflicts in the cases where multiple different assets in the same project all use possibly differing versions of OdinSerializer. For example, you might globally rename "OdinSerializer" to "MyProject.Internal.OdinSerializer".
+
+#### Building OdinSerializer
+
+The OdinSerializer project is set up as an independent code project that lives outside of Unity, and which can compile assemblies for use inside of a Unity project. Its build settings are set up to use a specific MSBuild distributable (Roslyn compiler) to build assemblies that are Unity-compatible, and the pdb2mdb tool to convert .pdb symbol files to .mdb symbol files to support proper step debugging in Unity. Simply building with the default MSBuild versions that ship with many recent distributions of Visual Studio appears to cause instant runtime crashes in some versions of Unity the moment the code enters an unsafe context.
+
+<I DON'T KNOW YET WHAT TO WRITE HERE> (how to actually build and make a full assembly set easily and so on - do we have a "build everything" profile?)
+
+#### Basic usage of OdinSerializer
+
+This section will not go into great detail about how OdinSerializer works or how to configure it in advanced ways - for that, see the technical overview further down. Instead, it aims to give a simple overview of how to use OdinSerializer in a basic capacity.
+
+There are, broadly, two different ways of using OdinSerializer:
+
+First, you can use it as a standalone serialization library, simply serializing or deserializing whatever data you give it, for example to be stored in a file or sent over the network. This is done using the SerializationUtility class, which contains a variety of methods that wrap OdinSerializer for straight-forward, easy use.
+
+```csharp
+using OdinSerializer;
+
+public static class Example
+{
+	public static void Save(MyData data, string filePath)
+	{
+		byte[] bytes = SerializationUtility.Serialize(data);
+		File.WriteAllBytes(bytes, filePath);
+	}
+	
+	public static MyData Load(string filePath)
+	{
+		byte[] bytes = File.ReadAllBytes(filePath);
+		return SerializationUtility.Deserialize<MyData>(bytes);
+	}
+}
+```
+
+Second, you can use OdinSerializer to seamlessly extend the serialization of Unity's object types, such as ScriptableObject and MonoBehaviour. There are two general ways of doing this, one of which is manual and requires a few lines of code to implement, and one of which is very easy to implement, but exhibits only the default behaviour.
+
+The manual method requires that you implement Unity's ISerializationCallbackReceiver interface on the UnityEngine.Object-derived type you want to extend the serialization of, and then use OdinSerializer's UnitySerializationUtility class to apply Odin's serialization during the serialization callbacks that Unity invokes at the appropriate times.
+
+```csharp
+using UnityEngine;
+using OdinSerializer;
+
+public class YourSpeciallySerializedMonoBehaviour : MonoBehaviour, ISerializationCallbackReceiver
+{
+	[SerializeField, HideInInspector]
+	private SerializationData serializationData;
+
+	void ISerializationCallbackReceiver.OnAfterDeserialize()
+	{
+		// Make Odin deserialize the serializationData field's contents into this instance.
+		UnitySerializationUtility.DeserializeUnityObject(this, ref this.serializationData, cachedContext.Value);
+	}
+
+	void ISerializationCallbackReceiver.OnBeforeSerialize()
+	{
+		// Whether to always serialize fields that Unity will also serialize. By default, this parameter is false, and OdinSerializer will only serialize fields that it thinks Unity will not handle.
+		bool serializeUnityFields = false;
+		
+		// Make Odin serialize data from this instance into the serializationData field.
+		UnitySerializationUtility.SerializeUnityObject(this, ref this.serializationData, serializeUnityFields, cachedContext.Value);
+	}
+}
+```
+
+The easier approach is to simply derive your type from one of many pre-created UnityEngine.Object-derived types that OdinSerializer provides, that have the above behaviour implemented already. Note that doing this will have the default behaviour of not serializing fields that Unity will serialize.
+
+```csharp
+using OdinSerializer;
+
+public class YourSpeciallySerializedMonoBehaviour : SerializedMonoBehaviour
+{
+}
+```
+
+NOTE: If you use OdinSerializer to extend the serialization of a Unity object, without having an inspector framework such as Odin Inspector installed, the Odin-serialized fields will not be rendered properly in Unity's inspector. You will either have to acquire such a framework, or write your own custom editor to be able to inspect and edit this data in Unity's inspector window.
+
 ## Performance charts and comparisons
+
+OdinSerializer compares very well to many popular serialization libraries in terms of performance and garbage allocation, while providing a superior feature-set for use in Unity.
+
+The performance graphs in this section are profiled with OdinSerializer's binary format.
 
 |                                       | Odin Serializer  | Unity JSON       | Full Serializer  | Binary Formatter | JSON.NET        |Protobuf          |
 |---------------------------------------|------------------|------------------|------------------|------------------|------------------|------------------|
@@ -86,11 +175,11 @@ We are taking any contributions that add value to OdinSerializer without also ad
 
 #### Performance
 * General overall performance: faster code is always better, as long as the increase in speed does not sacrifice any robustness.
-* Json format performance: the performance of the json format (JsonDataWriter/JsonDataReader) is currently indescribably awful. The format was originally written as a testbed format for use during the development of OdinSerializer, since it is human-readable and thus very useful for debugging purposes, and has remained largely untouched since.
-* EnumSerializer currently allocates garbage via boxing serialized and deserialized enum values. Any approaches for fixing this would be most welcome. Some unsafe code may be required, but we haven't yet had time to really look into this properly.
+* Json format performance: the performance of the json format (JsonDataWriter/JsonDataReader) is currently indescribably awful. The format was originally written as a testbed for use during the development of OdinSerializer, since it is human-readable and thus very useful for debugging purposes, and has remained largely untouched since.
+* EnumSerializer currently allocates garbage via boxing serialized and deserialized enum values. As such, serializing enums always results in unnecessary garbage being allocated. Any approaches for fixing this would be most welcome. Some unsafe code may be required, but we haven't yet had time to really look into this properly.
 
 #### Testing
-* A thorough set of standalone unit tests. Odin Inspector has its own internal integration tests for OdinSerializer, but currently we have no decent stand-alone unit tests that solely work with OdinSerializer.
+* A thorough set of standalone unit tests. Odin Inspector has its own internal integration tests for OdinSerializer, but currently we have no decent stand-alone unit tests that work solely with OdinSerializer.
 
 ## Technical Overview
 
@@ -99,19 +188,18 @@ The following section is a brief technical overview of the working principles of
 This is how OdinSerializer works, on the highest level:
 
 * Data to be written to or read from is passed to a data writer/reader, usually in the form of a stream.
-* The data writer/reader is passed to a serializer, along with a value to be serialized if it's serialization happening.
-* If the value can be treated as an atomic primitive, the serializer will write or read that directly using the passed data writer/reader.
-* If the value is "complex", IE, it is a value that consists of other values, the serializer will get and use a formatter to read or write the value.
+* The data writer/reader is passed to a serializer, along with a value to be serialized, if we are serializing.
+* If the value can be treated as an atomic primitive, the serializer will write or read that directly using the passed data writer/reader. If the value is "complex", IE, it is a value that consists of other values, the serializer will get and wrap the use a formatter to read or write the value.
 
 ### "Stack-only", forward-only
 
-OdinSerializer is a forward-only serializer, meaning that when it serializes, it writes data immediately as it inspects the object graph, and as it deserializes, it recreates the object graph immediately as it parses the data. The serializer only ever moves forward - it cannot "go back" and look at previous data, since we retain no state and are doing everything on the fly, as we move forward. Unlike some other serializers, there is no "meta-graph" data structure that is allocated containing all the data to be saved down later.
+OdinSerializer is a forward-only serializer, meaning that when it serializes, it writes data immediately as it inspects the object graph, and when it deserializes, it recreates the object graph immediately as it parses the data. The serializer only ever moves forward - it cannot "go back" and look at previous data, since we retain no state and are doing everything on the fly, as we move forward. Unlike some other serializers, there is no "meta-graph" data structure that is allocated containing all the data to be saved down later.
 
 This means that we can serialize and deserialize data entirely without allocating anything on the heap, meaning that after the system has run once and all the writer, reader, formatter and serializer instances have been created, there will often be literally zero superfluous GC allocations made, depending on the data format used.
 
 ### Data writers and readers
 
-Data writers and readers are types that implement the IDataReader and IDataWriter interfaces. They abstract the writing and reading of strongly typed C# data in the form of atomic primitives, from the actual raw data format that the data is written into and read from. OdinSerializer currently ships with data readers and writers that support three different formats: Json, Binary and Nodes.
+Data writers and readers are types that implement the IDataReader and/or IDataWriter interfaces. They abstract the writing and reading of strongly typed C# data in the form of atomic primitives, from the actual raw data format that the data is written into and read from. OdinSerializer currently ships with data readers and writers that support three different formats: Json, Binary and Nodes.
 
 Data writers and readers also contain a serialization or deserialization context, which is used to configure how serialization and deserialization operates in various ways.
 
@@ -144,7 +232,7 @@ The following types are considered atomic primitives:
 
 This is an important distinction - serializers are the outward "face" of the system, and are all hardcoded into the system. There is a hardcoded serializer type for each atomic primitive, and a catch-all ComplexTypeSerializer that handles all other types by wrapping the use of formatters.
 
-Formatters are what translates an actual C# object into the data that it consists of. They are the primary point of extension in OdinSerializer - they tell the system how to treat various special types. For example, there is a formatter that handles arrays, a formatter that handles multi-dimensional arrays, a formatter that handles dictionaries, and so on.
+Formatters are what translates an actual C# object into the primitive data that it consists of. They are the primary point of extension in OdinSerializer - they tell the system how to treat various special types. For example, there is a formatter that handles arrays, a formatter that handles multi-dimensional arrays, a formatter that handles dictionaries, and so on.
 
 OdinSerializer ships with a large number of custom formatters for commonly serialized .NET and Unity types. An example of a custom formatter might be the following formatter for Unity's Vector3 type:
 
