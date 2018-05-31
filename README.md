@@ -28,6 +28,47 @@
 	</a>	
 </p>
 
+## Performance charts and comparisons
+
+OdinSerializer compares very well to many popular serialization libraries in terms of performance and garbage allocation, while providing a superior feature-set for use in Unity.
+
+The performance graphs in this section are profiled with OdinSerializer's binary format.
+
+|                                       | Odin Serializer  | Unity JSON       | Full Serializer  | Binary Formatter | JSON.NET        |Protobuf-net          |
+|---------------------------------------|------------------|------------------|------------------|------------------|------------------|------------------|
+|Open Source                            |:heavy_check_mark:|:x:|:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|
+|Cross Platform                         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
+|Out of the box Unity Support           |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:x:               |:x:               |:x:
+|Supports Unity structs                 |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:x:               |:x:               |:x:
+|Prefab Modifications                   |:heavy_check_mark:|:x:               |:x:               |:x:               |:x:               |:x:
+|Binary Formatter                       |:heavy_check_mark:|:x:               |:x:               |:heavy_check_mark:|:x:               |:heavy_check_mark:
+|Json Formatter                         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:x:               |:heavy_check_mark:|:x:
+|Merge-friendly data in Unity objects   |:heavy_check_mark:|:x:               |:x:               |:x:               |:x:               |:x:
+|Interfaces                             |:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
+|Properties                             |:heavy_check_mark:|:x:               |:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:
+|Polymorphism                           |:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
+|Generics                               |:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
+|Dictionaries                           |:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
+|Circular References                   |:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
+|Delegates                              |:heavy_check_mark:|:x:               |:x:               |:heavy_check_mark:|:x:               |:x:
+|Multi-dimensional arrays               |:heavy_check_mark:|:x:               |:x:               |:heavy_check_mark:|:heavy_check_mark:|:x:
+|Extendable                             |:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
+|Renaming Members                       |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
+|Renaming Types                         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
+|IL Optimized                           |:heavy_check_mark:|-                 |:x:               |:x:               |:x:               |-
+|Supports .NET interfaces               |:heavy_check_mark:|:x:               |:x:               |:heavy_check_mark:|?                 |:x:
+|Supports .NET callback attributes      |:heavy_check_mark:|:x:               |:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
+
+#### Serialization of a simple object with no polymorphism
+![Benchmark](/Images/SimpleObjectSerializationBenchmark.png)
+#### Serialization of a complex object with lots of polymorphism
+##### *Unity JsonUtility has been excluded from this benchmark because it supports neither polymorphism or dictionaries
+![Benchmark](/Images/ComplexObjectSerializationBenchmark.png)
+#### Serialization of various large arrays and lists
+![Benchmark](/Images/HugeArraysSerializationBenchmark.png)
+#### Garbage allocation of the 3 tests above
+![Benchmark](/Images/GarbageCollectionSerializationBenchmark.png)
+
 ## How to get started
 
 There are many different use cases for OdinSerializer. If you just need a serialiation library to use in your own private project, we can recommend that you simply use it out of the box. If you would like to make your own tweaks and builds, or if you intend to include OdinSerializer in a package that you are distributing, you would be better served by forking the repository.
@@ -54,7 +95,7 @@ The easiest way to build and test OdinSerializer, however, is to open the Build 
 
 *Compile with debugging* compiles an assembly into the open project, along with the proper symbol files for step debugging. Once this assembly is imported by Unity, you can step debug OdinSerializer by attaching a Visual Studio instance to it.
 
-*Compile release build* compiles three different OdinSerializer assemblies with release optimizations. The three assemblies are for use in respectively the editor, in builds with JIT support (Windows/Mac/Linux), and in AOT builds (IL2CPP). <TODO: WRITE STUFF ABOUT HOW TO LET THESE ASSEMBLIES AUTOMATICALLY CONFIGURE THEMSELVES>
+*Compile release build* compiles three different OdinSerializer assembly variants with release optimizations. The three assemblies are for use in respectively the editor, in builds with JIT support (Windows/Mac/Linux), and in AOT builds (IL2CPP). The OdinSerializer Unity project also includes one script file, OdinSerializerBuildAutomation.cs, which automates setting the import settings of these three assemblies correctly during the build process based on the current target platform and scripting backend so that the correct assembly is used for that build, as well as automatically scanning the project and generating AOT support for types that need it, if the build is AOT compiled. We encourage you to modify this file or otherwise adapt it to suit your own particular automation needs.
 
 *Open solution* simply opens the OdinSerializer solution file using the default application.
 
@@ -168,47 +209,6 @@ NOTE: If you use OdinSerializer to extend the serialization of a Unity object, w
 Additionally, always remember that Unity doesn't strictly know that this extra serialized data exists - whenever you change it from your custom editor, remember to manually mark the relevant asset or scene dirty, so Unity knows that it needs to be re-serialized.
 
 Finally, note that *prefab modifications will not simply work by default in specially serialized Components/Behaviours/MonoBehaviours*. Specially serialized prefab instances may explode and die if you attempt to change their custom-serialized data from the parent prefab. OdinSerializer contains a system for managing an object's specially-serialized prefab modifications and applying them, but this is an advanced use of OdinSerializer that requires heavy support from a specialised custom editor, and this is not covered in this readme.
-
-## Performance charts and comparisons
-
-OdinSerializer compares very well to many popular serialization libraries in terms of performance and garbage allocation, while providing a superior feature-set for use in Unity.
-
-The performance graphs in this section are profiled with OdinSerializer's binary format.
-
-|                                       | Odin Serializer  | Unity JSON       | Full Serializer  | Binary Formatter | JSON.NET        |Protobuf-net          |
-|---------------------------------------|------------------|------------------|------------------|------------------|------------------|------------------|
-|Open Source                            |:heavy_check_mark:|:x:|:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|
-|Cross Platform                         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
-|Out of the box Unity Support           |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:x:               |:x:               |:x:
-|Supports Unity structs                 |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:x:               |:x:               |:x:
-|Prefab Modifications                   |:heavy_check_mark:|:x:               |:x:               |:x:               |:x:               |:x:
-|Binary Formatter                       |:heavy_check_mark:|:x:               |:x:               |:heavy_check_mark:|:x:               |:heavy_check_mark:
-|Json Formatter                         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:x:               |:heavy_check_mark:|:x:
-|Merge-friendly data in Unity objects   |:heavy_check_mark:|:x:               |:x:               |:x:               |:x:               |:x:
-|Interfaces                             |:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
-|Properties                             |:heavy_check_mark:|:x:               |:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:
-|Polymorphism                           |:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
-|Generics                               |:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
-|Dictionaries                           |:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
-|Circular References                   |:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
-|Delegates                              |:heavy_check_mark:|:x:               |:x:               |:heavy_check_mark:|:x:               |:x:
-|Multi-dimensional arrays               |:heavy_check_mark:|:x:               |:x:               |:heavy_check_mark:|:heavy_check_mark:|:x:
-|Extendable                             |:heavy_check_mark:|:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
-|Renaming Members                       |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
-|Renaming Types                         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
-|IL Optimized                           |:heavy_check_mark:|-                 |:x:               |:x:               |:x:               |-
-|Supports .NET interfaces               |:heavy_check_mark:|:x:               |:x:               |:heavy_check_mark:|?                 |:x:
-|Supports .NET callback attributes      |:heavy_check_mark:|:x:               |:x:               |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
-
-#### Serialization of a simple object with no polymorphism
-![Benchmark](/Images/SimpleObjectSerializationBenchmark.png)
-#### Serialization of a complex object with lots of polymorphism
-##### *Unity JsonUtility has been excluded from this benchmark because it supports neither polymorphism or dictionaries
-![Benchmark](/Images/ComplexObjectSerializationBenchmark.png)
-#### Serialization of various large arrays and lists
-![Benchmark](/Images/HugeArraysSerializationBenchmark.png)
-#### Garbage allocation of the 3 tests above
-![Benchmark](/Images/GarbageCollectionSerializationBenchmark.png)
 
 ## How to contribute
 
@@ -404,87 +404,4 @@ OdinSerializer contains a utility class, AOTSupportUtilities, for providing supp
 
 To automate this process of AOT support, you can use Unity's IPreProcessBuild/IPreProcessBuildWithReport and IPostProcessBuild/IPostProcessBuildWithReport interfaces to create an AOT support dll upon building, and delete it again after building. (Note that this only becomes possible in Unity 5.6, where IPreProcessBuild was introduced.)
 
-The following code example does just that, though it currently creates an AOT dll for *all* platforms, not merely AOT platforms. Please feel free to modify it to suit your own needs:
-
-```csharp
-#if UNITY_EDITOR
-using OdinSerializer.Editor;
-using UnityEditor;
-using UnityEditor.Build;
-using System.IO;
-using System;
-
-#if UNITY_2018_1_OR_NEWER
-
-using UnityEditor.Build.Reporting;
-
-#endif
-
-#if UNITY_2018_1_OR_NEWER
-public class PreBuildAOTAutomation : IPreprocessBuildWithReport
-#else
-public class PreBuildAOTAutomation : IPreprocessBuild
-#endif
-{
-	public int callbackOrder
-	{
-		get
-		{
-			return -1000;
-		}
-	}
-
-	public void OnPreprocessBuild(BuildTarget target, string path)
-	{
-		// Create AOT support dll
-		List<Type> types;
-		if (AOTSupportUtilities.ScanProjectForSerializedTypes(out types))
-		{
-			AOTSupportUtilities.GenerateDLL("Assets/OdinAOTSupport", "MyAOTSupportDll", types);
-		}
-	}
-
-#if UNITY_2018_1_OR_NEWER
-
-	public void OnPreprocessBuild(BuildReport report)
-	{
-		this.OnPreprocessBuild(report.summary.platform, report.summary.outputPath);
-	}
-
-#endif
-}
-
-#if UNITY_2018_1_OR_NEWER
-public class PostBuildAOTAutomation : IPostprocessBuildWithReport
-#else
-public class PostBuildAOTAutomation : IPostprocessBuild
-#endif
-{
-	public int callbackOrder
-	{
-		get
-		{
-			return -1000;
-		}
-	}
-
-	public void OnPostprocessBuild(BuildTarget target, string path)
-	{
-		// Delete AOT support dll after build so it doesn't pollute the project
-		Directory.Delete("Assets/OdinAOTSupport", true);
-		File.Delete("Assets/OdinAOTSupport.meta");
-		AssetDatabase.Refresh();
-	}
-
-#if UNITY_2018_1_OR_NEWER
-
-	public void OnPostprocessBuild(BuildReport report)
-	{
-		this.OnPostprocessBuild(report.summary.platform, report.summary.outputPath);
-	}
-
-#endif
-}
-#endif
-```
-
+OdinSerializer already includes one script file in the Unity project, OdinSerializerBuildAutomation.cs, which automates setting the import settings of OdinSerializer's three assembly variants correctly during the build process based on the current target platform and scripting backend, as well as automatically scanning the project and generating AOT support for types that need it, if the build is AOT compiled. We encourage you to modify this file to suit your own particular automation needs.
