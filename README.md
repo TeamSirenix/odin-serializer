@@ -58,7 +58,11 @@ This section will not go into great detail about how OdinSerializer works or how
 
 There are, broadly, two different ways of using OdinSerializer:
 
-First, you can use it as a standalone serialization library, simply serializing or deserializing whatever data you give it, for example to be stored in a file or sent over the network. This is done using the SerializationUtility class, which contains a variety of methods that wrap OdinSerializer for straight-forward, easy use.
+##### Serializing regular C# objects
+
+You can use OdinSerializer as a standalone serialization library, simply serializing or deserializing whatever data you give it, for example to be stored in a file or sent over the network. This is done using the SerializationUtility class, which contains a variety of methods that wrap OdinSerializer for straight-forward, easy use.
+
+###### Example: Serializing regular C# objects
 
 ```csharp
 using OdinSerializer;
@@ -79,9 +83,52 @@ public static class Example
 }
 ```
 
-Second, you can use OdinSerializer to seamlessly extend the serialization of Unity's object types, such as ScriptableObject and MonoBehaviour. There are two general ways of doing this, one of which is manual and requires a few lines of code to implement, and one of which is very easy to implement, but exhibits only the default behaviour.
+Note that you cannot save references to Unity objects or assets down to a file in this manner. The only way to handle this is to ask for a list of all encountered UnityEngine.Object references when serializing, and then pass that list of references back into the system when deserializing data.
+
+###### Example: Serializing regular C# objects containing Unity references
+
+```csharp
+using OdinSerializer;
+
+public static class Example
+{
+	public static void Save(MyData data,  string filePath, ref List<UnityEngine.Object> unityReferences)
+	{
+		byte[] bytes = SerializationUtility.Serialize(data, DataFormat.Binary, ref unityReferences);
+		File.WriteAllBytes(bytes, filePath);
+		
+		// The unityReferences list will now be filled with all encountered UnityEngine.Object references, and the saved binary data contains index pointers into this list
+	}
+	
+	public static MyData Load(string filePath, List<UnityEngine.Object> unityReferences)
+	{
+		byte[] bytes = File.ReadAllBytes(filePath);
+		return SerializationUtility.Deserialize<MyData>(bytes, DataFormat.Binary, unityReferences);
+	}
+}
+```
+
+##### Extending UnityEngine.Object serialization
+
+You can also use OdinSerializer to seamlessly extend the serialization of Unity's object types, such as ScriptableObject and MonoBehaviour. There are two general ways of doing this, one of which is manual and requires a few lines of code to implement, and one of which is very easy to implement, but exhibits only the default behaviour.
+
+The easier approach is to simply derive your type from one of many pre-created UnityEngine.Object-derived types that OdinSerializer provides, that have the above behaviour implemented already. Note that doing this will have the default behaviour of not serializing fields that Unity will serialize.
+
+###### Example: Easily extending UnityEngine.Object serialization
+
+```csharp
+using OdinSerializer;
+
+public class YourSpeciallySerializedScriptableObject : SerializedScriptableObject
+{
+	public Dictionary<string, string> iAmSerializedByOdin;
+	public List<string> iAmSerializedByUnity;
+}
+```
 
 The manual method requires that you implement Unity's ISerializationCallbackReceiver interface on the UnityEngine.Object-derived type you want to extend the serialization of, and then use OdinSerializer's UnitySerializationUtility class to apply Odin's serialization during the serialization callbacks that Unity invokes at the appropriate times.
+
+###### Example: Manually extending UnityEngine.Object serialization
 
 ```csharp
 using UnityEngine;
@@ -109,19 +156,11 @@ public class YourSpeciallySerializedScriptableObject : ScriptableObject, ISerial
 }
 ```
 
-The easier approach is to simply derive your type from one of many pre-created UnityEngine.Object-derived types that OdinSerializer provides, that have the above behaviour implemented already. Note that doing this will have the default behaviour of not serializing fields that Unity will serialize.
-
-```csharp
-using OdinSerializer;
-
-public class YourSpeciallySerializedScriptableObject : SerializedScriptableObject
-{
-}
-```
-
 NOTE: If you use OdinSerializer to extend the serialization of a Unity object, without having an inspector framework such as Odin Inspector installed, the Odin-serialized fields will not be rendered properly in Unity's inspector. You will either have to acquire such a framework, or write your own custom editor to be able to inspect and edit this data in Unity's inspector window.
 
-Finally, always remember that Unity doesn't strictly know that this extra serialized data exists - whenever you change it from your custom editor, remember to manually mark the relevant asset or scene dirty, so Unity knows that it needs to be re-serialized.
+Additionally, always remember that Unity doesn't strictly know that this extra serialized data exists - whenever you change it from your custom editor, remember to manually mark the relevant asset or scene dirty, so Unity knows that it needs to be re-serialized.
+
+Finally, note that *prefab modifications will not simply work by default in specially serialized Components/Behaviours/MonoBehaviours*. Specially serialized prefab instances may explode and die if you attempt to change their custom-serialized data from the parent prefab. OdinSerializer contains a system for managing an object's specially-serialized prefab modifications and applying them, but this is an advanced use of OdinSerializer that requires heavy support from a specialised custom editor, and this is not covered in this readme.
 
 ## Performance charts and comparisons
 
@@ -157,6 +196,7 @@ The performance graphs in this section are profiled with OdinSerializer's binary
 #### Serialization of a simple object with no polymorphism
 ![Benchmark](/Images/SimpleObjectSerializationBenchmark.png)
 #### Serialization of a complex object with lots of polymorphism
+##### *Unity JsonUtility has been excluded from this benchmark because it supports neither polymorphism or dictionaries
 ![Benchmark](/Images/ComplexObjectSerializationBenchmark.png)
 #### Serialization of various large arrays and lists
 ![Benchmark](/Images/HugeArraysSerializationBenchmark.png)
