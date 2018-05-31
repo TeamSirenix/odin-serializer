@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project ToolsVersion="14.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
-  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+<Project ToolsVersion="15.0" DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="..\Libraries\MSBuild\15.0\Microsoft.Common.props" Condition="Exists('..\Libraries\MSBuild\15.0\Microsoft.Common.props')" />
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
@@ -14,29 +14,59 @@
     <TargetFrameworkProfile>Unity Subset v3.5</TargetFrameworkProfile>
     <ProjectTypeGuids>{E097FAD1-6243-4DAD-9C02-E9B9EFC3FFC1};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <DebugSymbols>true</DebugSymbols>
-    <DebugType>pdbonly</DebugType>
-    <Optimize>false</Optimize>
-    <OutputPath>..\Build\Debug\</OutputPath>
-    <DefineConstants>UNITY_5_3_OR_NEWER;UNITY_5_3;DEBUG;CAN_EMIT;UNITY_EDITOR;ENABLE_PROFILER</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <DocumentationFile>..\Build\Debug\OdinSerializer.xml</DocumentationFile>
-    <LangVersion>4</LangVersion>
-    <NoWarn>CS1723, CS1723, CS1574, CS1584, CS1658</NoWarn>
+  <PropertyGroup>
+    <RunPostBuildEvent>Always</RunPostBuildEvent>
   </PropertyGroup>
-  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <DebugType>pdbonly</DebugType>
-    <Optimize>true</Optimize>
-    <OutputPath>..\Build\Release\</OutputPath>
-    <DefineConstants>UNITY_5_3_OR_NEWER;UNITY_5_3;DEBUG;CAN_EMIT;UNITY_EDITOR;ENABLE_PROFILER</DefineConstants>
-    <ErrorReport>prompt</ErrorReport>
-    <WarningLevel>4</WarningLevel>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug Editor|AnyCPU'">
+    <OutputPath>..\Build\Assets\Plugins\Sirenix\Odin Serializer\Assemblies\EditorOnly\</OutputPath>
+    <DefineConstants>DEBUG;CAN_EMIT;UNITY_EDITOR;ENABLE_PROFILER</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <NoWarn>CS1723, CS1723, CS1574, CS1584, CS1658</NoWarn>
+    <DocumentationFile>..\Build\Assets\Plugins\Sirenix\Odin Serializer\Assemblies\EditorOnly\OdinSerializer.xml</DocumentationFile>
+    <LangVersion>4</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <DebugType>pdbonly</DebugType>
     <DebugSymbols>true</DebugSymbols>
-    <DocumentationFile>..\Build\Release\OdinSerializer.xml</DocumentationFile>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release Editor|AnyCPU'">
+    <OutputPath>..\Build\Assets\Plugins\Sirenix\Odin Serializer\Assemblies\EditorOnly\</OutputPath>
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <NoWarn>CS1723, CS1723, CS1574, CS1584, CS1658</NoWarn>
+    <DefineConstants>DEBUG;CAN_EMIT;UNITY_EDITOR;ENABLE_PROFILER</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Optimize>true</Optimize>
+    <DocumentationFile>..\Build\Assets\Plugins\Sirenix\Odin Serializer\Assemblies\EditorOnly\OdinSerializer.xml</DocumentationFile>
+    <LangVersion>4</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <DebugType>pdbonly</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release JIT|AnyCPU'">
+    <OutputPath>..\Build\Assets\Plugins\Sirenix\Odin Serializer\Assemblies\JIT\</OutputPath>
+    <NoWarn>CS1723, CS1723, CS1574, CS1584, CS1658</NoWarn>
+    <DefineConstants>CAN_EMIT</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DocumentationFile>
+    </DocumentationFile>
+    <Optimize>true</Optimize>
+    <LangVersion>4</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <DebugType>pdbonly</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release AOT|AnyCPU'">
+    <OutputPath>..\Build\Assets\Plugins\Sirenix\Odin Serializer\Assemblies\AOT\</OutputPath>
+    <NoWarn>CS1723, CS1723, CS1574, CS1584, CS1658</NoWarn>
+    <DefineConstants>
+    </DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DocumentationFile>
+    </DocumentationFile>
+    <Optimize>true</Optimize>
+    <LangVersion>4</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <DebugType>pdbonly</DebugType>
+    <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
@@ -58,7 +88,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Config\AssemblyBuildInfo.cs" />
+    <Compile Include="Config\OdinBuildConfigUtility.cs" />
     <Compile Include="Core\FormatterLocators\ArrayFormatterLocator.cs" />
     <Compile Include="Core\FormatterLocators\DelegateFormatterLocator.cs" />
     <Compile Include="Core\Misc\IAskIfCanFormatTypes.cs" />
@@ -236,10 +266,10 @@
     <Compile Include="Unity Integration\UnitySerializationUtility.cs" />
   </ItemGroup>
   <ItemGroup />
-  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+  <Import Project="..\Libraries\MSBuild\15.0\Bin\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>
-    </PostBuildEvent>
+    <PostBuildEvent>call "$(SolutionDir)Libraries\PDB2MDB\pdb2mdb.exe" "$(TargetPath)"
+call del /a "$(TargetDir)*.pdb*"</PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

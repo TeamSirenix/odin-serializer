@@ -7,14 +7,20 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OdinSerializer", "OdinSeria
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|Any CPU = Debug|Any CPU
-		Release|Any CPU = Release|Any CPU
+		Debug Editor|Any CPU = Debug Editor|Any CPU
+		Release AOT|Any CPU = Release AOT|Any CPU
+		Release Editor|Any CPU = Release Editor|Any CPU
+		Release JIT|Any CPU = Release JIT|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{F1111936-6086-412C-AB26-D7D8D3448A2A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{F1111936-6086-412C-AB26-D7D8D3448A2A}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{F1111936-6086-412C-AB26-D7D8D3448A2A}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{F1111936-6086-412C-AB26-D7D8D3448A2A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F1111936-6086-412C-AB26-D7D8D3448A2A}.Debug Editor|Any CPU.ActiveCfg = Debug Editor|Any CPU
+		{F1111936-6086-412C-AB26-D7D8D3448A2A}.Debug Editor|Any CPU.Build.0 = Debug Editor|Any CPU
+		{F1111936-6086-412C-AB26-D7D8D3448A2A}.Release AOT|Any CPU.ActiveCfg = Release AOT|Any CPU
+		{F1111936-6086-412C-AB26-D7D8D3448A2A}.Release AOT|Any CPU.Build.0 = Release AOT|Any CPU
+		{F1111936-6086-412C-AB26-D7D8D3448A2A}.Release Editor|Any CPU.ActiveCfg = Release Editor|Any CPU
+		{F1111936-6086-412C-AB26-D7D8D3448A2A}.Release Editor|Any CPU.Build.0 = Release Editor|Any CPU
+		{F1111936-6086-412C-AB26-D7D8D3448A2A}.Release JIT|Any CPU.ActiveCfg = Release JIT|Any CPU
+		{F1111936-6086-412C-AB26-D7D8D3448A2A}.Release JIT|Any CPU.Build.0 = Release JIT|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
