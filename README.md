@@ -62,7 +62,7 @@ There are, broadly, two different ways of using OdinSerializer:
 
 You can use OdinSerializer as a standalone serialization library, simply serializing or deserializing whatever data you give it, for example to be stored in a file or sent over the network. This is done using the SerializationUtility class, which contains a variety of methods that wrap OdinSerializer for straight-forward, easy use.
 
-##### Example: Serializing regular C# objects
+###### Example: Serializing regular C# objects
 
 ```csharp
 using OdinSerializer;
