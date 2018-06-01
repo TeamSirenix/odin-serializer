@@ -21,7 +21,7 @@
 		<img src="/Images/BtnOdinInspector.png" alt="Inspect all data with Odin Serializer">
 	</a>
 	<a href="https://github.com/TeamSirenix/odin-serializer/releases">
-		<img src="/Images/BtnDownload.png" alt="Donate">
+		<img src="/Images/BtnDownload.png" alt="Download">
 	</a>
 	<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=YFY8ZF347Z2PN">
 		<img src="/Images/BtnDonate.png" alt="Donate">
