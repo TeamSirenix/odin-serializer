@@ -435,10 +435,11 @@ namespace OdinSerializer.Editor
                 // Reference and/or create formatter type
                 if (!FormatterUtilities.IsPrimitiveType(serializedType) && !typeof(UnityEngine.Object).IsAssignableFrom(serializedType))
                 {
-                    var formatter = FormatterLocator.GetFormatter(serializedType, SerializationPolicies.Unity);
+                    var actualFormatter = FormatterLocator.GetFormatter(serializedType, SerializationPolicies.Unity);
 
-                    if (formatter.GetType().IsDefined<EmittedFormatterAttribute>())
+                    if (actualFormatter.GetType().IsDefined<EmittedFormatterAttribute>())
                     {
+                        //TODO: Make emitted formatter code compatible with IL2CPP
                         //// Emit an actual AOT formatter into the generated assembly
 
                         //if (this.emitAOTFormatters)
@@ -450,9 +451,12 @@ namespace OdinSerializer.Editor
                         //    il.Emit(OpCodes.Pop);
                         //}
                     }
-                    else
+
+                    var formatters = FormatterLocator.GetAllCompatiblePredefinedFormatters(serializedType, SerializationPolicies.Unity);
+
+                    foreach (var formatter in formatters)
                     {
-                        // Just reference the pre-existing formatter
+                        // Reference the pre-existing formatter
 
                         var formatterConstructor = formatter.GetType().GetConstructor(Type.EmptyTypes);
 
@@ -463,9 +467,9 @@ namespace OdinSerializer.Editor
                         }
                     }
 
-                    // Make sure we have a proper reflection formatter variant if all else goes wrong
-                    il.Emit(OpCodes.Newobj, typeof(ReflectionFormatter<>).MakeGenericType(serializedType).GetConstructor(Type.EmptyTypes));
-                    il.Emit(OpCodes.Pop);
+                    //// Make sure we have a proper reflection formatter variant if all else goes wrong
+                    //il.Emit(OpCodes.Newobj, typeof(ReflectionFormatter<>).MakeGenericType(serializedType).GetConstructor(Type.EmptyTypes));
+                    //il.Emit(OpCodes.Pop);
                 }
 
                 ConstructorInfo serializerConstructor;

@@ -45,9 +45,16 @@ namespace OdinSerializer
             public Type FormatterType;
             public Type TargetType;
             public bool AskIfCanFormatTypes;
+            public int Priority;
         }
 
-        private static readonly List<IFormatterLocator> FormatterLocators = new List<IFormatterLocator>();
+        private struct FormatterLocatorInfo
+        {
+            public IFormatterLocator LocatorInstance;
+            public int Priority;
+        }
+
+        private static readonly List<FormatterLocatorInfo> FormatterLocators = new List<FormatterLocatorInfo>();
         private static readonly List<FormatterInfo> FormatterInfos = new List<FormatterInfo>();
 
 #if UNITY_EDITOR
@@ -96,7 +103,7 @@ namespace OdinSerializer
 #endif
                     }
 
-                    foreach (var attr in ass.GetCustomAttributes(typeof(RegisterFormatterAttribute), true).Cast<RegisterFormatterAttribute>().OrderByDescending(attr => attr.Priority))
+                    foreach (var attr in ass.GetCustomAttributes(typeof(RegisterFormatterAttribute), true).Cast<RegisterFormatterAttribute>())
                     {
                         if (!attr.FormatterType.IsClass
                             || attr.FormatterType.IsAbstract
@@ -110,11 +117,12 @@ namespace OdinSerializer
                         {
                             FormatterType = attr.FormatterType,
                             TargetType = attr.FormatterType.GetArgumentsOfInheritedOpenGenericInterface(typeof(IFormatter<>))[0],
-                            AskIfCanFormatTypes = typeof(IAskIfCanFormatTypes).IsAssignableFrom(attr.FormatterType)
+                            AskIfCanFormatTypes = typeof(IAskIfCanFormatTypes).IsAssignableFrom(attr.FormatterType),
+                            Priority = attr.Priority
                         });
                     }
 
-                    foreach (var attr in ass.GetCustomAttributes(typeof(RegisterFormatterLocatorAttribute), true).Cast<RegisterFormatterLocatorAttribute>().OrderByDescending(attr => attr.Priority))
+                    foreach (var attr in ass.GetCustomAttributes(typeof(RegisterFormatterLocatorAttribute), true).Cast<RegisterFormatterLocatorAttribute>())
                     {
                         if (!attr.FormatterLocatorType.IsClass
                             || attr.FormatterLocatorType.IsAbstract
@@ -126,7 +134,11 @@ namespace OdinSerializer
 
                         try
                         {
-                            FormatterLocators.Add((IFormatterLocator)Activator.CreateInstance(attr.FormatterLocatorType));
+                            FormatterLocators.Add(new FormatterLocatorInfo()
+                            {
+                                LocatorInstance = (IFormatterLocator)Activator.CreateInstance(attr.FormatterLocatorType),
+                                Priority = attr.Priority
+                            });
                         }
                         catch (Exception ex)
                         {
@@ -149,6 +161,15 @@ namespace OdinSerializer
                     }
                 }
             }
+
+            // Order formatters and formatter locators by priority and then by name, to ensure consistency regardless of the order of loaded types, which is important for cross-platform cases.
+            FormatterInfos = FormatterInfos.OrderByDescending(n => n.Priority)
+                                           .ThenByDescending(n => n.FormatterType.Name)
+                                           .ToList();
+
+            FormatterLocators = FormatterLocators.OrderByDescending(n => n.Priority)
+                                                 .ThenByDescending(n => n.LocatorInstance.GetType().Name)
+                                                 .ToList();
         }
 
         /// <summary>
@@ -300,6 +321,127 @@ namespace OdinSerializer
             }
         }
 
+        internal static List<IFormatter> GetAllCompatiblePredefinedFormatters(Type type, ISerializationPolicy policy)
+        {
+            if (FormatterUtilities.IsPrimitiveType(type))
+            {
+                throw new ArgumentException("Cannot create formatters for a primitive type like " + type.Name);
+            }
+
+            List<IFormatter> formatters = new List<IFormatter>();
+
+            // First call formatter locators before checking for registered formatters
+            for (int i = 0; i < FormatterLocators.Count; i++)
+            {
+                try
+                {
+                    IFormatter result;
+                    if (FormatterLocators[i].LocatorInstance.TryGetFormatter(type, FormatterLocationStep.BeforeRegisteredFormatters, policy, out result))
+                    {
+                        formatters.Add(result);
+                    }
+                }
+                catch (TargetInvocationException ex)
+                {
+                    throw ex;
+                }
+                catch (TypeInitializationException ex)
+                {
+                    throw ex;
+                }
+#pragma warning disable CS0618 // Type or member is obsolete
+                catch (ExecutionEngineException ex)
+#pragma warning restore CS0618 // Type or member is obsolete
+                {
+                    throw ex;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogException(new Exception("Exception was thrown while calling FormatterLocator " + FormatterLocators[i].GetType().FullName + ".", ex));
+                }
+            }
+
+            // Then check for valid registered formatters
+            for (int i = 0; i < FormatterInfos.Count; i++)
+            {
+                var info = FormatterInfos[i];
+
+                Type formatterType = null;
+
+                if (type == info.TargetType)
+                {
+                    formatterType = info.FormatterType;
+                }
+                else if (info.FormatterType.IsGenericType && info.TargetType.IsGenericParameter)
+                {
+                    Type[] inferredArgs;
+
+                    if (info.FormatterType.TryInferGenericParameters(out inferredArgs, type))
+                    {
+                        formatterType = info.FormatterType.GetGenericTypeDefinition().MakeGenericType(inferredArgs);
+                    }
+                }
+                else if (type.IsGenericType && info.FormatterType.IsGenericType && info.TargetType.IsGenericType && type.GetGenericTypeDefinition() == info.TargetType.GetGenericTypeDefinition())
+                {
+                    Type[] args = type.GetGenericArguments();
+
+                    if (info.FormatterType.AreGenericConstraintsSatisfiedBy(args))
+                    {
+                        formatterType = info.FormatterType.GetGenericTypeDefinition().MakeGenericType(args);
+                    }
+                }
+
+                if (formatterType != null)
+                {
+                    var instance = GetFormatterInstance(formatterType);
+
+                    if (instance == null) continue;
+
+                    if (info.AskIfCanFormatTypes && !((IAskIfCanFormatTypes)instance).CanFormatType(type))
+                    {
+                        continue;
+                    }
+
+                    formatters.Add(instance);
+                }
+            }
+
+            // Then call formatter locators after checking for registered formatters
+            for (int i = 0; i < FormatterLocators.Count; i++)
+            {
+                try
+                {
+                    IFormatter result;
+                    if (FormatterLocators[i].LocatorInstance.TryGetFormatter(type, FormatterLocationStep.AfterRegisteredFormatters, policy, out result))
+                    {
+                        formatters.Add(result);
+                    }
+                }
+                catch (TargetInvocationException ex)
+                {
+                    throw ex;
+                }
+                catch (TypeInitializationException ex)
+                {
+                    throw ex;
+                }
+#pragma warning disable CS0618 // Type or member is obsolete
+                catch (ExecutionEngineException ex)
+#pragma warning restore CS0618 // Type or member is obsolete
+                {
+                    throw ex;
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogException(new Exception("Exception was thrown while calling FormatterLocator " + FormatterLocators[i].GetType().FullName + ".", ex));
+                }
+            }
+
+            formatters.Add((IFormatter)Activator.CreateInstance(typeof(ReflectionFormatter<>).MakeGenericType(type)));
+
+            return formatters;
+        }
+
         private static IFormatter CreateFormatter(Type type, ISerializationPolicy policy)
         {
             if (FormatterUtilities.IsPrimitiveType(type))
@@ -313,7 +455,7 @@ namespace OdinSerializer
                 try
                 {
                     IFormatter result;
-                    if (FormatterLocators[i].TryGetFormatter(type, FormatterLocationStep.BeforeRegisteredFormatters, policy, out result))
+                    if (FormatterLocators[i].LocatorInstance.TryGetFormatter(type, FormatterLocationStep.BeforeRegisteredFormatters, policy, out result))
                     {
                         return result;
                     }
@@ -326,7 +468,9 @@ namespace OdinSerializer
                 {
                     throw ex;
                 }
+#pragma warning disable CS0618 // Type or member is obsolete
                 catch (ExecutionEngineException ex)
+#pragma warning restore CS0618 // Type or member is obsolete
                 {
                     throw ex;
                 }
@@ -387,7 +531,7 @@ namespace OdinSerializer
                 try
                 {
                     IFormatter result;
-                    if (FormatterLocators[i].TryGetFormatter(type, FormatterLocationStep.AfterRegisteredFormatters, policy, out result))
+                    if (FormatterLocators[i].LocatorInstance.TryGetFormatter(type, FormatterLocationStep.AfterRegisteredFormatters, policy, out result))
                     {
                         return result;
                     }
@@ -400,7 +544,9 @@ namespace OdinSerializer
                 {
                     throw ex;
                 }
+#pragma warning disable CS0618 // Type or member is obsolete
                 catch (ExecutionEngineException ex)
+#pragma warning restore CS0618 // Type or member is obsolete
                 {
                     throw ex;
                 }
@@ -446,7 +592,9 @@ namespace OdinSerializer
                 {
                     throw ex;
                 }
+#pragma warning disable CS0618 // Type or member is obsolete
                 catch (ExecutionEngineException ex)
+#pragma warning restore CS0618 // Type or member is obsolete
                 {
                     throw ex;
                 }
