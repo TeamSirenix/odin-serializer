@@ -271,7 +271,7 @@ namespace OdinSerializer
         {
             var types = GetAllPossibleMissingAOTTypes(type).Select(t => t.GetNiceFullName()).ToArray();
 
-            Debug.LogError("Creating a serialization formatter for the type '" + type.GetNiceFullName() + "' failed. \n\n" +
+            Debug.LogError("Creating a serialization formatter for the type '" + type.GetNiceFullName() + "' failed due to missing AOT support. \n\n" +
                 " Please use Odin's AOT generation feature to generate an AOT dll before building, and MAKE SURE that all of the following " +
                 "types were automatically added to the supported types list after a scan (if they were not, please REPORT AN ISSUE with the details of which exact types the scan is missing " +
                 "and ADD THEM MANUALLY): \n\n" + string.Join("\n", types) + "\n\nIF ALL THE TYPES ARE IN THE SUPPORT LIST AND YOU STILL GET THIS ERROR, PLEASE REPORT AN ISSUE." +
