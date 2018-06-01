@@ -273,7 +273,7 @@ namespace OdinSerializer
 
             Debug.LogError("Creating a serialization formatter for the type '" + type.GetNiceFullName() + "' failed. \n\n" +
                 " Please use Odin's AOT generation feature to generate an AOT dll before building, and MAKE SURE that all of the following " +
-                "types are in the supported types list after a scan (if they are not, please REPORT AN ISSUE with the details of which exact types the scan is missing " +
+                "types were automatically added to the supported types list after a scan (if they were not, please REPORT AN ISSUE with the details of which exact types the scan is missing " +
                 "and ADD THEM MANUALLY): \n\n" + string.Join("\n", types) + "\n\nIF ALL THE TYPES ARE IN THE SUPPORT LIST AND YOU STILL GET THIS ERROR, PLEASE REPORT AN ISSUE." +
                 "The exception contained the following message: \n" + ex.Message);
 
