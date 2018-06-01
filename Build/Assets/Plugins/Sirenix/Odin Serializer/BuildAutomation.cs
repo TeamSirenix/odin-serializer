@@ -37,7 +37,7 @@ namespace OdinSerializer.Utilities.Editor
         {
             var scriptingBackend = AssemblyImportSettingsUtilities.GetCurrentScriptingBackend();
             var activeBuildTarget = EditorUserBuildSettings.activeBuildTarget;
-            var compileForAOT = scriptingBackend == ScriptingImplementation.IL2CPP || AssemblyImportSettingsUtilities.JITPlatforms.Contains(activeBuildTarget);
+            var compileForAOT = scriptingBackend == ScriptingImplementation.IL2CPP || !AssemblyImportSettingsUtilities.JITPlatforms.Contains(activeBuildTarget);
 
             // The EditorOnly dll should aways have the same import settings. But lets just make sure.
             AssemblyImportSettingsUtilities.SetAssemblyImportSettings(EditorAssemblyPath, AssemblyImportSettings.IncludeInEditorOnly);
