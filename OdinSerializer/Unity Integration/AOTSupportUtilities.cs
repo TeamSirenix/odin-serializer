@@ -48,13 +48,13 @@ namespace OdinSerializer.Editor
             registerType = (type) =>
             {
                 if (!allowRegisteringScannedTypes) return;
-                if (typeof(UnityEngine.Object).IsAssignableFrom(type)) return;
+                //if (typeof(UnityEngine.Object).IsAssignableFrom(type)) return;
                 if (type.IsAbstract || type.IsInterface) return;
                 if (type.IsGenericType && (type.IsGenericTypeDefinition || !type.IsFullyConstructedGenericType())) return;
 
                 if (seenSerializedTypes.Add(type))
                 {
-                    Debug.Log("Added " + type.GetNiceFullName());
+                    //Debug.Log("Added " + type.GetNiceFullName());
                 }
 
                 if (type.IsGenericType)
@@ -433,7 +433,7 @@ namespace OdinSerializer.Editor
                 }
 
                 // Reference and/or create formatter type
-                if (!FormatterUtilities.IsPrimitiveType(serializedType))
+                if (!FormatterUtilities.IsPrimitiveType(serializedType) && !typeof(UnityEngine.Object).IsAssignableFrom(serializedType))
                 {
                     var formatter = FormatterLocator.GetFormatter(serializedType, SerializationPolicies.Unity);
 
