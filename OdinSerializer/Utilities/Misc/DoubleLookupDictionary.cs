@@ -26,6 +26,19 @@ namespace OdinSerializer.Utilities
 	[Serializable]
     public class DoubleLookupDictionary<TFirstKey, TSecondKey, TValue> : Dictionary<TFirstKey, Dictionary<TSecondKey, TValue>>
     {
+        private readonly IEqualityComparer<TSecondKey> secondKeyComparer;
+
+        public DoubleLookupDictionary()
+        {
+            this.secondKeyComparer = EqualityComparer<TSecondKey>.Default;
+        }
+
+        public DoubleLookupDictionary(IEqualityComparer<TFirstKey> firstKeyComparer, IEqualityComparer<TSecondKey> secondKeyComparer)
+            : base(firstKeyComparer)
+        {
+            this.secondKeyComparer = secondKeyComparer;
+        }
+
         /// <summary>
         /// Not yet documented.
         /// </summary>
@@ -37,7 +50,7 @@ namespace OdinSerializer.Utilities
 
                 if (!this.TryGetValue(firstKey, out innerDict))
                 {
-                    innerDict = new Dictionary<TSecondKey, TValue>();
+                    innerDict = new Dictionary<TSecondKey, TValue>(this.secondKeyComparer);
                     this.Add(firstKey, innerDict);
                 }
 
