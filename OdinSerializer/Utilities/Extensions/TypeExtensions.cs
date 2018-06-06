@@ -31,6 +31,13 @@ namespace OdinSerializer.Utilities
     /// </summary>
     public static class TypeExtensions
     {
+        private static readonly object GenericConstraintsSatisfaction_LOCK = new object();
+        private static readonly Dictionary<Type, Type> GenericConstraintsSatisfactionInferredParameters = new Dictionary<Type, Type>();
+        private static readonly Dictionary<Type, Type> GenericConstraintsSatisfactionResolvedMap = new Dictionary<Type, Type>();
+        private static readonly HashSet<Type> GenericConstraintsSatisfactionProcessedParams = new HashSet<Type>();
+
+        private static readonly object WeaklyTypedTypeCastDelegates_LOCK = new object();
+        private static readonly object StronglyTypedTypeCastDelegates_LOCK = new object();
         private static readonly DoubleLookupDictionary<Type, Type, Func<object, object>> WeaklyTypedTypeCastDelegates = new DoubleLookupDictionary<Type, Type, Func<object, object>>();
         private static readonly DoubleLookupDictionary<Type, Type, Delegate> StronglyTypedTypeCastDelegates = new DoubleLookupDictionary<Type, Type, Delegate>();
 
@@ -408,16 +415,19 @@ namespace OdinSerializer.Utilities
         {
             Func<object, object> result;
 
-            if (WeaklyTypedTypeCastDelegates.TryGetInnerValue(from, to, out result) == false)
+            lock (WeaklyTypedTypeCastDelegates_LOCK)
             {
-                var method = GetCastMethod(from, to, requireImplicitCast);
-
-                if (method != null)
+                if (WeaklyTypedTypeCastDelegates.TryGetInnerValue(from, to, out result) == false)
                 {
-                    result = (obj) => method.Invoke(null, new object[] { obj });
-                }
+                    var method = GetCastMethod(from, to, requireImplicitCast);
 
-                WeaklyTypedTypeCastDelegates.AddInner(from, to, result);
+                    if (method != null)
+                    {
+                        result = (obj) => method.Invoke(null, new object[] { obj });
+                    }
+
+                    WeaklyTypedTypeCastDelegates.AddInner(from, to, result);
+                }
             }
 
             return result;
@@ -431,16 +441,19 @@ namespace OdinSerializer.Utilities
         {
             Delegate del;
 
-            if (StronglyTypedTypeCastDelegates.TryGetInnerValue(typeof(TFrom), typeof(TTo), out del) == false)
+            lock (StronglyTypedTypeCastDelegates_LOCK)
             {
-                var method = GetCastMethod(typeof(TFrom), typeof(TTo), requireImplicitCast);
-
-                if (method != null)
+                if (StronglyTypedTypeCastDelegates.TryGetInnerValue(typeof(TFrom), typeof(TTo), out del) == false)
                 {
-                    del = Delegate.CreateDelegate(typeof(Func<TFrom, TTo>), method);
-                }
+                    var method = GetCastMethod(typeof(TFrom), typeof(TTo), requireImplicitCast);
 
-                StronglyTypedTypeCastDelegates.AddInner(typeof(TFrom), typeof(TTo), del);
+                    if (method != null)
+                    {
+                        del = Delegate.CreateDelegate(typeof(Func<TFrom, TTo>), method);
+                    }
+
+                    StronglyTypedTypeCastDelegates.AddInner(typeof(TFrom), typeof(TTo), del);
+                }
             }
 
             return (Func<TFrom, TTo>)del;
@@ -1501,123 +1514,127 @@ namespace OdinSerializer.Utilities
                 throw new ArgumentException("The genericTypeDefinition parameter must be a generic type.");
             }
 
-            Dictionary<Type, Type> matches = new Dictionary<Type, Type>();
-
-            Type[] definitions = genericTypeDefinition.GetGenericArguments();
-
-            if (!genericTypeDefinition.IsGenericTypeDefinition)
+            lock (GenericConstraintsSatisfaction_LOCK)
             {
-                Type[] constructedParameters = definitions;
-                genericTypeDefinition = genericTypeDefinition.GetGenericTypeDefinition();
-                definitions = genericTypeDefinition.GetGenericArguments();
+                Dictionary<Type, Type> matches = GenericConstraintsSatisfactionInferredParameters;
+                matches.Clear();
 
-                int unknownCount = 0;
+                Type[] definitions = genericTypeDefinition.GetGenericArguments();
 
-                for (int i = 0; i < constructedParameters.Length; i++)
+                if (!genericTypeDefinition.IsGenericTypeDefinition)
                 {
-                    if (!constructedParameters[i].IsGenericParameter)
-                    {
-                        matches[definitions[i]] = constructedParameters[i];
-                    }
-                    else
-                    {
-                        unknownCount++;
-                    }
-                }
+                    Type[] constructedParameters = definitions;
+                    genericTypeDefinition = genericTypeDefinition.GetGenericTypeDefinition();
+                    definitions = genericTypeDefinition.GetGenericArguments();
 
-                if (unknownCount == knownParameters.Length)
-                {
-                    int count = 0;
+                    int unknownCount = 0;
 
                     for (int i = 0; i < constructedParameters.Length; i++)
                     {
-                        if (constructedParameters[i].IsGenericParameter)
+                        if (!constructedParameters[i].IsGenericParameter)
                         {
-                            constructedParameters[i] = knownParameters[count++];
-                        }
-                    }
-
-                    if (genericTypeDefinition.AreGenericConstraintsSatisfiedBy(constructedParameters))
-                    {
-                        inferredParams = constructedParameters;
-                        return true;
-                    }
-                }
-            }
-
-            if (definitions.Length == knownParameters.Length && genericTypeDefinition.AreGenericConstraintsSatisfiedBy(knownParameters))
-            {
-                inferredParams = knownParameters;
-                return true;
-            }
-
-            foreach (var type in definitions)
-            {
-                if (matches.ContainsKey(type)) continue;
-
-                var constraints = type.GetGenericParameterConstraints();
-
-                foreach (var constraint in constraints)
-                {
-                    foreach (var parameter in knownParameters)
-                    {
-                        if (!constraint.IsGenericType)
-                        {
-                            continue;
-                        }
-
-                        Type constraintDefinition = constraint.GetGenericTypeDefinition();
-
-                        var constraintParams = constraint.GetGenericArguments();
-                        Type[] paramParams;
-
-                        if (parameter.IsGenericType && constraintDefinition == parameter.GetGenericTypeDefinition())
-                        {
-                            paramParams = parameter.GetGenericArguments();
-                        }
-                        else if (constraintDefinition.IsInterface && parameter.ImplementsOpenGenericInterface(constraintDefinition))
-                        {
-                            paramParams = parameter.GetArgumentsOfInheritedOpenGenericInterface(constraintDefinition);
-                        }
-                        else if (constraintDefinition.IsClass && parameter.ImplementsOpenGenericClass(constraintDefinition))
-                        {
-                            paramParams = parameter.GetArgumentsOfInheritedOpenGenericClass(constraintDefinition);
+                            matches[definitions[i]] = constructedParameters[i];
                         }
                         else
                         {
-                            continue;
+                            unknownCount++;
+                        }
+                    }
+
+                    if (unknownCount == knownParameters.Length)
+                    {
+                        int count = 0;
+
+                        for (int i = 0; i < constructedParameters.Length; i++)
+                        {
+                            if (constructedParameters[i].IsGenericParameter)
+                            {
+                                constructedParameters[i] = knownParameters[count++];
+                            }
                         }
 
-                        matches[type] = parameter;
-
-                        for (int i = 0; i < constraintParams.Length; i++)
+                        if (genericTypeDefinition.AreGenericConstraintsSatisfiedBy(constructedParameters))
                         {
-                            if (constraintParams[i].IsGenericParameter)
+                            inferredParams = constructedParameters;
+                            return true;
+                        }
+                    }
+                }
+
+                if (definitions.Length == knownParameters.Length && genericTypeDefinition.AreGenericConstraintsSatisfiedBy(knownParameters))
+                {
+                    inferredParams = knownParameters;
+                    return true;
+                }
+
+                foreach (var type in definitions)
+                {
+                    if (matches.ContainsKey(type)) continue;
+
+                    var constraints = type.GetGenericParameterConstraints();
+
+                    foreach (var constraint in constraints)
+                    {
+                        foreach (var parameter in knownParameters)
+                        {
+                            if (!constraint.IsGenericType)
                             {
-                                matches[constraintParams[i]] = paramParams[i];
+                                continue;
+                            }
+
+                            Type constraintDefinition = constraint.GetGenericTypeDefinition();
+
+                            var constraintParams = constraint.GetGenericArguments();
+                            Type[] paramParams;
+
+                            if (parameter.IsGenericType && constraintDefinition == parameter.GetGenericTypeDefinition())
+                            {
+                                paramParams = parameter.GetGenericArguments();
+                            }
+                            else if (constraintDefinition.IsInterface && parameter.ImplementsOpenGenericInterface(constraintDefinition))
+                            {
+                                paramParams = parameter.GetArgumentsOfInheritedOpenGenericInterface(constraintDefinition);
+                            }
+                            else if (constraintDefinition.IsClass && parameter.ImplementsOpenGenericClass(constraintDefinition))
+                            {
+                                paramParams = parameter.GetArgumentsOfInheritedOpenGenericClass(constraintDefinition);
+                            }
+                            else
+                            {
+                                continue;
+                            }
+
+                            matches[type] = parameter;
+
+                            for (int i = 0; i < constraintParams.Length; i++)
+                            {
+                                if (constraintParams[i].IsGenericParameter)
+                                {
+                                    matches[constraintParams[i]] = paramParams[i];
+                                }
                             }
                         }
                     }
                 }
-            }
 
-            if (matches.Count == definitions.Length)
-            {
-                inferredParams = new Type[matches.Count];
-
-                for (int i = 0; i < definitions.Length; i++)
+                if (matches.Count == definitions.Length)
                 {
-                    inferredParams[i] = matches[definitions[i]];
+                    inferredParams = new Type[matches.Count];
+
+                    for (int i = 0; i < definitions.Length; i++)
+                    {
+                        inferredParams[i] = matches[definitions[i]];
+                    }
+
+                    if (AreGenericConstraintsSatisfiedBy(genericTypeDefinition, inferredParams))
+                    {
+                        return true;
+                    }
                 }
 
-                if (AreGenericConstraintsSatisfiedBy(genericTypeDefinition, inferredParams))
-                {
-                    return true;
-                }
+                inferredParams = null;
+                return false;
             }
-
-            inferredParams = null;
-            return false;
         }
 
         /// <summary>
@@ -1656,27 +1673,38 @@ namespace OdinSerializer.Utilities
                 return false;
             }
 
-            Dictionary<Type, Type> resolvedMap = new Dictionary<Type, Type>();
-
-            for (int i = 0; i < definitions.Length; i++)
+            lock (GenericConstraintsSatisfaction_LOCK)
             {
-                Type definition = definitions[i];
-                Type parameter = parameters[i];
+                Dictionary<Type, Type> resolvedMap = GenericConstraintsSatisfactionResolvedMap;
+                resolvedMap.Clear();
 
-                if (!definition.GenericParameterIsFulfilledBy(parameter, resolvedMap))
+                for (int i = 0; i < definitions.Length; i++)
                 {
-                    return false;
-                }
-            }
+                    Type definition = definitions[i];
+                    Type parameter = parameters[i];
 
-            return true;
+                    if (!definition.GenericParameterIsFulfilledBy(parameter, resolvedMap))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
         }
 
         public static bool GenericParameterIsFulfilledBy(this Type genericParameterDefinition, Type parameterType)
         {
-            return genericParameterDefinition.GenericParameterIsFulfilledBy(parameterType, new Dictionary<Type, Type>());
+            lock (GenericConstraintsSatisfaction_LOCK)
+            {
+                GenericConstraintsSatisfactionResolvedMap.Clear();
+                return genericParameterDefinition.GenericParameterIsFulfilledBy(parameterType, GenericConstraintsSatisfactionResolvedMap);
+            }
         }
 
+        /// <summary>
+        /// Before calling this method we must ALWAYS hold a lock on the GenericConstraintsSatisfaction_LOCK object, as that is an implicit assumption it works with.
+        /// </summary>
         private static bool GenericParameterIsFulfilledBy(this Type genericParameterDefinition, Type parameterType, Dictionary<Type, Type> resolvedMap, HashSet<Type> processedParams = null)
         {
             if (genericParameterDefinition == null)
@@ -1704,7 +1732,11 @@ namespace OdinSerializer.Utilities
                 return false;
             }
 
-            if (processedParams == null) processedParams = new HashSet<Type>();
+            if (processedParams == null)
+            {
+                processedParams = GenericConstraintsSatisfactionProcessedParams; // This is safe because we are currently holding the lock
+                processedParams.Clear();
+            }
 
             processedParams.Add(genericParameterDefinition);
 
