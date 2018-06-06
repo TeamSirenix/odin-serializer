@@ -280,7 +280,7 @@ namespace OdinSerializer
 
             if (typeof(UnityEventBase).IsAssignableFrom(type))
             {
-                return !type.IsGenericType;
+                return !type.IsGenericType && (type == typeof(UnityEvent) || type.IsDefined<SerializableAttribute>(false));
             }
 
             if (type.IsArray)
