@@ -29,7 +29,7 @@ namespace OdinSerializer.Utilities.Editor
     /// <summary>
     /// Defines how an assembly's import settings should be configured.
     /// </summary>
-    public enum AssemblyImportSettings
+    public enum OdinAssemblyImportSettings
     {
         /// <summary>
         /// Include the assembly in the build, but not in the editor.
@@ -101,27 +101,27 @@ namespace OdinSerializer.Utilities.Editor
         /// </summary>
         /// <param name="assemblyFilePath">The path to the assembly to configure import settings from.</param>
         /// <param name="importSettings">The import settings to configure for the assembly at the path.</param>
-        public static void SetAssemblyImportSettings(string assemblyFilePath, AssemblyImportSettings importSettings)
+        public static void SetAssemblyImportSettings(string assemblyFilePath, OdinAssemblyImportSettings importSettings)
         {
             bool includeInBuild = false;
             bool includeInEditor = false;
 
             switch (importSettings)
             {
-                case AssemblyImportSettings.IncludeInAll:
+                case OdinAssemblyImportSettings.IncludeInAll:
                     includeInBuild = true;
                     includeInEditor = true;
                     break;
 
-                case AssemblyImportSettings.IncludeInBuildOnly:
+                case OdinAssemblyImportSettings.IncludeInBuildOnly:
                     includeInBuild = true;
                     break;
 
-                case AssemblyImportSettings.IncludeInEditorOnly:
+                case OdinAssemblyImportSettings.IncludeInEditorOnly:
                     includeInEditor = true;
                     break;
 
-                case AssemblyImportSettings.ExcludeFromAll:
+                case OdinAssemblyImportSettings.ExcludeFromAll:
                     break;
             }
 
