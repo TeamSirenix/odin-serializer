@@ -746,10 +746,8 @@ namespace OdinSerializer
         }
 
         /// <summary>
-        /// Creates a deep copy of a non-unity object object.
+        /// Creates a deep copy of an object. Returns null if null. All Unity objects references will remain the same - they will not get copied.
         /// </summary>
-        /// <param name="obj">The object.</param>
-        /// <returns></returns>
         public static object CreateCopy(object obj)
         {
             if (obj == null)
