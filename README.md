@@ -255,7 +255,7 @@ This is how OdinSerializer works, on the highest level:
 
 * Data to be written to or read from is passed to a data writer/reader, usually in the form of a stream.
 * The data writer/reader is passed to a serializer, along with a value to be serialized, if we are serializing.
-* If the value can be treated as an atomic primitive, the serializer will write or read that directly using the passed data writer/reader. If the value is "complex", IE, it is a value that consists of other values, the serializer will get and wrap the use a formatter to read or write the value.
+* If the value can be treated as an atomic primitive, the serializer will write or read that directly using the passed data writer/reader. If the value is "complex", IE, it is a value that consists of other values, the serializer will get and wrap the use of a formatter to read or write the value.
 
 ### "Stack-only", forward-only
 

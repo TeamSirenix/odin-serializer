@@ -34,6 +34,11 @@ namespace OdinSerializer.Editor
 
     public static class AOTSupportUtilities
     {
+        /// <summary>
+        /// Scans the project's build scenes and resources, plus their dependencies, for serialized types to support. Progress bars are shown during the scan.
+        /// </summary>
+        /// <param name="serializedTypes">The serialized types to support.</param>
+        /// <returns>true if the scan succeeded, false if the scan failed or was cancelled</returns>
         public static bool ScanProjectForSerializedTypes(out List<Type> serializedTypes)
         {
             using (var scanner = new AOTSupportScanner())
