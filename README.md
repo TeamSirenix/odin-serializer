@@ -417,7 +417,7 @@ This is done because there is no way for Odin to actually serialize and later re
 
 ### AOT Support details
 
-OdinSerializer contains a utility class, AOTSupportUtilities, for providing support for AOT (Ahead-Of-Time) compiled platforms such as IL2CPP and Mono AOT. This utility can scan the entire project and generate a list of types that are serialized by OdinSerializer, and it can take a list of types and create a .dll file in your project that ensures that there will be serialization support for all the given types in an AOT build.
+OdinSerializer contains two utility classes, AOTSupportUtilities and AOTSupportScanner, for providing support for AOT (Ahead-Of-Time) compiled platforms such as IL2CPP and Mono AOT. These utilities can be used to scan the entire project (or merely parts of it) and generate a list of types that are serialized by OdinSerializer, and they can take a list of types and create a .dll file in your project that ensures that there will be serialization support for all the given types in an AOT build.
 
 To automate this process of AOT support, you can use Unity's IPreProcessBuild/IPreProcessBuildWithReport and IPostProcessBuild/IPostProcessBuildWithReport interfaces to create an AOT support dll upon building, and delete it again after building. (Note that this only becomes possible in Unity 5.6, where IPreProcessBuild was introduced.)
 
