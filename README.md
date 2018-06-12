@@ -36,11 +36,11 @@
 	<a href="http://www.devdog.io" target="_blank">
 		<img src="/Images/DevdogLogo.png" alt="DevDog">
 	</a>
-	<a href="https://assetstore.unity.com/publishers/11548" target="_blank">
-		<img src="/Images/LudiqLogo.png" alt="Ludiq">
-	</a>
 	<a href="https://assetstore.unity.com/publishers/735" target="_blank">
 		<img src="/Images/ParadoxNotionLogo.png" alt="ParadoxNotion">
+	</a>
+	<a href="https://assetstore.unity.com/publishers/11548" target="_blank">
+		<img src="/Images/LudiqLogo.png" alt="Ludiq">
 	</a>
 </p>
 <hr>
