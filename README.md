@@ -27,7 +27,8 @@
 		<img src="/Images/BtnDonate.png" alt="Donate">
 	</a>	
 </p>
-<h3 align="center" style="text-align:center;">
+<hr>
+<h2 align="center" style="text-align:center;">
 	Used in hundreds of games and supported by Asset Store developers such as
 </h3>
 
@@ -42,6 +43,7 @@
 		<img src="/Images/DevdogLogo.png" alt="DevDog">
 	</a>	
 </p>
+<hr>
 
 ## Performance charts and comparisons
 
