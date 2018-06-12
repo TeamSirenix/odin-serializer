@@ -28,7 +28,7 @@
 	</a>	
 </p>
 <hr>
-<h2 align="center" style="text-align:center;">
+<h3 align="center" style="text-align:center;">
 	Used in hundreds of games and supported by Asset Store developers such as
 </h3>
 
