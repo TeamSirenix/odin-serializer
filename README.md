@@ -27,6 +27,21 @@
 		<img src="/Images/BtnDonate.png" alt="Donate">
 	</a>	
 </p>
+<h3 align="center" style="text-align:center;">
+	Used in hundreds of games and supported by Asset Store developers such as
+</h3>
+
+<p align="center">	
+	<a href="http://www.devdog.io" target="_blank">
+		<img src="/Images/DevdogLogo.png" alt="DevDog">
+	</a>
+	<a href="http://www.devdog.io" target="_blank">
+		<img src="/Images/DevdogLogo.png" alt="DevDog">
+	</a>
+	<a href="http://www.devdog.io" target="_blank">
+		<img src="/Images/DevdogLogo.png" alt="DevDog">
+	</a>	
+</p>
 
 ## Performance charts and comparisons
 
