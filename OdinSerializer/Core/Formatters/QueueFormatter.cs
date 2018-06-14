@@ -16,11 +16,11 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
-using Sirenix.Serialization;
+using OdinSerializer;
 
 [assembly: RegisterFormatter(typeof(QueueFormatter<>))]
 
-namespace Sirenix.Serialization
+namespace OdinSerializer
 {
     using System;
     using System.Collections.Generic;
