@@ -88,6 +88,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Core\Formatters\QueueFormatter.cs" />
     <Compile Include="Unity Integration\AOTSupportScanner.cs" />
     <Compile Include="Utilities\Misc\AssemblyImportSettingsUtilities.cs" />
     <Compile Include="Core\FormatterLocators\ArrayFormatterLocator.cs" />

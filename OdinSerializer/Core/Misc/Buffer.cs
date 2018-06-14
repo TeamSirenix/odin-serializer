@@ -32,7 +32,6 @@ namespace OdinSerializer
         private static readonly List<Buffer<T>> FreeBuffers = new List<Buffer<T>>();
 
         private int count;
-        private int byteSize;
         private T[] array;
         private bool isFree;
 
@@ -40,7 +39,6 @@ namespace OdinSerializer
         {
             this.array = new T[count];
             this.count = count;
-            this.byteSize = count * System.Runtime.InteropServices.Marshal.SizeOf(typeof(T));
             this.isFree = false; // Always start as non-free
         }
 
@@ -61,26 +59,6 @@ namespace OdinSerializer
                 }
 
                 return this.count;
-            }
-        }
-
-        /// <summary>
-        /// Gets the total size in bytes of the buffer in memory.
-        /// </summary>
-        /// <value>
-        /// The total size in bytes of the buffer in memory.
-        /// </value>
-        /// <exception cref="System.InvalidOperationException">Cannot access a buffer while it is freed.</exception>
-        public int ByteSize
-        {
-            get
-            {
-                if (this.isFree)
-                {
-                    throw new InvalidOperationException("Cannot access a buffer while it is freed.");
-                }
-
-                return this.byteSize;
             }
         }
 
