@@ -26,12 +26,10 @@ namespace OdinSerializer
     [Sirenix.OdinInspector.ShowOdinSerializedPropertiesInInspector]
 #endif
 
-    public abstract class SerializedScriptableObject : ScriptableObject, ISerializationCallbackReceiver, ISupportsPrefabSerialization
+    public abstract class SerializedScriptableObject : ScriptableObject, ISerializationCallbackReceiver
     {
         [SerializeField, HideInInspector]
         private SerializationData serializationData;
-
-        SerializationData ISupportsPrefabSerialization.SerializationData { get { return this.serializationData; } set { this.serializationData = value; } }
 
         void ISerializationCallbackReceiver.OnAfterDeserialize()
         {

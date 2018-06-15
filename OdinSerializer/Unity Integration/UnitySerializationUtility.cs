@@ -18,8 +18,6 @@
 
 //#define PREFAB_DEBUG
 
-//#define ENABLE_PREFAB_MODIFICATION_FIX
-
 namespace OdinSerializer
 {
     using System.Globalization;
@@ -49,6 +47,9 @@ namespace OdinSerializer
     public static class UnitySerializationUtility
     {
 #if UNITY_EDITOR
+
+        [NonSerialized]
+        private static readonly HashSet<UnityEngine.Object> UnityObjectsWaitingForDelayedModificationApply = new HashSet<UnityEngine.Object>(ReferenceEqualityComparer<UnityEngine.Object>.Default);
 
         [NonSerialized]
         private static readonly Dictionary<UnityEngine.Object, List<PrefabModification>> RegisteredPrefabModifications = new Dictionary<UnityEngine.Object, List<PrefabModification>>(ReferenceEqualityComparer<UnityEngine.Object>.Default);
@@ -130,6 +131,11 @@ namespace OdinSerializer
             List<PrefabModification> result;
             RegisteredPrefabModifications.TryGetValue(obj, out result);
             return result;
+        }
+
+        public static bool HasModificationsWaitingForDelayedApply(UnityEngine.Object obj)
+        {
+            return UnityObjectsWaitingForDelayedModificationApply.Contains(obj);
         }
 
 #endif
@@ -818,14 +824,43 @@ namespace OdinSerializer
                 // that keeps checking if the number of custom modifications is correct
                 // and, if not, it keeps registering the change until Unity gets it.
 
-#if ENABLE_PREFAB_MODIFICATION_FIX
-                // Setting the prefab modifications here seem to crash the Unity Editor
-                // when when having a prefab instance that containes two components; one with a UnityEvent and another an Odin serialization.
-                // The crash occurs when modifying a value quickly.
-                // Read more on the issue here: https://bitbucket.org/sirenix/odin-inspector/issues/280/editor-crash-when-applying-change-on
-#else
-                UnityEditor.PrefabUtility.SetPropertyModifications(unityObject, mods.ToArray());
+                // Setting the prefab modifications here directly has a tendency to crash the Unity Editor, so we use a delayed call
+                // so the modifications are set during a time that's better for Unity.
+                UnityEditor.EditorApplication.delayCall += () =>
+                {
+#if PREFAB_DEBUG
+                    Debug.Log("DELAYED: Actually setting prefab modifications:");
+                    foreach (var mod in mods)
+                    {
+                        if (!mod.propertyPath.StartsWith("serializationData")) continue;
+
+                        int index = -1;
+
+                        if (mod.target is Component)
+                        {
+                            Component com = mod.target as Component;
+
+                            var coms = com.gameObject.GetComponents(com.GetType());
+
+                            for (int j = 0; j < coms.Length; j++)
+                            {
+                                if (object.ReferenceEquals(coms[j], mod.target))
+                                {
+                                    index = j;
+                                    break;
+                                }
+                            }
+                        }
+
+                        Debug.Log("   " + mod.target.name + " (" + index + ") " + mod.propertyPath + ": " + mod.value);
+                    }
 #endif
+
+                    UnityObjectsWaitingForDelayedModificationApply.Remove(unityObject);
+                    UnityEditor.PrefabUtility.SetPropertyModifications(unityObject, mods.ToArray());
+                };
+
+                UnityObjectsWaitingForDelayedModificationApply.Add(unityObject);
             }
         }
 
@@ -1479,11 +1514,6 @@ namespace OdinSerializer
         /// </summary>
         public static List<string> SerializePrefabModifications(List<PrefabModification> modifications, ref List<UnityEngine.Object> referencedUnityObjects)
         {
-            if (modifications == null || modifications.Count == 0)
-            {
-                return new List<string>();
-            }
-
             if (referencedUnityObjects == null)
             {
                 referencedUnityObjects = new List<UnityEngine.Object>();
@@ -1491,6 +1521,11 @@ namespace OdinSerializer
             else if (referencedUnityObjects.Count > 0)
             {
                 referencedUnityObjects.Clear();
+            }
+
+            if (modifications == null || modifications.Count == 0)
+            {
+                return new List<string>();
             }
 
             // Sort modifications alphabetically by path; this will ensure that modifications
@@ -1777,6 +1812,7 @@ namespace OdinSerializer
             }
 #endif
 
+            PrefabModificationCache.CachePrefabModifications(unityObject, modifications);
             RegisteredPrefabModifications[unityObject] = modifications;
         }
 
