@@ -51,6 +51,11 @@ namespace OdinSerializer.Utilities
 
             if (aliasFieldInfo != null)
             {
+                while (aliasFieldInfo.AliasedField is MemberAliasFieldInfo)
+                {
+                    aliasFieldInfo = aliasFieldInfo.AliasedField as MemberAliasFieldInfo;
+                }
+
                 return aliasFieldInfo.AliasedField;
             }
 

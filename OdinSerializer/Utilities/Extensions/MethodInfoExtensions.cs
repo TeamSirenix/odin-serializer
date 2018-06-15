@@ -120,6 +120,11 @@ namespace OdinSerializer.Utilities
 
             if (aliasMethodInfo != null)
             {
+                while (aliasMethodInfo.AliasedMethod is MemberAliasMethodInfo)
+                {
+                    aliasMethodInfo = aliasMethodInfo.AliasedMethod as MemberAliasMethodInfo;
+                }
+
                 return aliasMethodInfo.AliasedMethod;
             }
 

@@ -84,6 +84,11 @@ namespace OdinSerializer.Utilities
 
             if (aliasPropertyInfo != null)
             {
+                while (aliasPropertyInfo.AliasedProperty is MemberAliasPropertyInfo)
+                {
+                    aliasPropertyInfo = aliasPropertyInfo.AliasedProperty as MemberAliasPropertyInfo;
+                }
+
                 return aliasPropertyInfo.AliasedProperty;
             }
 
