@@ -4,27 +4,97 @@
         <name>OdinSerializer</name>
     </assembly>
     <members>
-        <member name="T:OdinSerializer.Utilities.Editor.AssemblyImportSettings">
+        <member name="T:OdinSerializer.QueueFormatter`1">
+            <summary>
+            Custom generic formatter for the generic type definition <see cref="T:System.Collections.Generic.Queue`1"/>.
+            </summary>
+            <typeparam name="T">The element type of the formatted queue.</typeparam>
+            <seealso cref="!:BaseFormatter&lt;System.Collections.Generic.Queue&lt;T&gt;&gt;" />
+        </member>
+        <member name="M:OdinSerializer.QueueFormatter`1.GetUninitializedObject">
+            <summary>
+            Returns null.
+            </summary>
+            <returns>
+            A null value.
+            </returns>
+        </member>
+        <member name="M:OdinSerializer.QueueFormatter`1.DeserializeImplementation(System.Collections.Generic.Queue{`0}@,OdinSerializer.IDataReader)">
+            <summary>
+            Provides the actual implementation for deserializing a value of type <see cref="!:T" />.
+            </summary>
+            <param name="value">The uninitialized value to serialize into. This value will have been created earlier using <see cref="M:OdinSerializer.BaseFormatter`1.GetUninitializedObject" />.</param>
+            <param name="reader">The reader to deserialize with.</param>
+        </member>
+        <member name="M:OdinSerializer.QueueFormatter`1.SerializeImplementation(System.Collections.Generic.Queue{`0}@,OdinSerializer.IDataWriter)">
+            <summary>
+            Provides the actual implementation for serializing a value of type <see cref="!:T" />.
+            </summary>
+            <param name="value">The value to serialize.</param>
+            <param name="writer">The writer to serialize with.</param>
+        </member>
+        <member name="T:OdinSerializer.StackFormatter`1">
+            <summary>
+            Custom generic formatter for the generic type definition <see cref="T:System.Collections.Generic.Stack`1"/>.
+            </summary>
+            <typeparam name="T">The element type of the formatted stack.</typeparam>
+            <seealso cref="!:BaseFormatter&lt;System.Collections.Generic.Stack&lt;T&gt;&gt;" />
+        </member>
+        <member name="M:OdinSerializer.StackFormatter`1.GetUninitializedObject">
+            <summary>
+            Returns null.
+            </summary>
+            <returns>
+            A null value.
+            </returns>
+        </member>
+        <member name="M:OdinSerializer.StackFormatter`1.DeserializeImplementation(System.Collections.Generic.Stack{`0}@,OdinSerializer.IDataReader)">
+            <summary>
+            Provides the actual implementation for deserializing a value of type <see cref="!:T" />.
+            </summary>
+            <param name="value">The uninitialized value to serialize into. This value will have been created earlier using <see cref="M:OdinSerializer.BaseFormatter`1.GetUninitializedObject" />.</param>
+            <param name="reader">The reader to deserialize with.</param>
+        </member>
+        <member name="M:OdinSerializer.StackFormatter`1.SerializeImplementation(System.Collections.Generic.Stack{`0}@,OdinSerializer.IDataWriter)">
+            <summary>
+            Provides the actual implementation for serializing a value of type <see cref="!:T" />.
+            </summary>
+            <param name="value">The value to serialize.</param>
+            <param name="writer">The writer to serialize with.</param>
+        </member>
+        <member name="M:OdinSerializer.Editor.AOTSupportUtilities.ScanProjectForSerializedTypes(System.Collections.Generic.List{System.Type}@)">
+            <summary>
+            Scans the project's build scenes and resources, plus their dependencies, for serialized types to support. Progress bars are shown during the scan.
+            </summary>
+            <param name="serializedTypes">The serialized types to support.</param>
+            <returns>true if the scan succeeded, false if the scan failed or was cancelled</returns>
+        </member>
+        <member name="M:OdinSerializer.Editor.AOTSupportUtilities.GenerateDLL(System.String,System.String,System.Collections.Generic.List{System.Type},System.Boolean)">
+            <summary>
+            Generates an AOT DLL, using the given parameters.
+            </summary>
+        </member>
+        <member name="T:OdinSerializer.Utilities.Editor.OdinAssemblyImportSettings">
             <summary>
             Defines how an assembly's import settings should be configured.
             </summary>
         </member>
-        <member name="F:OdinSerializer.Utilities.Editor.AssemblyImportSettings.IncludeInBuildOnly">
+        <member name="F:OdinSerializer.Utilities.Editor.OdinAssemblyImportSettings.IncludeInBuildOnly">
             <summary>
             Include the assembly in the build, but not in the editor.
             </summary>
         </member>
-        <member name="F:OdinSerializer.Utilities.Editor.AssemblyImportSettings.IncludeInEditorOnly">
+        <member name="F:OdinSerializer.Utilities.Editor.OdinAssemblyImportSettings.IncludeInEditorOnly">
             <summary>
             Include the assembly in the editor, but not in the build.
             </summary>
         </member>
-        <member name="F:OdinSerializer.Utilities.Editor.AssemblyImportSettings.IncludeInAll">
+        <member name="F:OdinSerializer.Utilities.Editor.OdinAssemblyImportSettings.IncludeInAll">
             <summary>
             Include the assembly in both the build and in the editor.
             </summary>
         </member>
-        <member name="F:OdinSerializer.Utilities.Editor.AssemblyImportSettings.ExcludeFromAll">
+        <member name="F:OdinSerializer.Utilities.Editor.OdinAssemblyImportSettings.ExcludeFromAll">
             <summary>
             Exclude the assembly from both the build and from the editor.
             </summary>
@@ -44,7 +114,7 @@
             All valid Unity BuildTarget platforms that support Just In Time compilation.
             </summary>
         </member>
-        <member name="M:OdinSerializer.Utilities.Editor.AssemblyImportSettingsUtilities.SetAssemblyImportSettings(System.String,OdinSerializer.Utilities.Editor.AssemblyImportSettings)">
+        <member name="M:OdinSerializer.Utilities.Editor.AssemblyImportSettingsUtilities.SetAssemblyImportSettings(System.String,OdinSerializer.Utilities.Editor.OdinAssemblyImportSettings)">
             <summary>
             Set the import settings on the assembly.
             </summary>
@@ -846,6 +916,11 @@
             types is null
             </exception>
             <exception cref="T:System.ArgumentException">The genericTypeDefinition parameter must be a generic type definition.</exception>
+        </member>
+        <member name="M:OdinSerializer.Utilities.TypeExtensions.GenericParameterIsFulfilledBy(System.Type,System.Type,System.Collections.Generic.Dictionary{System.Type,System.Type},System.Collections.Generic.HashSet{System.Type})">
+            <summary>
+            Before calling this method we must ALWAYS hold a lock on the GenericConstraintsSatisfaction_LOCK object, as that is an implicit assumption it works with.
+            </summary>
         </member>
         <member name="M:OdinSerializer.Utilities.TypeExtensions.GetGenericConstraintsString(System.Type,System.Boolean)">
             <summary>
@@ -7978,11 +8053,6 @@
             <param name="value">The value to write.</param>
             <param name="writer">The writer to use.</param>
         </member>
-        <member name="M:OdinSerializer.Editor.AOTSupportUtilities.GenerateDLL(System.String,System.String,System.Collections.Generic.List{System.Type},System.Boolean)">
-            <summary>
-            Generates an AOT DLL, using the given parameters.
-            </summary>
-        </member>
         <member name="T:OdinSerializer.AnimationCurveFormatter">
             <summary>
             Custom formatter for the <see cref="T:UnityEngine.AnimationCurve"/> type.
@@ -8749,15 +8819,6 @@
             </value>
             <exception cref="T:System.InvalidOperationException">Cannot access a buffer while it is freed.</exception>
         </member>
-        <member name="P:OdinSerializer.Buffer`1.ByteSize">
-            <summary>
-            Gets the total size in bytes of the buffer in memory.
-            </summary>
-            <value>
-            The total size in bytes of the buffer in memory.
-            </value>
-            <exception cref="T:System.InvalidOperationException">Cannot access a buffer while it is freed.</exception>
-        </member>
         <member name="P:OdinSerializer.Buffer`1.Array">
             <summary>
             Gets the buffered array.
@@ -9485,10 +9546,8 @@
         </member>
         <member name="M:OdinSerializer.SerializationUtility.CreateCopy(System.Object)">
             <summary>
-            Creates a deep copy of a non-unity object object.
+            Creates a deep copy of an object. Returns null if null. All Unity objects references will remain the same - they will not get copied.
             </summary>
-            <param name="obj">The object.</param>
-            <returns></returns>
         </member>
         <member name="T:OdinSerializer.UnitySerializationUtility">
             <summary>
