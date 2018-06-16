@@ -21,14 +21,15 @@ namespace OdinSerializer.Utilities.Editor
 
         static OdinBuildAutomation()
         {
-            var odinSerializerDir = new DirectoryInfo(typeof(AssemblyImportSettingsUtilities).Assembly.GetAssemblyDirectory()).Parent.FullName.Replace('\\', '/').TrimEnd('/');
+            var odinSerializerDir = new DirectoryInfo(typeof(AssemblyImportSettingsUtilities).Assembly.GetAssemblyDirectory())
+                .Parent.FullName.Replace('\\', '/').TrimEnd('/');
 
-            EditorAssemblyPath = odinSerializerDir + "/EditorOnly/OdinSerializer.dll";
-            AOTAssemblyPath = odinSerializerDir + "/AOT/OdinSerializer.dll";
-            JITAssemblyPath = odinSerializerDir + "/JIT/OdinSerializer.dll";
+            EditorAssemblyPath    = odinSerializerDir + "/EditorOnly/OdinSerializer.dll";
+            AOTAssemblyPath       = odinSerializerDir + "/AOT/OdinSerializer.dll";
+            JITAssemblyPath       = odinSerializerDir + "/JIT/OdinSerializer.dll";
             GenerateAssembliesDir = odinSerializerDir + "/Generated";
 
-            if (!File.Exists(EditorAssemblyPath)) throw new FileNotFoundException("Make sure all release configurations specified in the Visual Studio project are built.", EditorAssemblyPath);
+            if  (!File.Exists(EditorAssemblyPath))  throw new FileNotFoundException("Make sure all release configurations specified in the Visual Studio project are built.", EditorAssemblyPath);
             else if (!File.Exists(AOTAssemblyPath)) throw new FileNotFoundException("Make sure all release configurations specified in the Visual Studio project are built.", AOTAssemblyPath);
             else if (!File.Exists(JITAssemblyPath)) throw new FileNotFoundException("Make sure all release configurations specified in the Visual Studio project are built.", JITAssemblyPath);
         }
@@ -40,17 +41,17 @@ namespace OdinSerializer.Utilities.Editor
             var compileForAOT = scriptingBackend == ScriptingImplementation.IL2CPP || !AssemblyImportSettingsUtilities.JITPlatforms.Contains(activeBuildTarget);
 
             // The EditorOnly dll should aways have the same import settings. But lets just make sure.
-            AssemblyImportSettingsUtilities.SetAssemblyImportSettings(EditorAssemblyPath, AssemblyImportSettings.IncludeInEditorOnly);
+            AssemblyImportSettingsUtilities.SetAssemblyImportSettings(EditorAssemblyPath, OdinAssemblyImportSettings.IncludeInEditorOnly);
 
             if (compileForAOT)
             {
-                AssemblyImportSettingsUtilities.SetAssemblyImportSettings(AOTAssemblyPath, AssemblyImportSettings.IncludeInBuildOnly);
-                AssemblyImportSettingsUtilities.SetAssemblyImportSettings(JITAssemblyPath, AssemblyImportSettings.ExcludeFromAll);
+                AssemblyImportSettingsUtilities.SetAssemblyImportSettings(AOTAssemblyPath, OdinAssemblyImportSettings.IncludeInBuildOnly);
+                AssemblyImportSettingsUtilities.SetAssemblyImportSettings(JITAssemblyPath, OdinAssemblyImportSettings.ExcludeFromAll);
             }
             else
             {
-                AssemblyImportSettingsUtilities.SetAssemblyImportSettings(AOTAssemblyPath, AssemblyImportSettings.ExcludeFromAll);
-                AssemblyImportSettingsUtilities.SetAssemblyImportSettings(JITAssemblyPath, AssemblyImportSettings.IncludeInBuildOnly);
+                AssemblyImportSettingsUtilities.SetAssemblyImportSettings(AOTAssemblyPath, OdinAssemblyImportSettings.ExcludeFromAll);
+                AssemblyImportSettingsUtilities.SetAssemblyImportSettings(JITAssemblyPath, OdinAssemblyImportSettings.IncludeInBuildOnly);
             }
 
             if (compileForAOT)
