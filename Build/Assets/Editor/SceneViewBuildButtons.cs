@@ -53,6 +53,8 @@ namespace OdinSerializer.Utilities.Editor
                 AssetDatabase.StopAssetEditing();
                 Debug.Log("Finished at building EditorOnly/OdinSerializer.dll, AOT/OdinSerializer.dll and JIT/OdinSerializer.dll in release mode.");
             }
+
+            AssetDatabase.Refresh();
         }
 
         public static void Build(string configuration)
@@ -92,9 +94,6 @@ namespace OdinSerializer.Utilities.Editor
 
         private static void CreateUnityPacakge()
         {
-            AssetDatabase.Refresh();
-
-            // Make unitypackage
             var package = AssetDatabase.GetAllAssetPaths()
                 .Where(p => p.StartsWith(ODIN_SERIALIZER_UNITY_DIR) && File.Exists(p))
                 .ToArray();
