@@ -28,7 +28,7 @@ namespace OdinSerializer
     /// <seealso cref="Serializer{T}" />
     public sealed class ComplexTypeSerializer<T> : Serializer<T>
     {
-        private static readonly bool ComplexTypeMayBeBoxedValueType = typeof(T) == typeof(object) || typeof(T) == typeof(ValueType);
+        private static readonly bool ComplexTypeMayBeBoxedValueType = typeof(T).IsInterface || typeof(T) == typeof(object) || typeof(T) == typeof(ValueType) || typeof(T) == typeof(Enum);
         private static readonly bool ComplexTypeIsAbstract = typeof(T).IsAbstract || typeof(T).IsInterface;
         private static readonly bool ComplexTypeIsNullable = typeof(T).IsGenericType && typeof(T).GetGenericTypeDefinition() == typeof(Nullable<>);
         private static readonly bool ComplexTypeIsValueType = typeof(T).IsValueType;
