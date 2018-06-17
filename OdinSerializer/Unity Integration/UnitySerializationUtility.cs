@@ -1129,6 +1129,9 @@ namespace OdinSerializer
                 {
                     UnitySerializationUtility.DeserializeUnityObject(unityObject, ref data.SerializedBytes, ref data.ReferencedUnityObjects, data.SerializedFormat, context);
                 }
+
+                // If there are any prefab modifications, we should *always* apply those
+                ApplyPrefabModifications(unityObject, data.PrefabModifications, data.PrefabModificationsReferencedUnityObjects);
             }
             else
             {
