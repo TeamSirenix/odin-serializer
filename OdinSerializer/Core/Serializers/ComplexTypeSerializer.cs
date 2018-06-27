@@ -269,36 +269,23 @@ namespace OdinSerializer
                                                     value = alternateFormatter.Deserialize(reader);
                                                 }
 
-                                                // Serialized value types are extra tricky to try to cast, since they are boxed here
-                                                // Boxed value types must be unboxed before their implicit and explicit cast operators work
-                                                // We cannot unbox here, as the serialized type is weakly typed
-                                                // Therefore we need to explicity invoke the actual cast operator method
-                                                // (unless we are trying to deserialize to an object, which makes everything easier)
-                                                if (!assignableCast && serializedType.IsValueType)
+                                                if (assignableCast)
                                                 {
-                                                    if (ComplexTypeMayBeBoxedValueType)
-                                                    {
-                                                        // This will always work, as we are simply casting to object or ValueType
-                                                        // ... which it already is. Oh generics, you lovely, silly thing <3
-                                                        result = (T)value;
-                                                    }
-                                                    else
-                                                    {
-                                                        var castMethod = serializedType.GetCastMethodDelegate(expectedType);
-
-                                                        if (castMethod != null)
-                                                        {
-                                                            result = (T)castMethod(value);
-                                                        }
-                                                        else
-                                                        {
-                                                            result = (T)(value);
-                                                        }
-                                                    }
+                                                    result = (T)value;
                                                 }
                                                 else
                                                 {
-                                                    result = (T)value;
+                                                    var castMethod = serializedType.GetCastMethodDelegate(expectedType);
+
+                                                    if (castMethod != null)
+                                                    {
+                                                        result = (T)castMethod(value);
+                                                    }
+                                                    else
+                                                    {
+                                                        // Let's just give it a go anyways
+                                                        result = (T)value;
+                                                    }
                                                 }
 
                                                 success = true;
