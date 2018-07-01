@@ -1,0 +1,3 @@
+<linker>
+       <assembly fullname="OdinSerializer" preserve="all"/>
+</linker>
