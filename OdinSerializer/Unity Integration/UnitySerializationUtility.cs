@@ -49,6 +49,9 @@ namespace OdinSerializer
 #if UNITY_EDITOR
 
         [NonSerialized]
+        private static readonly MethodInfo PrefabUtility_IsComponentAddedToPrefabInstance_MethodInfo = typeof(UnityEditor.PrefabUtility).GetMethod("IsComponentAddedToPrefabInstance");
+
+        [NonSerialized]
         private static readonly HashSet<UnityEngine.Object> UnityObjectsWaitingForDelayedModificationApply = new HashSet<UnityEngine.Object>(ReferenceEqualityComparer<UnityEngine.Object>.Default);
 
         [NonSerialized]
@@ -574,9 +577,12 @@ namespace OdinSerializer
 
                                     if (!mightBeInPrefab)
                                     {
-                                        if (reference is Component && UnityEditor.PrefabUtility.IsComponentAddedToPrefabInstance(reference))
+                                        if (PrefabUtility_IsComponentAddedToPrefabInstance_MethodInfo != null)
                                         {
-                                            mightBeInPrefab = true;
+                                            if (reference is Component && (bool)PrefabUtility_IsComponentAddedToPrefabInstance_MethodInfo.Invoke(null, new object[] { reference }))
+                                            {
+                                                mightBeInPrefab = true;
+                                            }
                                         }
                                     }
 
