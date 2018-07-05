@@ -105,7 +105,7 @@ namespace OdinSerializer
         }
 
         /// <summary>
-        /// Public fields and fields or auto-properties marked with <see cref="SerializeField"/> or <see cref="OdinSerializeAttribute"/> and not marked with <see cref="NonSerializedAttribute"/> are serialized.
+        /// Public fields, as well as fields or auto-properties marked with <see cref="SerializeField"/> or <see cref="OdinSerializeAttribute"/> and not marked with <see cref="NonSerializedAttribute"/>, are serialized.
         /// <para />
         /// There are two exceptions: all fields in tuples, as well as in private nested types marked as compiler generated (e.g. lambda capture classes) are also serialized.
         /// </summary>
