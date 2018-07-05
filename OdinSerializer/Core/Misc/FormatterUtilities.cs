@@ -315,16 +315,6 @@ You probably need to assign the nullValue variable of the {0} script in the insp
 
             foreach (var member in type.GetMembers(Flags).Where(n => n is FieldInfo || n is PropertyInfo))
             {
-                if (member is PropertyInfo)
-                {
-                    var propInfo = member as PropertyInfo;
-
-                    if (propInfo.IsAutoProperty() == false)
-                    {
-                        continue;
-                    }
-                }
-
                 if (policy.ShouldSerializeMember(member))
                 {
                     bool nameAlreadyExists = members.Any(n => n.Name == member.Name);

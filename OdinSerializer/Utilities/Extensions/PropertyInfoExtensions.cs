@@ -27,21 +27,24 @@ namespace OdinSerializer.Utilities
     public static class PropertyInfoExtensions
     {
         /// <summary>
-        /// Determines whether a property is an auto property.
+        /// Determines whether a property is an auto property with a usable getter and setter.
         /// </summary>
-        public static bool IsAutoProperty(this PropertyInfo propInfo)
+        public static bool IsAutoProperty(this PropertyInfo propInfo, bool allowVirtual = false)
         {
             if (!(propInfo.CanWrite && propInfo.CanRead))
             {
                 return false;
             }
 
-            var getter = propInfo.GetGetMethod(true);
-            var setter = propInfo.GetSetMethod(true);
-
-            if ((getter != null && (getter.IsAbstract || getter.IsVirtual)) || (setter != null && (setter.IsAbstract || setter.IsVirtual)))
+            if (!allowVirtual)
             {
-                return false;
+                var getter = propInfo.GetGetMethod(true);
+                var setter = propInfo.GetSetMethod(true);
+
+                if ((getter != null && (getter.IsAbstract || getter.IsVirtual)) || (setter != null && (setter.IsAbstract || setter.IsVirtual)))
+                {
+                    return false;
+                }
             }
 
             var flag = BindingFlags.NonPublic | BindingFlags.Instance | BindingFlags.Static;
