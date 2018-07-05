@@ -107,7 +107,9 @@ namespace OdinSerializer
         /// <summary>
         /// Public fields, as well as fields or auto-properties marked with <see cref="SerializeField"/> or <see cref="OdinSerializeAttribute"/> and not marked with <see cref="NonSerializedAttribute"/>, are serialized.
         /// <para />
-        /// There are two exceptions: all fields in tuples, as well as in private nested types marked as compiler generated (e.g. lambda capture classes) are also serialized.
+        /// There are two exceptions:
+        /// <para/>1) All fields in tuples, as well as in private nested types marked as compiler generated (e.g. lambda capture classes) are also serialized.
+        /// <para/>2) Virtual auto-properties are never serialized. Note that properties specified by an implemented interface are automatically marked virtual by the compiler.
         /// </summary>
         public static ISerializationPolicy Unity
         {
@@ -155,7 +157,9 @@ namespace OdinSerializer
         /// <summary>
         /// Only fields and auto-properties marked with <see cref="SerializeField"/> or <see cref="OdinSerializeAttribute"/> and not marked with <see cref="NonSerializedAttribute"/> are serialized.
         /// <para />
-        /// There is one exception: all fields in private nested types marked as compiler generated (e.g. lambda capture classes) are also serialized.
+        /// There are two exceptions:
+        /// <para/>1) All fields in private nested types marked as compiler generated (e.g. lambda capture classes) are also serialized.
+        /// <para/>2) Virtual auto-properties are never serialized. Note that properties specified by an implemented interface are automatically marked virtual by the compiler.
         /// </summary>
         public static ISerializationPolicy Strict
         {
