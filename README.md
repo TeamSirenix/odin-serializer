@@ -135,14 +135,14 @@ public static class Example
 {
 	public static void Save(MyData data, string filePath)
 	{
-		byte[] bytes = SerializationUtility.Serialize(data);
+		byte[] bytes = SerializationUtility.SerializeValue(data);
 		File.WriteAllBytes(bytes, filePath);
 	}
 	
 	public static MyData Load(string filePath)
 	{
 		byte[] bytes = File.ReadAllBytes(filePath);
-		return SerializationUtility.Deserialize<MyData>(bytes);
+		return SerializationUtility.DeserializeValue<MyData>(bytes);
 	}
 }
 ```
@@ -158,7 +158,7 @@ public static class Example
 {
 	public static void Save(MyData data,  string filePath, ref List<UnityEngine.Object> unityReferences)
 	{
-		byte[] bytes = SerializationUtility.Serialize(data, DataFormat.Binary, ref unityReferences);
+		byte[] bytes = SerializationUtility.SerializeValue(data, DataFormat.Binary, ref unityReferences);
 		File.WriteAllBytes(bytes, filePath);
 		
 		// The unityReferences list will now be filled with all encountered UnityEngine.Object references, and the saved binary data contains index pointers into this list.
@@ -168,7 +168,7 @@ public static class Example
 	public static MyData Load(string filePath, List<UnityEngine.Object> unityReferences)
 	{
 		byte[] bytes = File.ReadAllBytes(filePath);
-		return SerializationUtility.Deserialize<MyData>(bytes, DataFormat.Binary, unityReferences);
+		return SerializationUtility.DeserializeValue<MyData>(bytes, DataFormat.Binary, unityReferences);
 	}
 }
 ```
