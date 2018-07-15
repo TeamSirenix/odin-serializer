@@ -50,7 +50,7 @@ namespace OdinSerializer
     /// }
     /// </code>
     /// </example>
-    [AttributeUsage(AttributeTargets.Assembly)]
+    [AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)]
     public sealed class BindTypeNameToTypeAttribute : Attribute
     {
         internal readonly Type NewType;
