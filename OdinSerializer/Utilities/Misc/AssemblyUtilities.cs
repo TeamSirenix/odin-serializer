@@ -419,7 +419,7 @@ namespace OdinSerializer.Utilities
         public static bool IsDynamic(this Assembly assembly)
         {
             if (assembly == null) throw new ArgumentNullException("assembly");
-            return assembly.GetType().Name == "AssemblyBuilder";
+            return assembly.GetType().Name == "AssemblyBuilder" || assembly.IsDynamic;
         }
 
         /// <summary>
