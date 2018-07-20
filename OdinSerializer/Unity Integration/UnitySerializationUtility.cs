@@ -148,14 +148,22 @@ namespace OdinSerializer
         /// </summary>
         /// <param name="member">The member to check.</param>
         /// <param name="serializeUnityFields">Whether to allow serialization of members that will also be serialized by Unity.</param>
+        /// <param name="serializeUnityFields">The policy that Odin should be using for serialization of the given member. If this parameter is null, it defaults to <see cref="SerializationPolicies.Unity"/>.</param>
         /// <returns>True if Odin will serialize the member, otherwise false.</returns>
-        public static bool OdinWillSerialize(MemberInfo member, bool serializeUnityFields)
+        public static bool OdinWillSerialize(MemberInfo member, bool serializeUnityFields, ISerializationPolicy policy = null)
         {
-            // Enforce serialization of fields with [OdinSerialize], regardless of whether Unity
+            if (policy == null)
+            {
+                policy = SerializationPolicies.Unity;
+            }
+
+            if (member.DeclaringType == typeof(UnityEngine.Object)) return false;
+
+            // Allow serialization of fields with [OdinSerialize], regardless of whether Unity
             // serializes the field or not
             if (member is FieldInfo && member.HasCustomAttribute<OdinSerializeAttribute>())
             {
-                return true;
+                return policy.ShouldSerializeMember(member);
             }
 
             var willUnitySerialize = GuessIfUnityWillSerialize(member);
@@ -165,7 +173,7 @@ namespace OdinSerializer
                 return serializeUnityFields;
             }
 
-            return SerializationPolicies.Unity.ShouldSerializeMember(member);
+            return policy.ShouldSerializeMember(member);
         }
 
         /// <summary>
@@ -656,7 +664,7 @@ namespace OdinSerializer
                         format = DataFormat.Binary;
                     }
 
-                    UnitySerializationUtility.SerializeUnityObject(unityObject, ref data.SerializedBytes, ref data.ReferencedUnityObjects, format, serializeUnityFields);
+                    UnitySerializationUtility.SerializeUnityObject(unityObject, ref data.SerializedBytes, ref data.ReferencedUnityObjects, format, serializeUnityFields, context);
                     data.SerializedFormat = format;
                 }
                 else
@@ -1003,7 +1011,7 @@ namespace OdinSerializer
                     var member = members[i];
                     WeakValueGetter getter = null;
 
-                    if (!OdinWillSerialize(member, serializeUnityFields) || (getter = GetCachedUnityMemberGetter(member)) == null)
+                    if (!OdinWillSerialize(member, serializeUnityFields, writer.Context.Config.SerializationPolicy) || (getter = GetCachedUnityMemberGetter(member)) == null)
                     {
                         continue;
                     }
