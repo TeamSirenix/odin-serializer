@@ -420,7 +420,14 @@ namespace OdinSerializer.Utilities
         {
             if (assembly == null) throw new ArgumentNullException("assembly");
             // Will cover both System.Reflection.Emit.AssemblyBuilder and System.Reflection.Emit.InternalAssemblyBuilder
-            return assembly.GetType().FullName.EndsWith("AssemblyBuilder") || assembly.Location == null || assembly.Location == "";
+            try
+            {
+                return assembly.GetType().FullName.EndsWith("AssemblyBuilder") || assembly.Location == null || assembly.Location == "";
+            }
+            catch
+            {
+                return true;
+            }
         }
 
         /// <summary>

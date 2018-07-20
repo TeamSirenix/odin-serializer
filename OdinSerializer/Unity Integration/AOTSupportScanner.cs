@@ -276,7 +276,7 @@ namespace OdinSerializer.Editor
 
         public List<Type> EndScan()
         {
-            if (!this.scanning) throw new InvalidOperationException("Cannot end a scan when scanning has not begin.");
+            if (!this.scanning) throw new InvalidOperationException("Cannot end a scan when scanning has not begun.");
 
             var result = this.seenSerializedTypes.ToList();
             this.Dispose();
