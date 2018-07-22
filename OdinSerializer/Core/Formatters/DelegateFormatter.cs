@@ -21,7 +21,6 @@ namespace OdinSerializer
     using System;
     using System.Linq;
     using System.Reflection;
-    using System.Reflection.Emit;
     using Utilities;
 
     /// <summary>
@@ -320,7 +319,7 @@ namespace OdinSerializer
             // We're serializing just one delegate invocation
             MethodInfo methodInfo = del.Method;
 
-            if (methodInfo is DynamicMethod)
+            if (methodInfo.GetType().Name.Contains("DynamicMethod"))
             {
                 writer.Context.Config.DebugContext.LogError("Cannot serialize delegate made from dynamically emitted method " + methodInfo + ".");
                 return;
