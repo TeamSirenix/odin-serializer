@@ -139,7 +139,7 @@ namespace OdinSerializer.Utilities
 
                 var assemblyFlag = GetAssemblyTypeFlag(assembly);
 
-                Type[] types = assembly.GetTypes();
+                Type[] types = assembly.SafeGetTypes();
                 for (int j = 0; j < types.Length; j++)
                 {
                     Type type = types[j];
@@ -157,37 +157,37 @@ namespace OdinSerializer.Utilities
                 if (assemblyFlag == AssemblyTypeFlags.UserTypes)
                 {
                     userAssemblies.Add(assembly);
-                    userTypes.AddRange(assembly.GetTypes());
+                    userTypes.AddRange(assembly.SafeGetTypes());
                 }
                 else if (assemblyFlag == AssemblyTypeFlags.UserEditorTypes)
                 {
                     userEditorAssemblies.Add(assembly);
-                    userEditorTypes.AddRange(assembly.GetTypes());
+                    userEditorTypes.AddRange(assembly.SafeGetTypes());
                 }
                 else if (assemblyFlag == AssemblyTypeFlags.PluginTypes)
                 {
                     pluginAssemblies.Add(assembly);
-                    pluginTypes.AddRange(assembly.GetTypes());
+                    pluginTypes.AddRange(assembly.SafeGetTypes());
                 }
                 else if (assemblyFlag == AssemblyTypeFlags.PluginEditorTypes)
                 {
                     pluginEditorAssemblies.Add(assembly);
-                    pluginEditorTypes.AddRange(assembly.GetTypes());
+                    pluginEditorTypes.AddRange(assembly.SafeGetTypes());
                 }
                 else if (assemblyFlag == AssemblyTypeFlags.UnityTypes)
                 {
                     unityAssemblies.Add(assembly);
-                    unityTypes.AddRange(assembly.GetTypes());
+                    unityTypes.AddRange(assembly.SafeGetTypes());
                 }
                 else if (assemblyFlag == AssemblyTypeFlags.UnityEditorTypes)
                 {
                     unityEditorAssemblies.Add(assembly);
-                    unityEditorTypes.AddRange(assembly.GetTypes());
+                    unityEditorTypes.AddRange(assembly.SafeGetTypes());
                 }
                 else if (assemblyFlag == AssemblyTypeFlags.OtherTypes)
                 {
                     otherAssemblies.Add(assembly);
-                    otherTypes.AddRange(assembly.GetTypes());
+                    otherTypes.AddRange(assembly.SafeGetTypes());
                 }
                 else
                 {
@@ -544,6 +544,18 @@ namespace OdinSerializer.Utilities
             if (includeUnityTypes) for (int i = 0; i < unityTypes.Count; i++) yield return unityTypes[i];
             if (includeUnityEditorTypes) for (int i = 0; i < unityEditorTypes.Count; i++) yield return unityEditorTypes[i];
             if (includeOtherTypes) for (int i = 0; i < otherTypes.Count; i++) yield return otherTypes[i];
+        }
+
+        public static Type[] SafeGetTypes(this Assembly assembly)
+        {
+            try
+            {
+                return assembly.GetTypes();
+            }
+            catch
+            {
+                return Type.EmptyTypes;
+            }
         }
 
         private static bool StartsWithAnyOf(this string str, IEnumerable<string> values, StringComparison comparisonType = StringComparison.CurrentCulture)
