@@ -67,17 +67,24 @@ namespace OdinSerializer.Utilities.Editor
         /// </summary>
         public static readonly ImmutableList<BuildTarget> JITPlatforms;
 
+        /// <summary>
+        /// All API compatibility levels that are compatible with thee JIT required by Odin.
+        /// </summary>
+        public static readonly ImmutableList<ApiCompatibilityLevel> JITApiCompatibilityLevels;
+
         static AssemblyImportSettingsUtilities()
         {
             // This method is needed for getting the ScriptingBackend from Unity 5.6 and up.
             getPropertyIntMethod = typeof(PlayerSettings).GetMethod("GetPropertyInt", Flags.StaticPublic, null, new Type[] { typeof(string), typeof(BuildTargetGroup) }, null);
             getScriptingBackendMethod = typeof(PlayerSettings).GetMethod("GetScriptingBackend", Flags.StaticPublic);
 
+            // All valid BuildTarget values.
             Platforms = new ImmutableList<BuildTarget>(Enum.GetValues(typeof(BuildTarget))
                 .Cast<BuildTarget>()
                 .Where(t => t >= 0 && typeof(BuildTarget).GetMember(t.ToString())[0].IsDefined(typeof(ObsoleteAttribute), false) == false)
                 .ToArray());
 
+            // All BuildTarget values that support JIT.
             JITPlatforms = new ImmutableList<BuildTarget>(Platforms
                 .Where(i => i.ToString().StartsWith("StandaloneOSX")) // Unity 2017.3 replaced StandaloneOSXIntel, StandaloneOSXIntel64 and StandaloneOSXUniversal with StandaloneOSX.
                 .Append(new BuildTarget[]
@@ -89,6 +96,23 @@ namespace OdinSerializer.Utilities.Editor
                     BuildTarget.StandaloneLinuxUniversal,
                     BuildTarget.Android
                 })
+                .ToArray());
+
+            // Names of all api levels that support JIT.
+            string[] jitApiNames = new string[]
+            {
+                "NET_2_0",
+                "NET_2_0_Subset",
+                "NET_4_6",
+                "NET_Web",  // TODO: Does NET_Web support JIT stuff?
+                "NET_Micro" // TODO: Does NET_Micro support JIT stuff?
+            };
+
+            var apiLevelNames = Enum.GetNames(typeof(ApiCompatibilityLevel));
+
+            JITApiCompatibilityLevels = new ImmutableList<ApiCompatibilityLevel>(jitApiNames
+                .Where(x => apiLevelNames.Contains(x))
+                .Select(x => (ApiCompatibilityLevel)Enum.Parse(typeof(ApiCompatibilityLevel), x))
                 .ToArray());
 
             // Find the binary files.
