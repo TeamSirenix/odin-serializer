@@ -56,6 +56,8 @@ namespace OdinSerializer.Utilities.Editor
     {
         private static MethodInfo getPropertyIntMethod;
         private static MethodInfo getScriptingBackendMethod;
+        private static MethodInfo getApiCompatibilityLevelMethod;
+        private static MethodInfo apiCompatibilityLevelProperty;
 
         /// <summary>
         /// All valid Unity BuildTarget platforms.
@@ -68,15 +70,25 @@ namespace OdinSerializer.Utilities.Editor
         public static readonly ImmutableList<BuildTarget> JITPlatforms;
 
         /// <summary>
-        /// All API compatibility levels that are compatible with thee JIT required by Odin.
+        /// All scripting backends that support JIT.
+        /// </summary>
+        public static readonly ImmutableList<ScriptingImplementation> JITScriptingBackends;
+
+        /// <summary>
+        /// All API compatibility levels that support JIT.
         /// </summary>
         public static readonly ImmutableList<ApiCompatibilityLevel> JITApiCompatibilityLevels;
 
         static AssemblyImportSettingsUtilities()
         {
-            // This method is needed for getting the ScriptingBackend from Unity 5.6 and up.
+            // Different methods required for getting the current scripting backend from different versions of the Unity Editor.
             getPropertyIntMethod = typeof(PlayerSettings).GetMethod("GetPropertyInt", Flags.StaticPublic, null, new Type[] { typeof(string), typeof(BuildTargetGroup) }, null);
             getScriptingBackendMethod = typeof(PlayerSettings).GetMethod("GetScriptingBackend", Flags.StaticPublic);
+
+            // Diffferent methods required for getting the current api level from different versions of the Unity Editor.
+            getApiCompatibilityLevelMethod = typeof(PlayerSettings).GetMethod("GetApiCompatibilityLevel", Flags.StaticPublic, null, new Type[] { typeof(BuildTargetGroup) }, null);
+            var apiLevelProperty = typeof(PlayerSettings).GetProperty("apiCompatibilityLevel", Flags.StaticPublic);
+            apiCompatibilityLevelProperty = apiLevelProperty != null ? apiLevelProperty.GetGetMethod() : null;
 
             // All valid BuildTarget values.
             Platforms = new ImmutableList<BuildTarget>(Enum.GetValues(typeof(BuildTarget))
@@ -97,6 +109,12 @@ namespace OdinSerializer.Utilities.Editor
                     BuildTarget.Android
                 })
                 .ToArray());
+
+            // All scripting backends that support JIT.
+            JITScriptingBackends = new ImmutableList<ScriptingImplementation>(new ScriptingImplementation[]
+            {
+                ScriptingImplementation.Mono2x,
+            });
 
             // Names of all api levels that support JIT.
             string[] jitApiNames = new string[]
@@ -125,7 +143,7 @@ namespace OdinSerializer.Utilities.Editor
         /// </summary>
         /// <param name="assemblyFilePath">The path to the assembly to configure import settings from.</param>
         /// <param name="importSettings">The import settings to configure for the assembly at the path.</param>
-        public static void SetAssemblyImportSettings(string assemblyFilePath, OdinAssemblyImportSettings importSettings)
+        public static void SetAssemblyImportSettings(BuildTarget platform, string assemblyFilePath, OdinAssemblyImportSettings importSettings)
         {
             bool includeInBuild = false;
             bool includeInEditor = false;
@@ -149,7 +167,7 @@ namespace OdinSerializer.Utilities.Editor
                     break;
             }
 
-            SetAssemblyImportSettings(assemblyFilePath, includeInBuild, includeInEditor);
+            SetAssemblyImportSettings(platform, assemblyFilePath, includeInBuild, includeInEditor);
         }
 
         /// <summary>
@@ -158,7 +176,7 @@ namespace OdinSerializer.Utilities.Editor
         /// <param name="assemblyFilePath">The path to the assembly to configure import settings from.</param>
         /// <param name="includeInBuild">Indicates if the assembly should be included in the build.</param>
         /// <param name="includeInEditor">Indicates if the assembly should be included in the Unity editor.</param>
-        public static void SetAssemblyImportSettings(string assemblyFilePath, bool includeInBuild, bool includeInEditor)
+        public static void SetAssemblyImportSettings(BuildTarget platform, string assemblyFilePath, bool includeInBuild, bool includeInEditor)
         {
             if (File.Exists(assemblyFilePath) == false)
             {
@@ -173,14 +191,16 @@ namespace OdinSerializer.Utilities.Editor
 
             bool updateImportSettings = 
                 importer.GetCompatibleWithAnyPlatform() // If the 'any platform' flag is true, then reapply settings no matter what to ensure that everything is correct.
-                || Platforms.Any(p => importer.GetCompatibleWithPlatform(p) != includeInBuild) 
+                //|| Platforms.Any(p => importer.GetCompatibleWithPlatform(p) != includeInBuild)
+                || importer.GetCompatibleWithPlatform(platform) != includeInBuild 
                 || importer.GetCompatibleWithEditor() != includeInEditor;
 
             // Apply new import settings if necessary.
             if (updateImportSettings)
             {
                 importer.SetCompatibleWithAnyPlatform(false);
-                Platforms.ForEach(p => importer.SetCompatibleWithPlatform(p, includeInBuild));
+                //Platforms.ForEach(p => importer.SetCompatibleWithPlatform(p, includeInBuild));
+                importer.SetCompatibleWithPlatform(platform, includeInBuild);
                 importer.SetCompatibleWithEditor(includeInEditor);
 
                 importer.SaveAndReimport();
@@ -194,7 +214,7 @@ namespace OdinSerializer.Utilities.Editor
         public static ScriptingImplementation GetCurrentScriptingBackend()
         {
             var buildGroup = EditorUserBuildSettings.selectedBuildTargetGroup;
-            
+
             if (getScriptingBackendMethod != null)
             {
                 return (ScriptingImplementation)getScriptingBackendMethod.Invoke(null, new object[] { buildGroup });
@@ -205,6 +225,67 @@ namespace OdinSerializer.Utilities.Editor
             }
 
             throw new InvalidOperationException("Was unable to get the current scripting backend!");
+        }
+
+        /// <summary>
+        /// Gets the current API compatibility level from the Unity Editor. This method is Unity version independent.
+        /// </summary>
+        /// <returns></returns>
+        public static ApiCompatibilityLevel GetCurrentApiCompatibilityLevel()
+        {
+            if (getApiCompatibilityLevelMethod != null)
+            {
+                var buildGroup = EditorUserBuildSettings.selectedBuildTargetGroup;
+                return (ApiCompatibilityLevel)getApiCompatibilityLevelMethod.Invoke(null, new object[] { buildGroup });
+            }
+            else if (apiCompatibilityLevelProperty != null)
+            {
+                return (ApiCompatibilityLevel)apiCompatibilityLevelProperty.Invoke(null, null);
+            }
+
+            throw new InvalidOperationException("Was unable to get the current api compatibility level!");
+        }
+
+        /// <summary>
+        /// Gets a value that indicates if the specified platform supports JIT.
+        /// </summary>
+        /// <param name="platform">The platform to test.</param>
+        /// <returns><c>true</c> if the platform supports JIT; otherwise <c>false</c>.</returns>
+        public static bool PlatformSupportsJIT(BuildTarget platform)
+        {
+            return JITPlatforms.Contains(platform);
+        }
+
+        /// <summary>
+        /// Gets a value that indicates if the specified scripting backend supports JIT.
+        /// </summary>
+        /// <param name="backend">The backend to test.</param>
+        /// <returns><c>true</c> if the backend supports JIT; otherwise <c>false</c>.</returns>
+        public static bool ScriptingBackendSupportsJIT(ScriptingImplementation backend)
+        {
+            return JITScriptingBackends.Contains(backend);
+        }
+
+        /// <summary>
+        /// Gets a value that indicates if the specified api level supports JIT.
+        /// </summary>
+        /// <param name="apiLevel">The api level to test.</param>
+        /// <returns><c>true</c> if the api level supports JIT; otherwise <c>false</c>.</returns>
+        public static bool ApiCompatibilityLevelSupportsJIT(ApiCompatibilityLevel apiLevel)
+        {
+            return JITApiCompatibilityLevels.Contains(apiLevel);
+        }
+
+        /// <summary>
+        /// Gets a value that indicates if the specified build settings supports JIT.
+        /// </summary>
+        /// <param name="platform">The platform build setting.</param>
+        /// <param name="backend">The scripting backend build settting.</param>
+        /// <param name="apiLevel">The api level build setting.</param>
+        /// <returns><c>true</c> if the build settings supports JIT; otherwise <c>false</c>.</returns>
+        public static bool IsJITSupported(BuildTarget platform, ScriptingImplementation backend, ApiCompatibilityLevel apiLevel)
+        {
+            return PlatformSupportsJIT(platform) && ScriptingBackendSupportsJIT(backend) && ApiCompatibilityLevelSupportsJIT(apiLevel);
         }
     }
 }
