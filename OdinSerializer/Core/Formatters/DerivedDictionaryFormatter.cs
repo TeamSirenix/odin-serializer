@@ -75,7 +75,7 @@ namespace OdinSerializer
 
             IEqualityComparer<TKey> comparer = null;
 
-            if (entry == EntryType.StartOfNode)
+            if (name == "comparer" || entry == EntryType.StartOfNode)
             {
                 // There is a comparer serialized
                 comparer = EqualityComparerSerializer.ReadValue(reader);
@@ -174,7 +174,7 @@ namespace OdinSerializer
             {
                 if (value.Comparer != null)
                 {
-                    EqualityComparerSerializer.WriteValue(value.Comparer, writer);
+                    EqualityComparerSerializer.WriteValue("comparer", value.Comparer, writer);
                 }
 
                 writer.BeginArrayNode(value.Count);
