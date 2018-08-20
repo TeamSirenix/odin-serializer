@@ -432,10 +432,9 @@ namespace OdinSerializer
                 if (!pretendIsPlayer)
                 {
                     UnityEngine.Object prefab = null;
-                    var prefabType = UnityEditor.PrefabUtility.GetPrefabType(unityObject);
                     SerializationData prefabData = default(SerializationData);
 
-                    if (prefabType == UnityEditor.PrefabType.PrefabInstance)
+                    if (OdinPrefabSerializationEditorUtility.ObjectIsPrefabInstance(unityObject))
                     {
                         prefab = UnityEditor.PrefabUtility.GetPrefabParent(unityObject);
 
@@ -482,7 +481,21 @@ namespace OdinSerializer
                             //
 
                             // TODO: (Tor) This call may be unnecessary, check if SaveAsset always triggers serialization
-                            (prefab as ISerializationCallbackReceiver).OnBeforeSerialize();
+                            try
+                            {
+                                (prefab as ISerializationCallbackReceiver).OnBeforeSerialize();
+                            }
+                            catch (Exception ex)
+                            {
+                                // This can sometimes throw null reference exceptions in the new prefab workflow,
+                                // if people are doing nested stuff despite the fac that they really, really shouldn't.
+                                // 
+                                // Just ignore it.
+                                if (!OdinPrefabSerializationEditorUtility.HasNewPrefabWorkflow)
+                                {
+                                    throw ex;
+                                }
+                            }
 
                             UnityEditor.EditorUtility.SetDirty(prefab);
                             UnityEditor.AssetDatabase.SaveAssets();
