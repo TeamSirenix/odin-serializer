@@ -874,7 +874,6 @@ namespace OdinSerializer.Utilities
 
             switch (op)
             {
-                // TODO: Add Divide and other names for other .Net versions
                 case Operator.Equality:
                     methodName = "op_Equality";
                     break;
@@ -889,6 +888,14 @@ namespace OdinSerializer.Utilities
 
                 case Operator.Subtraction:
                     methodName = "op_Subtraction";
+                    break;
+
+                case Operator.Multiply:
+                    methodName = "op_Multiply";
+                    break;
+
+                case Operator.Division:
+                    methodName = "op_Division";
                     break;
 
                 case Operator.LessThan:
@@ -906,6 +913,35 @@ namespace OdinSerializer.Utilities
                 case Operator.GreaterThanOrEqual:
                     methodName = "op_GreaterThanOrEqual";
                     break;
+
+                case Operator.Modulus:
+                    methodName = "op_Modulus";
+                    break;
+
+                case Operator.RightShift:
+                    methodName = "op_RightShift";
+                    break;
+
+                case Operator.LeftShift:
+                    methodName = "op_LeftShift";
+                    break;
+                    
+                case Operator.BitwiseAnd:
+                    methodName = "op_BitwiseAnd";
+                    break;
+
+                case Operator.BitwiseOr:
+                    methodName = "op_BitwiseOr";
+                    break;
+
+                case Operator.ExclusiveOr:
+                    methodName = "op_ExclusiveOr";
+                    break;
+
+                case Operator.BitwiseComplement:
+                case Operator.LogicalAnd:
+                case Operator.LogicalOr:
+                    return null; // Not overridable
 
                 default:
                     throw new NotImplementedException();
@@ -940,6 +976,14 @@ namespace OdinSerializer.Utilities
                     methodName = "op_Subtraction";
                     break;
 
+                case Operator.Multiply:
+                    methodName = "op_Multiply";
+                    break;
+
+                case Operator.Division:
+                    methodName = "op_Division";
+                    break;
+
                 case Operator.LessThan:
                     methodName = "op_LessThan";
                     break;
@@ -955,6 +999,35 @@ namespace OdinSerializer.Utilities
                 case Operator.GreaterThanOrEqual:
                     methodName = "op_GreaterThanOrEqual";
                     break;
+
+                case Operator.Modulus:
+                    methodName = "op_Modulus";
+                    break;
+
+                case Operator.RightShift:
+                    methodName = "op_RightShift";
+                    break;
+
+                case Operator.LeftShift:
+                    methodName = "op_LeftShift";
+                    break;
+
+                case Operator.BitwiseAnd:
+                    methodName = "op_BitwiseAnd";
+                    break;
+
+                case Operator.BitwiseOr:
+                    methodName = "op_BitwiseOr";
+                    break;
+
+                case Operator.ExclusiveOr:
+                    methodName = "op_ExclusiveOr";
+                    break;
+
+                case Operator.BitwiseComplement:
+                case Operator.LogicalAnd:
+                case Operator.LogicalOr:
+                    return null; // Not overridable
 
                 default:
                     throw new NotImplementedException();
