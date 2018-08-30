@@ -68,7 +68,15 @@ namespace OdinSerializer
         {
             public int Compare(T x, T y)
             {
-                return ((UnityEngine.Object)(object)x).name.CompareTo(((UnityEngine.Object)(object)y).name);
+                var a = (UnityEngine.Object)(object)x;
+                var b = (UnityEngine.Object)(object)y;
+
+                if (a == null && b == null) return 0;
+
+                if (a == null) return 1;
+                if (b == null) return -1;
+
+                return a.name.CompareTo(b.name);
             }
         }
 
