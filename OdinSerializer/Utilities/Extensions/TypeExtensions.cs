@@ -1709,7 +1709,6 @@ namespace OdinSerializer.Utilities
                 return false;
             }
         }
-
         /// <summary>
         /// <para>Checks whether an array of types satisfy the constraints of a given generic type definition.</para>
         /// <para>If this method returns true, the given parameters can be safely used with <see cref="Type.MakeGenericType(Type[])"/> with the given generic type definition.</para>
@@ -1717,21 +1716,21 @@ namespace OdinSerializer.Utilities
         /// <param name="genericType">The generic type definition to check.</param>
         /// <param name="parameters">The parameters to check validity for.</param>
         /// <exception cref="System.ArgumentNullException">
-        /// genericTypeDefinition is null
+        /// genericType is null
         /// or
         /// types is null
         /// </exception>
-        /// <exception cref="System.ArgumentException">The genericTypeDefinition parameter must be a generic type definition.</exception>
+        /// <exception cref="System.ArgumentException">The genericType parameter must be a generic type definition.</exception>
         public static bool AreGenericConstraintsSatisfiedBy(this Type genericType, params Type[] parameters)
         {
             if (genericType == null)
             {
-                throw new ArgumentNullException("genericTypeDefinition");
+                throw new ArgumentNullException("genericType");
             }
 
             if (parameters == null)
             {
-                throw new ArgumentNullException("types");
+                throw new ArgumentNullException("parameters");
             }
 
             if (!genericType.IsGenericType)
@@ -1739,8 +1738,43 @@ namespace OdinSerializer.Utilities
                 throw new ArgumentException("The genericTypeDefinition parameter must be a generic type.");
             }
 
-            Type[] definitions = genericType.GetGenericArguments();
+            return AreGenericConstraintsSatisfiedBy(genericType.GetGenericArguments(), parameters);
+        }
 
+        /// <summary>
+        /// <para>Checks whether an array of types satisfy the constraints of a given generic method definition.</para>
+        /// <para>If this method returns true, the given parameters can be safely used with <see cref="MethodInfo.MakeGenericMethod(Type[])"/> with the given generic method definition.</para>
+        /// </summary>
+        /// <param name="genericType">The generic method definition to check.</param>
+        /// <param name="parameters">The parameters to check validity for.</param>
+        /// <exception cref="System.ArgumentNullException">
+        /// genericType is null
+        /// or
+        /// types is null
+        /// </exception>
+        /// <exception cref="System.ArgumentException">The genericMethod parameter must be a generic method definition.</exception>
+        public static bool AreGenericConstraintsSatisfiedBy(this MethodInfo genericMethod, params Type[] parameters)
+        {
+            if (genericMethod == null)
+            {
+                throw new ArgumentNullException("genericMethod");
+            }
+
+            if (parameters == null)
+            {
+                throw new ArgumentNullException("parameters");
+            }
+
+            if (!genericMethod.IsGenericMethod)
+            {
+                throw new ArgumentException("The genericMethod parameter must be a generic method.");
+            }
+
+            return AreGenericConstraintsSatisfiedBy(genericMethod.GetGenericArguments(), parameters);
+        }
+
+        public static bool AreGenericConstraintsSatisfiedBy(Type[] definitions, Type[] parameters)
+        {
             if (definitions.Length != parameters.Length)
             {
                 return false;
