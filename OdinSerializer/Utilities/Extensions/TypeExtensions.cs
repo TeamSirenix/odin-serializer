@@ -1063,7 +1063,7 @@ namespace OdinSerializer.Utilities
 
                     currentType = currentType.BaseType;
                 }
-                while (currentType != typeof(object) && currentType != null);
+                while (currentType != null);
             }
         }
 
@@ -1119,7 +1119,7 @@ namespace OdinSerializer.Utilities
 
                     currentType = currentType.BaseType;
                 }
-                while (currentType != typeof(object) && currentType != null);
+                while (currentType != null);
             }
         }
 
