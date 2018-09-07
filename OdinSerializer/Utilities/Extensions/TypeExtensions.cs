@@ -1767,7 +1767,7 @@ namespace OdinSerializer.Utilities
         /// types is null
         /// </exception>
         /// <exception cref="System.ArgumentException">The genericMethod parameter must be a generic method definition.</exception>
-        public static bool AreGenericConstraintsSatisfiedBy(this MethodInfo genericMethod, params Type[] parameters)
+        public static bool AreGenericConstraintsSatisfiedBy(this MethodBase genericMethod, params Type[] parameters)
         {
             if (genericMethod == null)
             {
