@@ -939,6 +939,13 @@ namespace OdinSerializer.Utilities
                     break;
 
                 case Operator.BitwiseComplement:
+                    methodName = "op_OnesComplement";
+                    break;
+
+                case Operator.LogicalNot:
+                    methodName = "op_LogicalNot";
+                    break;
+
                 case Operator.LogicalAnd:
                 case Operator.LogicalOr:
                     return null; // Not overridable
@@ -1025,6 +1032,13 @@ namespace OdinSerializer.Utilities
                     break;
 
                 case Operator.BitwiseComplement:
+                    methodName = "op_OnesComplement";
+                    break;
+
+                case Operator.LogicalNot:
+                    methodName = "op_LogicalNot";
+                    break;
+
                 case Operator.LogicalAnd:
                 case Operator.LogicalOr:
                     return null; // Not overridable

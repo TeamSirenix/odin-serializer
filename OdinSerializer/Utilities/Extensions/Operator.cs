@@ -18,7 +18,7 @@
 namespace OdinSerializer.Utilities
 {
     /// <summary>
-    /// Determents the type of operator.
+    /// Determines the type of operator.
     /// </summary>
     /// <seealso cref="TypeExtensions" />
     public enum Operator
@@ -117,5 +117,10 @@ namespace OdinSerializer.Utilities
         /// The || operator.
         /// </summary>
         LogicalOr,
+
+        /// <summary>
+        /// The ! operator.
+        /// </summary>
+        LogicalNot,
     }
 }
