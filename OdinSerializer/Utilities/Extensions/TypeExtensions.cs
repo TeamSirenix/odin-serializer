@@ -120,6 +120,12 @@ namespace OdinSerializer.Utilities
             "void",
             "volatile",
             "while",
+            "in",
+            "get",
+            "set",
+            "var",
+            //"async", // Identifiers can be named async and await
+            //"await",
         };
 
         /// <summary>
