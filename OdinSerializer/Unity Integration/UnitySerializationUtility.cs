@@ -383,6 +383,24 @@ namespace OdinSerializer
 
 #if UNITY_EDITOR
 
+            if (OdinPrefabSerializationEditorUtility.HasNewPrefabWorkflow)
+            {
+                ISupportsPrefabSerialization supporter = unityObject as ISupportsPrefabSerialization;
+
+                if (supporter != null)
+                {
+                    var sData = supporter.SerializationData;
+
+                    if (!sData.ContainsData)
+                    {
+                        return;
+                    }
+
+                    sData.Prefab = null;
+                    supporter.SerializationData = sData;
+                }
+            }
+
             {
                 bool pretendIsPlayer = Application.isPlaying && !UnityEditor.AssetDatabase.Contains(unityObject);
 
@@ -434,9 +452,11 @@ namespace OdinSerializer
                     UnityEngine.Object prefab = null;
                     SerializationData prefabData = default(SerializationData);
 
+                    bool prefabDataIsFromSelf = false;
+
                     if (OdinPrefabSerializationEditorUtility.ObjectIsPrefabInstance(unityObject))
                     {
-                        prefab = UnityEditor.PrefabUtility.GetPrefabParent(unityObject);
+                        prefab = OdinPrefabSerializationEditorUtility.GetCorrespondingObjectFromSource(unityObject);
 
                         if (prefab.SafeIsUnityNull() && !object.ReferenceEquals(data.Prefab, null))
                         {
@@ -455,12 +475,27 @@ namespace OdinSerializer
                         {
                             if (prefab is ISupportsPrefabSerialization)
                             {
-                                prefabData = (prefab as ISupportsPrefabSerialization).SerializationData;
+                                var pData = (prefab as ISupportsPrefabSerialization).SerializationData;
+
+                                if (pData.ContainsData)
+                                {
+                                    prefabData = pData;
+                                }
+                                else
+                                {
+                                    prefabData = data;
+                                    prefabData.Prefab = null;
+                                    prefabDataIsFromSelf = true;
+                                }
                             }
                             else if (prefab.GetType() != typeof(UnityEngine.Object))
                             {
-                                Debug.LogWarning(unityObject.name + " is a prefab instance, but the prefab reference type " + prefab.GetType().GetNiceName() + " does not implement the interface " + typeof(ISupportsPrefabSerialization).GetNiceName() + "; non-Unity-serialized data will most likely not be updated properly from the prefab any more.");
-                                prefab = null;
+                                //Debug.LogWarning(unityObject.name + " is a prefab instance, but the prefab reference type " + prefab.GetType().GetNiceName() + " does not implement the interface " + typeof(ISupportsPrefabSerialization).GetNiceName() + "; non-Unity-serialized data will most likely not be updated properly from the prefab any more.");
+                                //prefab = null;
+
+                                prefabData = data;
+                                prefabData.Prefab = null;
+                                prefabDataIsFromSelf = true;
                             }
                         }
                     }
@@ -469,7 +504,7 @@ namespace OdinSerializer
                     {
                         // We will bail out. But first...
 
-                        if (prefabData.PrefabModifications != null && prefabData.PrefabModifications.Count > 0)
+                        if (!prefabDataIsFromSelf && prefabData.PrefabModifications != null && prefabData.PrefabModifications.Count > 0)
                         {
                             //
                             // This is a special case that can happen after changes to a prefab instance
@@ -480,7 +515,6 @@ namespace OdinSerializer
                             // Though data saved this way will still work, it is quite inefficient.
                             //
 
-                            // TODO: (Tor) This call may be unnecessary, check if SaveAsset always triggers serialization
                             try
                             {
                                 (prefab as ISerializationCallbackReceiver).OnBeforeSerialize();
@@ -497,8 +531,14 @@ namespace OdinSerializer
                                 }
                             }
 
-                            UnityEditor.EditorUtility.SetDirty(prefab);
-                            UnityEditor.AssetDatabase.SaveAssets();
+                            UnityEditor.EditorApplication.delayCall += () =>
+                            {
+                                if (prefab)
+                                {
+                                    UnityEditor.EditorUtility.SetDirty(prefab);
+                                    //UnityEditor.AssetDatabase.SaveAssets(); // Has a tendency to cause infinite serialization loops
+                                }
+                            };
 
                             prefabData = (prefab as ISupportsPrefabSerialization).SerializationData;
                         }
@@ -1089,6 +1129,24 @@ namespace OdinSerializer
             }
 
 #if UNITY_EDITOR
+            if (OdinPrefabSerializationEditorUtility.HasNewPrefabWorkflow)
+            {
+                ISupportsPrefabSerialization supporter = unityObject as ISupportsPrefabSerialization;
+
+                if (supporter != null)
+                {
+                    var sData = supporter.SerializationData;
+
+                    if (!sData.ContainsData)
+                    {
+                        return;
+                    }
+
+                    sData.Prefab = null;
+                    supporter.SerializationData = sData;
+                }
+            }
+
             // TODO: This fix needs to be applied for edge-cases! But we also need a way to only do it while in the Editor! and if UNITY_EDITOR is not enough.
             //Debug.Log("Deserializing" + new System.Diagnostics.StackTrace().ToString(), unityObject);
             //var prefabDataObject = data.Prefab as ISupportsPrefabSerialization;

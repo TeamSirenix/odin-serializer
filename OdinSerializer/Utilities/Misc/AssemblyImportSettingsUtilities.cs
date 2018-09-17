@@ -132,10 +132,6 @@ namespace OdinSerializer.Utilities.Editor
                 .Where(x => apiLevelNames.Contains(x))
                 .Select(x => (ApiCompatibilityLevel)Enum.Parse(typeof(ApiCompatibilityLevel), x))
                 .ToArray());
-
-            // Find the binary files.
-            var directory = new DirectoryInfo(typeof(AssemblyImportSettingsUtilities).Assembly.GetAssemblyDirectory()).Parent.FullName.Replace('\\', '/').TrimEnd('/');
-
         }
 
         /// <summary>
