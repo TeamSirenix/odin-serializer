@@ -416,12 +416,13 @@ namespace OdinSerializer
         /// </summary>
         /// <param name="value">The value to serialize.</param>
         /// <param name="format">The format to use.</param>
+        /// <param name="context">The context.</param>
         /// <returns>A byte array containing the serialized value.</returns>
-        public static byte[] SerializeValueWeak(object value, DataFormat format)
+        public static byte[] SerializeValueWeak(object value, DataFormat format, SerializationContext context = null)
         {
             using (var stream = CachedMemoryStream.Claim())
             {
-                SerializeValueWeak(value, stream.Value.MemoryStream, format);
+                SerializeValueWeak(value, stream.Value.MemoryStream, format, context);
                 return stream.Value.MemoryStream.ToArray();
             }
         }
@@ -680,14 +681,15 @@ namespace OdinSerializer
         /// </summary>
         /// <param name="bytes">The bytes to deserialize from.</param>
         /// <param name="format">The format to read.</param>
+        /// <param name="context">The context.</param>
         /// <returns>
         /// The deserialized value.
         /// </returns>
-        public static object DeserializeValueWeak(byte[] bytes, DataFormat format)
+        public static object DeserializeValueWeak(byte[] bytes, DataFormat format, DeserializationContext context = null)
         {
             using (var stream = CachedMemoryStream.Claim(bytes))
             {
-                return DeserializeValueWeak(stream.Value.MemoryStream, format);
+                return DeserializeValueWeak(stream.Value.MemoryStream, format, context);
             }
         }
 
