@@ -15,6 +15,7 @@
 // limitations under the License.
 // </copyright>
 //-----------------------------------------------------------------------
+
 namespace OdinSerializer.Utilities
 {
     using System;
@@ -23,13 +24,13 @@ namespace OdinSerializer.Utilities
     using System.IO;
     using System.Linq;
     using System.Reflection;
+    using System.Threading;
     using UnityEngine;
 
     /// <summary>
     /// A utility class for finding types in various asssembly.
     /// </summary>
 #if UNITY_EDITOR
-
     [UnityEditor.InitializeOnLoad]
 #endif
     public static class AssemblyUtilities
@@ -84,122 +85,8 @@ namespace OdinSerializer.Utilities
         private static string dataPath;
         private static string scriptAssembliesPath;
 
-        /// <summary>
-        /// Re-scans the entire AppDomain.
-        /// </summary>
-        public static void Reload()
-        {
-            dataPath = Environment.CurrentDirectory.Replace("\\", "//").Replace("//", "/").TrimEnd('/') + "/Assets";
-            scriptAssembliesPath = Environment.CurrentDirectory.Replace("\\", "//").Replace("//", "/").TrimEnd('/') + "/Library/ScriptAssemblies";
-            userAssemblies = new List<Assembly>();
-            userEditorAssemblies = new List<Assembly>();
-            pluginAssemblies = new List<Assembly>();
-            pluginEditorAssemblies = new List<Assembly>();
-            unityAssemblies = new List<Assembly>();
-            unityEditorAssemblies = new List<Assembly>();
-            otherAssemblies = new List<Assembly>();
-            userTypes = new List<Type>();
-            userEditorTypes = new List<Type>();
-            pluginTypes = new List<Type>();
-            pluginEditorTypes = new List<Type>();
-            unityTypes = new List<Type>();
-            unityEditorTypes = new List<Type>();
-            otherTypes = new List<Type>();
-            stringTypeLookup = new Dictionary<string, Type>();
-            assemblyTypeFlagLookup = new Dictionary<Assembly, AssemblyTypeFlags>();
-            unityEngineAssembly = typeof(Vector3).Assembly;
-
-#if UNITY_EDITOR
-            unityEditorAssembly = typeof(UnityEditor.EditorWindow).Assembly;
-#endif
-
-            projectFolderDirectory = new DirectoryInfo(dataPath);
-            scriptAssembliesDirectory = new DirectoryInfo(scriptAssembliesPath);
-
-            allAssemblies = new List<Assembly>();
-            allAssembliesImmutable = new ImmutableList<Assembly>(allAssemblies);
-
-            var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
-
-            for (int i = 0; i < loadedAssemblies.Length; i++)
-            {
-                RegisterAssembly(loadedAssemblies[i]);
-            }
-        }
-
-        private static void RegisterAssembly(Assembly assembly)
-        {
-            try
-            {
-                lock (LOCK)
-                {
-                    if (allAssemblies.Contains(assembly)) return;
-                    allAssemblies.Add(assembly);
-                }
-
-                var assemblyFlag = GetAssemblyTypeFlag(assembly);
-
-                Type[] types = assembly.SafeGetTypes();
-                for (int j = 0; j < types.Length; j++)
-                {
-                    Type type = types[j];
-
-                    if (type.Namespace != null)
-                    {
-                        stringTypeLookup[type.Namespace + "." + type.Name] = type;
-                    }
-                    else
-                    {
-                        stringTypeLookup[type.Name] = type;
-                    }
-                }
-
-                if (assemblyFlag == AssemblyTypeFlags.UserTypes)
-                {
-                    userAssemblies.Add(assembly);
-                    userTypes.AddRange(assembly.SafeGetTypes());
-                }
-                else if (assemblyFlag == AssemblyTypeFlags.UserEditorTypes)
-                {
-                    userEditorAssemblies.Add(assembly);
-                    userEditorTypes.AddRange(assembly.SafeGetTypes());
-                }
-                else if (assemblyFlag == AssemblyTypeFlags.PluginTypes)
-                {
-                    pluginAssemblies.Add(assembly);
-                    pluginTypes.AddRange(assembly.SafeGetTypes());
-                }
-                else if (assemblyFlag == AssemblyTypeFlags.PluginEditorTypes)
-                {
-                    pluginEditorAssemblies.Add(assembly);
-                    pluginEditorTypes.AddRange(assembly.SafeGetTypes());
-                }
-                else if (assemblyFlag == AssemblyTypeFlags.UnityTypes)
-                {
-                    unityAssemblies.Add(assembly);
-                    unityTypes.AddRange(assembly.SafeGetTypes());
-                }
-                else if (assemblyFlag == AssemblyTypeFlags.UnityEditorTypes)
-                {
-                    unityEditorAssemblies.Add(assembly);
-                    unityEditorTypes.AddRange(assembly.SafeGetTypes());
-                }
-                else if (assemblyFlag == AssemblyTypeFlags.OtherTypes)
-                {
-                    otherAssemblies.Add(assembly);
-                    otherTypes.AddRange(assembly.SafeGetTypes());
-                }
-                else
-                {
-                    throw new NotImplementedException();
-                }
-            }
-            catch (ReflectionTypeLoadException)
-            {
-                // This happens in builds if people are compiling with a subset of .NET
-                // It means we simply skip this assembly and its types completely when scanning for formatter types
-            }
-        }
+        private static volatile bool initialized;
+        private static volatile bool initializing;
 
         /// <summary>
         /// Initializes the <see cref="AssemblyUtilities"/> class.
@@ -210,12 +97,155 @@ namespace OdinSerializer.Utilities
             {
                 if (!args.LoadedAssembly.IsDynamic() && !args.LoadedAssembly.ReflectionOnly)
                 {
-                    //Debug.Log("Loading assembly " + args.LoadedAssembly.GetName().Name + " late");
                     RegisterAssembly(args.LoadedAssembly);
                 }
             };
 
-            Reload();
+            new Thread(EnsureInitialized).Start();
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        private static void DoNothing()
+        {
+            // The static constructor has now been invoked!
+        }
+
+        private static void EnsureInitialized()
+        {
+            if (initialized) return;
+            if (initializing) return;
+
+            lock (LOCK)
+            {
+                if (initialized) return;
+                if (initializing) return;
+                initializing = true;
+                Reload();
+                initialized = true;
+                initializing = false;
+            }
+        }
+
+        /// <summary>
+        /// Re-scans the entire AppDomain.
+        /// </summary>
+        public static void Reload()
+        {
+            lock (LOCK)
+            {
+                dataPath = Environment.CurrentDirectory.Replace("\\", "//").Replace("//", "/").TrimEnd('/') + "/Assets";
+                scriptAssembliesPath = Environment.CurrentDirectory.Replace("\\", "//").Replace("//", "/").TrimEnd('/') + "/Library/ScriptAssemblies";
+                userAssemblies = new List<Assembly>();
+                userEditorAssemblies = new List<Assembly>();
+                pluginAssemblies = new List<Assembly>();
+                pluginEditorAssemblies = new List<Assembly>();
+                unityAssemblies = new List<Assembly>();
+                unityEditorAssemblies = new List<Assembly>();
+                otherAssemblies = new List<Assembly>();
+                userTypes = new List<Type>();
+                userEditorTypes = new List<Type>();
+                pluginTypes = new List<Type>();
+                pluginEditorTypes = new List<Type>();
+                unityTypes = new List<Type>();
+                unityEditorTypes = new List<Type>();
+                otherTypes = new List<Type>();
+                stringTypeLookup = new Dictionary<string, Type>();
+                assemblyTypeFlagLookup = new Dictionary<Assembly, AssemblyTypeFlags>();
+                unityEngineAssembly = typeof(Vector3).Assembly;
+
+#if UNITY_EDITOR
+                unityEditorAssembly = typeof(UnityEditor.EditorWindow).Assembly;
+#endif
+
+                projectFolderDirectory = new DirectoryInfo(dataPath);
+                scriptAssembliesDirectory = new DirectoryInfo(scriptAssembliesPath);
+
+                allAssemblies = new List<Assembly>();
+                allAssembliesImmutable = new ImmutableList<Assembly>(allAssemblies);
+
+                var loadedAssemblies = AppDomain.CurrentDomain.GetAssemblies();
+
+                for (int i = 0; i < loadedAssemblies.Length; i++)
+                {
+                    RegisterAssembly(loadedAssemblies[i]);
+                }
+            }
+        }
+
+        private static void RegisterAssembly(Assembly assembly)
+        {
+            EnsureInitialized();
+
+            try
+            {
+                lock (LOCK)
+                {
+                    if (allAssemblies.Contains(assembly)) return;
+                    allAssemblies.Add(assembly);
+
+                    var assemblyFlag = GetAssemblyTypeFlag(assembly);
+
+                    Type[] types = assembly.SafeGetTypes();
+                    for (int j = 0; j < types.Length; j++)
+                    {
+                        Type type = types[j];
+
+                        if (type.Namespace != null)
+                        {
+                            stringTypeLookup[type.Namespace + "." + type.Name] = type;
+                        }
+                        else
+                        {
+                            stringTypeLookup[type.Name] = type;
+                        }
+                    }
+
+                    if (assemblyFlag == AssemblyTypeFlags.UserTypes)
+                    {
+                        userAssemblies.Add(assembly);
+                        userTypes.AddRange(assembly.SafeGetTypes());
+                    }
+                    else if (assemblyFlag == AssemblyTypeFlags.UserEditorTypes)
+                    {
+                        userEditorAssemblies.Add(assembly);
+                        userEditorTypes.AddRange(assembly.SafeGetTypes());
+                    }
+                    else if (assemblyFlag == AssemblyTypeFlags.PluginTypes)
+                    {
+                        pluginAssemblies.Add(assembly);
+                        pluginTypes.AddRange(assembly.SafeGetTypes());
+                    }
+                    else if (assemblyFlag == AssemblyTypeFlags.PluginEditorTypes)
+                    {
+                        pluginEditorAssemblies.Add(assembly);
+                        pluginEditorTypes.AddRange(assembly.SafeGetTypes());
+                    }
+                    else if (assemblyFlag == AssemblyTypeFlags.UnityTypes)
+                    {
+                        unityAssemblies.Add(assembly);
+                        unityTypes.AddRange(assembly.SafeGetTypes());
+                    }
+                    else if (assemblyFlag == AssemblyTypeFlags.UnityEditorTypes)
+                    {
+                        unityEditorAssemblies.Add(assembly);
+                        unityEditorTypes.AddRange(assembly.SafeGetTypes());
+                    }
+                    else if (assemblyFlag == AssemblyTypeFlags.OtherTypes)
+                    {
+                        otherAssemblies.Add(assembly);
+                        otherTypes.AddRange(assembly.SafeGetTypes());
+                    }
+                    else
+                    {
+                        throw new NotImplementedException();
+                    }
+                }
+            }
+            catch (ReflectionTypeLoadException)
+            {
+                // This happens in builds if people are compiling with a subset of .NET
+                // It means we simply skip this assembly and its types completely when scanning for formatter types
+            }
         }
 
         /// <summary>
@@ -224,7 +254,13 @@ namespace OdinSerializer.Utilities
         /// <returns>An <see cref="ImmutableList"/> of all assemblies in the current <see cref="AppDomain"/>.</returns>
         public static ImmutableList<Assembly> GetAllAssemblies()
         {
-            return allAssembliesImmutable;
+            EnsureInitialized();
+
+            lock (LOCK)
+            {
+                var array = allAssembliesImmutable.ToArray();
+                return new ImmutableList<Assembly>(array);
+            }
         }
 
         /// <summary>
@@ -237,16 +273,21 @@ namespace OdinSerializer.Utilities
         {
             if (assembly == null) throw new NullReferenceException("assembly");
 
-            AssemblyTypeFlags result;
+            EnsureInitialized();
 
-            if (assemblyTypeFlagLookup.TryGetValue(assembly, out result) == false)
+            lock (LOCK)
             {
-                result = GetAssemblyTypeFlagNoLookup(assembly);
+                AssemblyTypeFlags result;
 
-                assemblyTypeFlagLookup[assembly] = result;
+                if (assemblyTypeFlagLookup.TryGetValue(assembly, out result) == false)
+                {
+                    result = GetAssemblyTypeFlagNoLookup(assembly);
+
+                    assemblyTypeFlagLookup[assembly] = result;
+                }
+
+                return result;
             }
-
-            return result;
         }
 
         private static AssemblyTypeFlags GetAssemblyTypeFlagNoLookup(Assembly assembly)
@@ -344,13 +385,18 @@ namespace OdinSerializer.Utilities
                 return null;
             }
 
-            Type type;
-            if (stringTypeLookup.TryGetValue(fullName, out type))
-            {
-                return type;
-            }
+            EnsureInitialized();
 
-            return null;
+            lock (LOCK)
+            {
+                Type type;
+                if (stringTypeLookup.TryGetValue(fullName, out type))
+                {
+                    return type;
+                }
+
+                return null;
+            }
         }
 
         /// <summary>
@@ -364,13 +410,19 @@ namespace OdinSerializer.Utilities
                 return null;
             }
 
-            Type type;
-            if (stringTypeLookup.TryGetValue(fullName, out type))
-            {
-                return type;
-            }
+            EnsureInitialized();
 
-            return null;
+            lock (LOCK)
+            {
+
+                Type type;
+                if (stringTypeLookup.TryGetValue(fullName, out type))
+                {
+                    return type;
+                }
+
+                return null;
+            }
         }
 
         /// <summary>
@@ -395,17 +447,22 @@ namespace OdinSerializer.Utilities
 
             var otherName = otherAssembly.GetName().ToString();
 
-            var referencedAsssemblies = assembly.GetReferencedAssemblies();
+            EnsureInitialized();
 
-            for (int i = 0; i < referencedAsssemblies.Length; i++)
+            lock (LOCK)
             {
-                if (otherName == referencedAsssemblies[i].ToString())
-                {
-                    return true;
-                }
-            }
+                var referencedAsssemblies = assembly.GetReferencedAssemblies();
 
-            return false;
+                for (int i = 0; i < referencedAsssemblies.Length; i++)
+                {
+                    if (otherName == referencedAsssemblies[i].ToString())
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
         }
 
         /// <summary>
@@ -419,9 +476,9 @@ namespace OdinSerializer.Utilities
         public static bool IsDynamic(this Assembly assembly)
         {
             if (assembly == null) throw new ArgumentNullException("assembly");
-            // Will cover both System.Reflection.Emit.AssemblyBuilder and System.Reflection.Emit.InternalAssemblyBuilder
             try
             {
+                // Will cover both System.Reflection.Emit.AssemblyBuilder and System.Reflection.Emit.InternalAssemblyBuilder
                 return assembly.GetType().FullName.EndsWith("AssemblyBuilder") || assembly.Location == null || assembly.Location == "";
             }
             catch
@@ -529,21 +586,26 @@ namespace OdinSerializer.Utilities
         /// <returns>Types from the current AppDomain with the specified <see cref="AssemblyTypeFlags"/> filters.</returns>
         public static IEnumerable<Type> GetTypes(AssemblyTypeFlags assemblyTypeFlags)
         {
-            bool includeUserTypes = (assemblyTypeFlags & AssemblyTypeFlags.UserTypes) == AssemblyTypeFlags.UserTypes;
-            bool includeUserEditorTypes = (assemblyTypeFlags & AssemblyTypeFlags.UserEditorTypes) == AssemblyTypeFlags.UserEditorTypes;
-            bool includePluginTypes = (assemblyTypeFlags & AssemblyTypeFlags.PluginTypes) == AssemblyTypeFlags.PluginTypes;
-            bool includePluginEditorTypes = (assemblyTypeFlags & AssemblyTypeFlags.PluginEditorTypes) == AssemblyTypeFlags.PluginEditorTypes;
-            bool includeUnityTypes = (assemblyTypeFlags & AssemblyTypeFlags.UnityTypes) == AssemblyTypeFlags.UnityTypes;
-            bool includeUnityEditorTypes = (assemblyTypeFlags & AssemblyTypeFlags.UnityEditorTypes) == AssemblyTypeFlags.UnityEditorTypes;
-            bool includeOtherTypes = (assemblyTypeFlags & AssemblyTypeFlags.OtherTypes) == AssemblyTypeFlags.OtherTypes;
+            EnsureInitialized();
 
-            if (includeUserTypes) for (int i = 0; i < userTypes.Count; i++) yield return userTypes[i];
-            if (includeUserEditorTypes) for (int i = 0; i < userEditorTypes.Count; i++) yield return userEditorTypes[i];
-            if (includePluginTypes) for (int i = 0; i < pluginTypes.Count; i++) yield return pluginTypes[i];
-            if (includePluginEditorTypes) for (int i = 0; i < pluginEditorTypes.Count; i++) yield return pluginEditorTypes[i];
-            if (includeUnityTypes) for (int i = 0; i < unityTypes.Count; i++) yield return unityTypes[i];
-            if (includeUnityEditorTypes) for (int i = 0; i < unityEditorTypes.Count; i++) yield return unityEditorTypes[i];
-            if (includeOtherTypes) for (int i = 0; i < otherTypes.Count; i++) yield return otherTypes[i];
+            lock (LOCK)
+            {
+                bool includeUserTypes = (assemblyTypeFlags & AssemblyTypeFlags.UserTypes) == AssemblyTypeFlags.UserTypes;
+                bool includeUserEditorTypes = (assemblyTypeFlags & AssemblyTypeFlags.UserEditorTypes) == AssemblyTypeFlags.UserEditorTypes;
+                bool includePluginTypes = (assemblyTypeFlags & AssemblyTypeFlags.PluginTypes) == AssemblyTypeFlags.PluginTypes;
+                bool includePluginEditorTypes = (assemblyTypeFlags & AssemblyTypeFlags.PluginEditorTypes) == AssemblyTypeFlags.PluginEditorTypes;
+                bool includeUnityTypes = (assemblyTypeFlags & AssemblyTypeFlags.UnityTypes) == AssemblyTypeFlags.UnityTypes;
+                bool includeUnityEditorTypes = (assemblyTypeFlags & AssemblyTypeFlags.UnityEditorTypes) == AssemblyTypeFlags.UnityEditorTypes;
+                bool includeOtherTypes = (assemblyTypeFlags & AssemblyTypeFlags.OtherTypes) == AssemblyTypeFlags.OtherTypes;
+
+                if (includeUserTypes) for (int i = 0; i < userTypes.Count; i++) yield return userTypes[i];
+                if (includeUserEditorTypes) for (int i = 0; i < userEditorTypes.Count; i++) yield return userEditorTypes[i];
+                if (includePluginTypes) for (int i = 0; i < pluginTypes.Count; i++) yield return pluginTypes[i];
+                if (includePluginEditorTypes) for (int i = 0; i < pluginEditorTypes.Count; i++) yield return pluginEditorTypes[i];
+                if (includeUnityTypes) for (int i = 0; i < unityTypes.Count; i++) yield return unityTypes[i];
+                if (includeUnityEditorTypes) for (int i = 0; i < unityEditorTypes.Count; i++) yield return unityEditorTypes[i];
+                if (includeOtherTypes) for (int i = 0; i < otherTypes.Count; i++) yield return otherTypes[i];
+            }
         }
 
         public static Type[] SafeGetTypes(this Assembly assembly)
