@@ -20,7 +20,6 @@ namespace OdinSerializer
 {
     using System;
     using System.Collections.Generic;
-    using System.Linq;
     using System.Reflection;
     using UnityEngine;
     using Utilities;
@@ -103,8 +102,10 @@ namespace OdinSerializer
 #endif
                     }
 
-                    foreach (var attr in ass.GetCustomAttributes(typeof(RegisterFormatterAttribute), true).Cast<RegisterFormatterAttribute>())
+                    foreach (var attrUncast in ass.GetCustomAttributes(typeof(RegisterFormatterAttribute), true))
                     {
+                        var attr = (RegisterFormatterAttribute)attrUncast;
+
                         if (!attr.FormatterType.IsClass
                             || attr.FormatterType.IsAbstract
                             || attr.FormatterType.GetConstructor(Type.EmptyTypes) == null
@@ -122,8 +123,10 @@ namespace OdinSerializer
                         });
                     }
 
-                    foreach (var attr in ass.GetCustomAttributes(typeof(RegisterFormatterLocatorAttribute), true).Cast<RegisterFormatterLocatorAttribute>())
+                    foreach (var attrUncast in ass.GetCustomAttributes(typeof(RegisterFormatterLocatorAttribute), true))
                     {
+                        var attr = (RegisterFormatterLocatorAttribute)attrUncast;
+
                         if (!attr.FormatterLocatorType.IsClass
                             || attr.FormatterLocatorType.IsAbstract
                             || attr.FormatterLocatorType.GetConstructor(Type.EmptyTypes) == null
@@ -307,7 +310,7 @@ namespace OdinSerializer
 
         private static void LogAOTError(Type type, Exception ex)
         {
-            var types = GetAllPossibleMissingAOTTypes(type).Select(t => t.GetNiceFullName()).ToArray();
+            var types = new List<string>(GetAllPossibleMissingAOTTypes(type)).ToArray();
 
             Debug.LogError("Creating a serialization formatter for the type '" + type.GetNiceFullName() + "' failed due to missing AOT support. \n\n" +
                 " Please use Odin's AOT generation feature to generate an AOT dll before building, and MAKE SURE that all of the following " +
@@ -318,15 +321,15 @@ namespace OdinSerializer
             throw new SerializationAbortException("AOT formatter support was missing for type '" + type.GetNiceFullName() + "'.");
         }
 
-        private static IEnumerable<Type> GetAllPossibleMissingAOTTypes(Type type)
+        private static IEnumerable<string> GetAllPossibleMissingAOTTypes(Type type)
         {
-            yield return type;
+            yield return type.GetNiceFullName();
 
             if (!type.IsGenericType) yield break;
 
             foreach (var arg in type.GetGenericArguments())
             {
-                yield return arg;
+                yield return arg.GetNiceFullName();
 
                 if (arg.IsGenericType)
                 {
