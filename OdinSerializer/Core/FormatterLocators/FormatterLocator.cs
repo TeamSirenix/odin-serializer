@@ -163,13 +163,30 @@ namespace OdinSerializer
             }
 
             // Order formatters and formatter locators by priority and then by name, to ensure consistency regardless of the order of loaded types, which is important for cross-platform cases.
-            FormatterInfos = FormatterInfos.OrderByDescending(n => n.Priority)
-                                           .ThenByDescending(n => n.FormatterType.Name)
-                                           .ToList();
+            
+            FormatterInfos.Sort((a, b) =>
+            {
+                int compare = -a.Priority.CompareTo(b.Priority);
 
-            FormatterLocators = FormatterLocators.OrderByDescending(n => n.Priority)
-                                                 .ThenByDescending(n => n.LocatorInstance.GetType().Name)
-                                                 .ToList();
+                if (compare == 0)
+                {
+                    compare = a.FormatterType.Name.CompareTo(b.FormatterType.Name);
+                }
+
+                return compare;
+            });
+            
+            FormatterLocators.Sort((a, b) =>
+            {
+                int compare = -a.Priority.CompareTo(b.Priority);
+
+                if (compare == 0)
+                {
+                    compare = a.LocatorInstance.GetType().Name.CompareTo(b.LocatorInstance.GetType().Name);
+                }
+
+                return compare;
+            });
         }
 
         /// <summary>

@@ -18,7 +18,7 @@
 
 using OdinSerializer;
 
-[assembly: RegisterFormatter(typeof(StackFormatter<>))]
+[assembly: RegisterFormatter(typeof(StackFormatter<,>))]
 
 namespace OdinSerializer
 {
@@ -26,22 +26,24 @@ namespace OdinSerializer
     using System.Collections.Generic;
 
     /// <summary>
-    /// Custom generic formatter for the generic type definition <see cref="Stack{T}"/>.
+    /// Custom generic formatter for the generic type definition <see cref="Stack{T}"/> and types derived from it.
     /// </summary>
     /// <typeparam name="T">The element type of the formatted stack.</typeparam>
     /// <seealso cref="BaseFormatter{System.Collections.Generic.Stack{T}}" />
-    public class StackFormatter<T> : BaseFormatter<Stack<T>>
+    public class StackFormatter<TStack, TValue> : BaseFormatter<TStack>
+        where TStack : Stack<TValue>, new()
     {
-        private static readonly Serializer<T> TSerializer = Serializer.Get<T>();
-        private static object List_LOCK = new object();
-        private static List<T> List = new List<T>();
+        private static readonly Serializer<TValue> TSerializer = Serializer.Get<TValue>();
+        private static readonly object List_LOCK = new object();
+        private static readonly List<TValue> List = new List<TValue>();
+        private static readonly bool IsPlainStack = typeof(TStack) == typeof(Stack<TValue>);
 
         static StackFormatter()
         {
             // This exists solely to prevent IL2CPP code stripping from removing the generic type's instance constructor
             // which it otherwise seems prone to do, regardless of what might be defined in any link.xml file.
 
-            new StackFormatter<int>();
+            new StackFormatter<Stack<int>, int>();
         }
 
         public StackFormatter()
@@ -54,7 +56,7 @@ namespace OdinSerializer
         /// <returns>
         /// A null value.
         /// </returns>
-        protected override Stack<T> GetUninitializedObject()
+        protected override TStack GetUninitializedObject()
         {
             return null;
         }
@@ -64,7 +66,7 @@ namespace OdinSerializer
         /// </summary>
         /// <param name="value">The uninitialized value to serialize into. This value will have been created earlier using <see cref="BaseFormatter{T}.GetUninitializedObject" />.</param>
         /// <param name="reader">The reader to deserialize with.</param>
-        protected override void DeserializeImplementation(ref Stack<T> value, IDataReader reader)
+        protected override void DeserializeImplementation(ref TStack value, IDataReader reader)
         {
             string name;
             var entry = reader.PeekEntry(out name);
@@ -75,7 +77,15 @@ namespace OdinSerializer
                 {
                     long length;
                     reader.EnterArray(out length);
-                    value = new Stack<T>((int)length);
+
+                    if (IsPlainStack)
+                    {
+                        value = (TStack)new Stack<TValue>((int)length);
+                    }
+                    else
+                    {
+                        value = new TStack();
+                    }
 
                     // We must remember to register the stack reference ourselves, since we return null in GetUninitializedObject
                     this.RegisterReferenceID(value, reader);
@@ -116,7 +126,7 @@ namespace OdinSerializer
         /// </summary>
         /// <param name="value">The value to serialize.</param>
         /// <param name="writer">The writer to serialize with.</param>
-        protected override void SerializeImplementation(ref Stack<T> value, IDataWriter writer)
+        protected override void SerializeImplementation(ref TStack value, IDataWriter writer)
         {
             try
             {
