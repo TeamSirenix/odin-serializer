@@ -158,12 +158,13 @@ namespace OdinSerializer
             }
 
             if (member.DeclaringType == typeof(UnityEngine.Object)) return false;
+            if (!policy.ShouldSerializeMember(member)) return false;
 
             // Allow serialization of fields with [OdinSerialize], regardless of whether Unity
             // serializes the field or not
             if (member is FieldInfo && member.HasCustomAttribute<OdinSerializeAttribute>())
             {
-                return policy.ShouldSerializeMember(member);
+                return true;
             }
 
             var willUnitySerialize = GuessIfUnityWillSerialize(member);
@@ -173,7 +174,7 @@ namespace OdinSerializer
                 return serializeUnityFields;
             }
 
-            return policy.ShouldSerializeMember(member);
+            return true;
         }
 
         /// <summary>
@@ -708,6 +709,26 @@ namespace OdinSerializer
                     }
                 }
 
+                ISerializationPolicy serializationPolicy = SerializationPolicies.Unity;
+
+                // Get the policy to serialize with
+                {
+                    IOverridesSerializationPolicy policyOverride = unityObject as IOverridesSerializationPolicy;
+
+                    if (policyOverride != null)
+                    {
+                        serializationPolicy = policyOverride.SerializationPolicy ?? SerializationPolicies.Unity;
+
+                        if (context != null)
+                        {
+                            context.Config.SerializationPolicy = serializationPolicy;
+                        }
+
+                        serializeUnityFields = policyOverride.OdinSerializesUnityFields;
+                    }
+
+                }
+
                 if (pretendIsPlayer)
                 {
                     // We pretend as though we're serializing outside of the editor
@@ -733,9 +754,9 @@ namespace OdinSerializer
                             {
                                 resolver.Value.SetReferencedUnityObjects(data.ReferencedUnityObjects);
 
-                                newContext.Value.Config.SerializationPolicy = SerializationPolicies.Unity;
+                                newContext.Value.Config.SerializationPolicy = serializationPolicy;
                                 newContext.Value.IndexReferenceResolver = resolver.Value;
-
+                                
                                 writer.Context = newContext;
 
                                 UnitySerializationUtility.SerializeUnityObject(unityObject, writer, serializeUnityFields);
@@ -1253,6 +1274,22 @@ namespace OdinSerializer
                             context.Config.DebugContext.LoggingPolicy = LoggingPolicy.LogErrors;
                             context.Config.DebugContext.Logger = DefaultLoggers.UnityLogger;
                         }
+                    }
+
+                    // If we have a policy override, use that
+                    {
+                        IOverridesSerializationPolicy policyOverride = unityObject as IOverridesSerializationPolicy;
+
+                        if (policyOverride != null)
+                        {
+                            var serializationPolicy = policyOverride.SerializationPolicy;
+
+                            if (serializationPolicy != null)
+                            {
+                                context.Config.SerializationPolicy = serializationPolicy;
+                            }
+                        }
+
                     }
 
                     if (!isPrefabData && !data.Prefab.SafeIsUnityNull())

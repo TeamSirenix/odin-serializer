@@ -92,6 +92,7 @@
     <Compile Include="Core\Formatters\StackFormatter.cs" />
     <Compile Include="Unity Integration\AOTSupportScanner.cs" />
     <Compile Include="Unity Integration\OdinPrefabSerializationEditorUtility.cs" />
+    <Compile Include="Unity Integration\SerializedUnityObjects\IOverridesSerializationPolicy.cs" />
     <Compile Include="Utilities\Misc\AssemblyImportSettingsUtilities.cs" />
     <Compile Include="Core\FormatterLocators\ArrayFormatterLocator.cs" />
     <Compile Include="Core\FormatterLocators\DelegateFormatterLocator.cs" />
