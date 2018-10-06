@@ -1146,7 +1146,7 @@ namespace OdinSerializer
 
             if (isPrefabData && prefabInstanceUnityObjects == null)
             {
-                throw new ArgumentNullException("prefabInstanceUnityObjects", "prefabInstanceUnityObjects cannot be null when isPrefabData is true.");
+                prefabInstanceUnityObjects = new List<UnityEngine.Object>(); // There's likely no data at all
             }
 
 #if UNITY_EDITOR
