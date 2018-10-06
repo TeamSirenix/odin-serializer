@@ -148,7 +148,7 @@ namespace OdinSerializer
         /// </summary>
         /// <param name="member">The member to check.</param>
         /// <param name="serializeUnityFields">Whether to allow serialization of members that will also be serialized by Unity.</param>
-        /// <param name="serializeUnityFields">The policy that Odin should be using for serialization of the given member. If this parameter is null, it defaults to <see cref="SerializationPolicies.Unity"/>.</param>
+        /// <param name="policy">The policy that Odin should be using for serialization of the given member. If this parameter is null, it defaults to <see cref="SerializationPolicies.Unity"/>.</param>
         /// <returns>True if Odin will serialize the member, otherwise false.</returns>
         public static bool OdinWillSerialize(MemberInfo member, bool serializeUnityFields, ISerializationPolicy policy = null)
         {
