@@ -532,10 +532,18 @@ namespace OdinSerializer
         {
             this.PeekEntry();
 
-            if (this.peekedEntryType == EntryType.ExternalReferenceByGuid && (guid = new Guid(this.peekedEntryContent)) != Guid.Empty)
+            if (this.peekedEntryType == EntryType.ExternalReferenceByGuid)
             {
+                var guidStr = this.peekedEntryContent;
+
+                if (guidStr.StartsWith(JsonConfig.EXTERNAL_GUID_REF_SIG))
+                {
+                    guidStr = guidStr.Substring(JsonConfig.EXTERNAL_GUID_REF_SIG.Length + 1);
+                }
+
                 try
                 {
+                    guid = new Guid(guidStr);
                     return true;
                 }
                 catch (FormatException)
@@ -577,6 +585,12 @@ namespace OdinSerializer
             if (this.peekedEntryType == EntryType.ExternalReferenceByString)
             {
                 id = this.peekedEntryContent;
+
+                if (id.StartsWith(JsonConfig.EXTERNAL_STRING_REF_SIG))
+                {
+                    id = id.Substring(JsonConfig.EXTERNAL_STRING_REF_SIG.Length + 1);
+                }
+
                 this.MarkEntryConsumed();
                 return true;
             }

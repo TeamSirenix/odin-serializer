@@ -189,15 +189,7 @@ namespace OdinSerializer.Utilities
                     for (int j = 0; j < types.Length; j++)
                     {
                         Type type = types[j];
-
-                        if (type.Namespace != null)
-                        {
-                            stringTypeLookup[type.Namespace + "." + type.Name] = type;
-                        }
-                        else
-                        {
-                            stringTypeLookup[type.Name] = type;
-                        }
+                        stringTypeLookup[type.FullName] = type;
                     }
 
                     if (assemblyFlag == AssemblyTypeFlags.UserTypes)

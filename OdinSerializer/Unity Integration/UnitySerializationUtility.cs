@@ -1219,7 +1219,7 @@ namespace OdinSerializer
                 {
                     // The stored format says nodes, but there is no serialized node data.
                     // Figure out what format the serialized bytes are in, and deserialize that format instead
-
+                    
                     DataFormat formatGuess = data.SerializedBytes[0] == '{' ? DataFormat.JSON : DataFormat.Binary;
 
                     try
@@ -1538,6 +1538,18 @@ namespace OdinSerializer
             if (reader == null)
             {
                 throw new ArgumentNullException("reader");
+            }
+
+            var policyOverride = unityObject as IOverridesSerializationPolicy;
+
+            if (policyOverride != null)
+            {
+                var policy = policyOverride.SerializationPolicy;
+
+                if (policy != null)
+                {
+                    reader.Context.Config.SerializationPolicy = policy;
+                }
             }
 
             try

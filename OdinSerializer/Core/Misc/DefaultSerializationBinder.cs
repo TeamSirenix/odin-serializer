@@ -77,11 +77,14 @@ namespace OdinSerializer
     {
         private static readonly Dictionary<string, Assembly> assemblyNameLookUp = new Dictionary<string, Assembly>();
 
-        private static readonly object TYPEMAP_LOCK = new object();
-        private static readonly object NAMEMAP_LOCK = new object();
-        private static readonly Dictionary<string, Type> typeMap = new Dictionary<string, Type>();
+        private static readonly object TYPETONAME_LOCK = new object();
         private static readonly Dictionary<Type, string> nameMap = new Dictionary<Type, string>();
+
+        private static readonly object NAMETOTYPE_LOCK = new object();
+        private static readonly Dictionary<string, Type> typeMap = new Dictionary<string, Type>();
         private static readonly Dictionary<string, Type> customTypeNameToTypeBindings = new Dictionary<string, Type>();
+        private static readonly List<string> genericArgNamesList = new List<string>();
+        private static readonly List<Type> genericArgTypesList = new List<Type>();
 
         static DefaultSerializationBinder()
         {
@@ -134,7 +137,7 @@ namespace OdinSerializer
 
             string result;
 
-            lock (NAMEMAP_LOCK)
+            lock (TYPETONAME_LOCK)
             {
                 if (nameMap.TryGetValue(type, out result) == false)
                 {
@@ -185,7 +188,7 @@ namespace OdinSerializer
         /// </summary>
         public override bool ContainsType(string typeName)
         {
-            lock (TYPEMAP_LOCK)
+            lock (NAMETOTYPE_LOCK)
             {
                 return typeMap.ContainsKey(typeName);
             }
@@ -209,42 +212,11 @@ namespace OdinSerializer
 
             Type result;
 
-            lock (TYPEMAP_LOCK)
+            lock (NAMETOTYPE_LOCK)
             {
                 if (typeMap.TryGetValue(typeName, out result) == false)
                 {
-                    // Looks for custom defined type name lookups defined with the BindTypeNameToTypeAttribute.
-                    customTypeNameToTypeBindings.TryGetValue(typeName, out result);
-
-                    // Do more fancy stuff.
-
-                    // Final fallback to classic .NET type string format
-                    if (result == null)
-                    {
-                        result = Type.GetType(typeName);
-                    }
-
-                    if (result == null)
-                    {
-                        result = AssemblyUtilities.GetTypeByCachedFullName(typeName);
-                    }
-
-                    // TODO: Type lookup error handling; use an out bool or a "Try" pattern?
-
-                    string typeStr, assemblyStr;
-
-                    ParseName(typeName, out typeStr, out assemblyStr);
-
-                    if (result == null && assemblyStr != null && assemblyNameLookUp.ContainsKey(assemblyStr))
-                    {
-                        var assembly = assemblyNameLookUp[assemblyStr];
-                        result = assembly.GetType(typeStr);
-                    }
-
-                    if (result == null)
-                    {
-                        result = AssemblyUtilities.GetTypeByCachedFullName(typeStr);
-                    }
+                    result = this.ParseTypeName(typeName, debugContext);
 
                     if (result == null && debugContext != null)
                     {
@@ -257,6 +229,47 @@ namespace OdinSerializer
             }
 
             return result;
+        }
+
+        private Type ParseTypeName(string typeName, DebugContext debugContext)
+        {
+            Type type;
+
+            // Looks for custom defined type name lookups defined with the BindTypeNameToTypeAttribute.
+            if (customTypeNameToTypeBindings.TryGetValue(typeName, out type))
+            {
+                return type;
+            }
+
+            // Final fallback to classic .NET type string format
+            type = Type.GetType(typeName);
+            if (type != null) return type;
+
+            type = AssemblyUtilities.GetTypeByCachedFullName(typeName);
+            if (type != null) return type;
+            
+
+            // TODO: Type lookup error handling; use an out bool or a "Try" pattern?
+
+            // Generic type name handling
+            type = ParseGenericType(typeName, debugContext);
+            if (type != null) return type;
+
+            string typeStr, assemblyStr;
+
+            ParseName(typeName, out typeStr, out assemblyStr);
+
+            if (assemblyStr != null && assemblyNameLookUp.ContainsKey(assemblyStr))
+            {
+                var assembly = assemblyNameLookUp[assemblyStr];
+                type = assembly.GetType(typeStr);
+                if (type != null) return type;
+            }
+
+            type = AssemblyUtilities.GetTypeByCachedFullName(typeStr);
+            if (type != null) return type;
+            
+            return null;
         }
 
         private static void ParseName(string fullName, out string typeName, out string assemblyName)
@@ -286,6 +299,120 @@ namespace OdinSerializer
             {
                 assemblyName = fullName.Substring(firstComma, secondComma - firstComma).Trim(',', ' ');
             }
+        }
+
+        private Type ParseGenericType(string typeName, DebugContext debugContext)
+        {
+            string genericDefinitionName;
+            List<string> argNames;
+
+            if (!TryParseGenericTypeName(typeName, out genericDefinitionName, out argNames)) return null;
+
+            Type genericTypeDefinition = this.BindToType(genericDefinitionName, debugContext);
+
+            if (genericTypeDefinition == null) return null;
+
+            List<Type> args = genericArgTypesList;
+            args.Clear();
+
+            for (int i = 0; i < argNames.Count; i++)
+            {
+                Type arg = this.BindToType(argNames[i], debugContext);
+                if (arg == null) return null;
+                args.Add(arg);
+            }
+
+            var argsArray = args.ToArray();
+
+            if (!genericTypeDefinition.AreGenericConstraintsSatisfiedBy(argsArray))
+            {
+                if (debugContext != null)
+                {
+                    string argsStr = "";
+
+                    foreach (var arg in args)
+                    {
+                        if (argsStr != "") argsStr += ", ";
+                        argsStr += arg.GetNiceFullName();
+                    }
+
+                    debugContext.LogWarning("Deserialization type lookup failure: The generic type arguments '" + argsStr + "' do not satisfy the generic constraints of generic type definition '" + genericTypeDefinition.GetNiceFullName() + "'. All this parsed from the full type name string: '" + typeName + "'");
+                }
+
+                return null;
+            }
+
+            return genericTypeDefinition.MakeGenericType(argsArray);
+        }
+
+        private static bool TryParseGenericTypeName(string typeName, out string genericDefinitionName, out List<string> argNames)
+        {
+            bool isGeneric = false;
+            string argName;
+            argNames = null;
+            genericDefinitionName = null;
+
+            for (int i = 0; i < typeName.Length; i++)
+            {
+                if (typeName[i] == '[')
+                {
+                    if (!isGeneric)
+                    {
+                        genericDefinitionName = typeName.Substring(0, i);
+                        isGeneric = true;
+                        argNames = genericArgNamesList;
+                        argNames.Clear();
+                    }
+                    else if (isGeneric && ReadGenericArg(typeName, ref i, out argName))
+                    {
+                        argNames.Add(argName);
+                    }
+                    else return false;
+                }
+                else if (typeName[i] == ']')
+                {
+                    if (!isGeneric) return false; // This is not a valid generic name, since we're hitting "]" before we've hit "["
+
+                    if (i != typeName.Length - 1)
+                    {
+                        if (typeName[i + 1] == ',')
+                        {
+                            genericDefinitionName += typeName.Substring(i + 1);
+                        }
+                    }
+
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool ReadGenericArg(string typeName, ref int i, out string argName)
+        {
+            argName = null;
+            if (typeName[i] != '[') return false;
+
+            int start = i + 1;
+            int genericDepth = 0;
+
+            for (; i < typeName.Length; i++)
+            {
+                if (typeName[i] == '[') genericDepth++;
+                else if (typeName[i] == ']')
+                {
+                    genericDepth--;
+
+                    if (genericDepth == 0)
+                    {
+                        int length = i - start;
+                        argName = typeName.Substring(start, length);
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
     }
 }
