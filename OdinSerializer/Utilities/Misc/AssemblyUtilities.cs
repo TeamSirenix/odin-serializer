@@ -55,10 +55,18 @@ namespace OdinSerializer.Utilities
             "Assembly-Boo-Editor-firstpass",
         };
 
+        /// <summary>
+        /// Lock for the assembly load queue
+        /// </summary>
+        private static readonly object ASSEMBLY_LOAD_QUEUE_LOCK = new object();
+        private static readonly Queue<Assembly> AssemblyLoadQueue = new Queue<Assembly>();
+
+        /// <summary>
+        /// Lock for everything but the assembly load queue, and the initialized and initializing fields
+        /// </summary>
+        private static readonly object MAIN_LOCK = new object();
+
         private static Assembly unityEngineAssembly;
-
-        private static readonly object LOCK = new object();
-
 #if UNITY_EDITOR
         private static Assembly unityEditorAssembly;
 #endif
@@ -97,7 +105,7 @@ namespace OdinSerializer.Utilities
             {
                 if (!args.LoadedAssembly.IsDynamic() && !args.LoadedAssembly.ReflectionOnly)
                 {
-                    RegisterAssembly(args.LoadedAssembly);
+                    RegisterAssembly_THREADSAFE(args.LoadedAssembly);
                 }
             };
 
@@ -112,10 +120,26 @@ namespace OdinSerializer.Utilities
 
         private static void EnsureInitialized()
         {
-            if (initialized) return;
             if (initializing) return;
 
-            lock (LOCK)
+            if (initialized)
+            {
+                // There is a possibility that we have assemblies waiting in the
+                // load queue. If we do, make sure they are loaded.
+                Assembly[] queuedAssemblies;
+
+                while (GetAndClearQueuedAssemblies(out queuedAssemblies))
+                {
+                    for (int i = 0; i < queuedAssemblies.Length; i++)
+                    {
+                        RegisterAssembly_THREADSAFE(queuedAssemblies[i]);
+                    }
+                }
+
+                return;
+            }
+
+            lock (MAIN_LOCK)
             {
                 if (initialized) return;
                 if (initializing) return;
@@ -131,7 +155,7 @@ namespace OdinSerializer.Utilities
         /// </summary>
         public static void Reload()
         {
-            lock (LOCK)
+            lock (MAIN_LOCK)
             {
                 dataPath = Environment.CurrentDirectory.Replace("\\", "//").Replace("//", "/").TrimEnd('/') + "/Assets";
                 scriptAssembliesPath = Environment.CurrentDirectory.Replace("\\", "//").Replace("//", "/").TrimEnd('/') + "/Library/ScriptAssemblies";
@@ -167,76 +191,125 @@ namespace OdinSerializer.Utilities
 
                 for (int i = 0; i < loadedAssemblies.Length; i++)
                 {
-                    RegisterAssembly(loadedAssemblies[i]);
+                    RegisterAssembly_THREADSAFE(loadedAssemblies[i]);
                 }
             }
         }
 
-        private static void RegisterAssembly(Assembly assembly)
+        private static void RegisterAssembly_THREADSAFE(Assembly assembly)
         {
             EnsureInitialized();
 
-            try
+            // This immediately fails to acquire the lock if it is not available,
+            // deadlocks should be fundamentally impossible.
+            if (Monitor.TryEnter(MAIN_LOCK))
             {
-                lock (LOCK)
+                try
                 {
-                    if (allAssemblies.Contains(assembly)) return;
-                    allAssemblies.Add(assembly);
+                    RegisterAssembly_NOT_THREADSAFE(assembly);
+                    Assembly[] queuedAssemblies;
 
-                    var assemblyFlag = GetAssemblyTypeFlag(assembly);
-
-                    Type[] types = assembly.SafeGetTypes();
-                    for (int j = 0; j < types.Length; j++)
+                    while (GetAndClearQueuedAssemblies(out queuedAssemblies))
                     {
-                        Type type = types[j];
-                        stringTypeLookup[type.FullName] = type;
-                    }
-
-                    if (assemblyFlag == AssemblyTypeFlags.UserTypes)
-                    {
-                        userAssemblies.Add(assembly);
-                        userTypes.AddRange(assembly.SafeGetTypes());
-                    }
-                    else if (assemblyFlag == AssemblyTypeFlags.UserEditorTypes)
-                    {
-                        userEditorAssemblies.Add(assembly);
-                        userEditorTypes.AddRange(assembly.SafeGetTypes());
-                    }
-                    else if (assemblyFlag == AssemblyTypeFlags.PluginTypes)
-                    {
-                        pluginAssemblies.Add(assembly);
-                        pluginTypes.AddRange(assembly.SafeGetTypes());
-                    }
-                    else if (assemblyFlag == AssemblyTypeFlags.PluginEditorTypes)
-                    {
-                        pluginEditorAssemblies.Add(assembly);
-                        pluginEditorTypes.AddRange(assembly.SafeGetTypes());
-                    }
-                    else if (assemblyFlag == AssemblyTypeFlags.UnityTypes)
-                    {
-                        unityAssemblies.Add(assembly);
-                        unityTypes.AddRange(assembly.SafeGetTypes());
-                    }
-                    else if (assemblyFlag == AssemblyTypeFlags.UnityEditorTypes)
-                    {
-                        unityEditorAssemblies.Add(assembly);
-                        unityEditorTypes.AddRange(assembly.SafeGetTypes());
-                    }
-                    else if (assemblyFlag == AssemblyTypeFlags.OtherTypes)
-                    {
-                        otherAssemblies.Add(assembly);
-                        otherTypes.AddRange(assembly.SafeGetTypes());
-                    }
-                    else
-                    {
-                        throw new NotImplementedException();
+                        for (int i = 0; i < queuedAssemblies.Length; i++)
+                        {
+                            RegisterAssembly_NOT_THREADSAFE(queuedAssemblies[i]);
+                        }
                     }
                 }
+                catch (ReflectionTypeLoadException)
+                {
+                    // This happens in builds if people are compiling with a subset of .NET
+                    // It means we simply skip this assembly and its types completely when scanning for formatter types
+                }
+                finally
+                {
+                    Monitor.Exit(MAIN_LOCK);
+                }
             }
-            catch (ReflectionTypeLoadException)
+            // We failed to acquire the lock - instead queue the assembly
+            // There is a possibility that queued assemblies are "missed" here,
+            // and left in the queue for quite a long time. This is acceptable,
+            // however, as EnsureInitialized() processes the queue if necessary,
+            // and EnsureInitialized() is called by all API's that rely on
+            // assemblies being registered.
+            else
             {
-                // This happens in builds if people are compiling with a subset of .NET
-                // It means we simply skip this assembly and its types completely when scanning for formatter types
+                lock (ASSEMBLY_LOAD_QUEUE_LOCK)
+                {
+                    AssemblyLoadQueue.Enqueue(assembly);
+                }
+            }
+        }
+
+        private static void RegisterAssembly_NOT_THREADSAFE(Assembly assembly)
+        {
+            if (allAssemblies.Contains(assembly)) return;
+            allAssemblies.Add(assembly);
+
+            var assemblyFlag = GetAssemblyTypeFlag(assembly);
+
+            Type[] types = assembly.SafeGetTypes();
+            for (int j = 0; j < types.Length; j++)
+            {
+                Type type = types[j];
+                stringTypeLookup[type.FullName] = type;
+            }
+
+            if (assemblyFlag == AssemblyTypeFlags.UserTypes)
+            {
+                userAssemblies.Add(assembly);
+                userTypes.AddRange(assembly.SafeGetTypes());
+            }
+            else if (assemblyFlag == AssemblyTypeFlags.UserEditorTypes)
+            {
+                userEditorAssemblies.Add(assembly);
+                userEditorTypes.AddRange(assembly.SafeGetTypes());
+            }
+            else if (assemblyFlag == AssemblyTypeFlags.PluginTypes)
+            {
+                pluginAssemblies.Add(assembly);
+                pluginTypes.AddRange(assembly.SafeGetTypes());
+            }
+            else if (assemblyFlag == AssemblyTypeFlags.PluginEditorTypes)
+            {
+                pluginEditorAssemblies.Add(assembly);
+                pluginEditorTypes.AddRange(assembly.SafeGetTypes());
+            }
+            else if (assemblyFlag == AssemblyTypeFlags.UnityTypes)
+            {
+                unityAssemblies.Add(assembly);
+                unityTypes.AddRange(assembly.SafeGetTypes());
+            }
+            else if (assemblyFlag == AssemblyTypeFlags.UnityEditorTypes)
+            {
+                unityEditorAssemblies.Add(assembly);
+                unityEditorTypes.AddRange(assembly.SafeGetTypes());
+            }
+            else if (assemblyFlag == AssemblyTypeFlags.OtherTypes)
+            {
+                otherAssemblies.Add(assembly);
+                otherTypes.AddRange(assembly.SafeGetTypes());
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+        }
+
+        private static bool GetAndClearQueuedAssemblies(out Assembly[] queue)
+        {
+            lock (ASSEMBLY_LOAD_QUEUE_LOCK)
+            {
+                if (AssemblyLoadQueue.Count == 0)
+                {
+                    queue = null;
+                    return false;
+                }
+
+                queue = AssemblyLoadQueue.ToArray();
+                AssemblyLoadQueue.Clear();
+                return true;
             }
         }
 
@@ -248,7 +321,7 @@ namespace OdinSerializer.Utilities
         {
             EnsureInitialized();
 
-            lock (LOCK)
+            lock (MAIN_LOCK)
             {
                 var array = allAssembliesImmutable.ToArray();
                 return new ImmutableList<Assembly>(array);
@@ -267,7 +340,7 @@ namespace OdinSerializer.Utilities
 
             EnsureInitialized();
 
-            lock (LOCK)
+            lock (MAIN_LOCK)
             {
                 AssemblyTypeFlags result;
 
@@ -379,7 +452,7 @@ namespace OdinSerializer.Utilities
 
             EnsureInitialized();
 
-            lock (LOCK)
+            lock (MAIN_LOCK)
             {
                 Type type;
                 if (stringTypeLookup.TryGetValue(fullName, out type))
@@ -404,7 +477,7 @@ namespace OdinSerializer.Utilities
 
             EnsureInitialized();
 
-            lock (LOCK)
+            lock (MAIN_LOCK)
             {
 
                 Type type;
@@ -441,7 +514,7 @@ namespace OdinSerializer.Utilities
 
             EnsureInitialized();
 
-            lock (LOCK)
+            lock (MAIN_LOCK)
             {
                 var referencedAsssemblies = assembly.GetReferencedAssemblies();
 
@@ -580,7 +653,7 @@ namespace OdinSerializer.Utilities
         {
             EnsureInitialized();
 
-            lock (LOCK)
+            lock (MAIN_LOCK)
             {
                 bool includeUserTypes = (assemblyTypeFlags & AssemblyTypeFlags.UserTypes) == AssemblyTypeFlags.UserTypes;
                 bool includeUserEditorTypes = (assemblyTypeFlags & AssemblyTypeFlags.UserEditorTypes) == AssemblyTypeFlags.UserEditorTypes;
