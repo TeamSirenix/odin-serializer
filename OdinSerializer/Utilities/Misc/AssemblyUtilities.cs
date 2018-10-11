@@ -55,6 +55,9 @@ namespace OdinSerializer.Utilities
             "Assembly-Boo-Editor-firstpass",
         };
 
+        private static readonly object IS_DYNAMIC_CACHE_LOCK = new object();
+        private static readonly Dictionary<Assembly, bool> IsDynamicCache = new Dictionary<Assembly, bool>();
+
         /// <summary>
         /// Lock for the assembly load queue
         /// </summary>
@@ -62,7 +65,7 @@ namespace OdinSerializer.Utilities
         private static readonly Queue<Assembly> AssemblyLoadQueue = new Queue<Assembly>();
 
         /// <summary>
-        /// Lock for everything but the assembly load queue, and the initialized and initializing fields
+        /// Lock for everything but the assembly load queue, IsDynamic cache, and the initialized and initializing fields
         /// </summary>
         private static readonly object MAIN_LOCK = new object();
 
@@ -541,15 +544,28 @@ namespace OdinSerializer.Utilities
         public static bool IsDynamic(this Assembly assembly)
         {
             if (assembly == null) throw new ArgumentNullException("assembly");
-            try
+
+            bool result;
+
+            lock (IS_DYNAMIC_CACHE_LOCK)
             {
-                // Will cover both System.Reflection.Emit.AssemblyBuilder and System.Reflection.Emit.InternalAssemblyBuilder
-                return assembly.GetType().FullName.EndsWith("AssemblyBuilder") || assembly.Location == null || assembly.Location == "";
+                if (!IsDynamicCache.TryGetValue(assembly, out result))
+                {
+                    try
+                    {
+                        // Will cover both System.Reflection.Emit.AssemblyBuilder and System.Reflection.Emit.InternalAssemblyBuilder
+                        result = assembly.GetType().FullName.EndsWith("AssemblyBuilder") || assembly.Location == null || assembly.Location == "";
+                    }
+                    catch
+                    {
+                        result = true;
+                    }
+
+                    IsDynamicCache.Add(assembly, result);
+                }
             }
-            catch
-            {
-                return true;
-            }
+
+            return result;
         }
 
         /// <summary>
