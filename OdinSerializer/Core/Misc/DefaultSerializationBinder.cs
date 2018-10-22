@@ -235,24 +235,22 @@ namespace OdinSerializer
         {
             Type type;
 
-            // Looks for custom defined type name lookups defined with the BindTypeNameToTypeAttribute.
+            // Look for custom defined type name lookups defined with the BindTypeNameToTypeAttribute.
             if (customTypeNameToTypeBindings.TryGetValue(typeName, out type))
             {
                 return type;
             }
 
-            // Final fallback to classic .NET type string format
+            // Let's try it the traditional .NET way
             type = Type.GetType(typeName);
             if (type != null) return type;
 
+            // Let's try a short-cut
             type = AssemblyUtilities.GetTypeByCachedFullName(typeName);
             if (type != null) return type;
             
-
-            // TODO: Type lookup error handling; use an out bool or a "Try" pattern?
-
-            // Generic type name handling
-            type = ParseGenericType(typeName, debugContext);
+            // Generic/array type name handling
+            type = ParseGenericAndOrArrayType(typeName, debugContext);
             if (type != null) return type;
 
             string typeStr, assemblyStr;
@@ -301,91 +299,142 @@ namespace OdinSerializer
             }
         }
 
-        private Type ParseGenericType(string typeName, DebugContext debugContext)
+        private Type ParseGenericAndOrArrayType(string typeName, DebugContext debugContext)
         {
-            string genericDefinitionName;
-            List<string> argNames;
+            string actualTypeName;
+            List<string> genericArgNames;
 
-            if (!TryParseGenericTypeName(typeName, out genericDefinitionName, out argNames)) return null;
+            bool isGeneric;
+            bool isArray;
+            int arrayRank;
 
-            Type genericTypeDefinition = this.BindToType(genericDefinitionName, debugContext);
+            if (!TryParseGenericAndOrArrayTypeName(typeName, out actualTypeName, out isGeneric, out genericArgNames, out isArray, out arrayRank)) return null;
 
-            if (genericTypeDefinition == null) return null;
+            Type type = this.BindToType(actualTypeName, debugContext);
 
-            List<Type> args = genericArgTypesList;
-            args.Clear();
+            if (type == null) return null;
 
-            for (int i = 0; i < argNames.Count; i++)
+            if (isGeneric)
             {
-                Type arg = this.BindToType(argNames[i], debugContext);
-                if (arg == null) return null;
-                args.Add(arg);
-            }
+                List<Type> args = genericArgTypesList;
+                args.Clear();
 
-            var argsArray = args.ToArray();
-
-            if (!genericTypeDefinition.AreGenericConstraintsSatisfiedBy(argsArray))
-            {
-                if (debugContext != null)
+                for (int i = 0; i < genericArgNames.Count; i++)
                 {
-                    string argsStr = "";
-
-                    foreach (var arg in args)
-                    {
-                        if (argsStr != "") argsStr += ", ";
-                        argsStr += arg.GetNiceFullName();
-                    }
-
-                    debugContext.LogWarning("Deserialization type lookup failure: The generic type arguments '" + argsStr + "' do not satisfy the generic constraints of generic type definition '" + genericTypeDefinition.GetNiceFullName() + "'. All this parsed from the full type name string: '" + typeName + "'");
+                    Type arg = this.BindToType(genericArgNames[i], debugContext);
+                    if (arg == null) return null;
+                    args.Add(arg);
                 }
 
-                return null;
+                var argsArray = args.ToArray();
+
+                if (!type.AreGenericConstraintsSatisfiedBy(argsArray))
+                {
+                    if (debugContext != null)
+                    {
+                        string argsStr = "";
+
+                        foreach (var arg in args)
+                        {
+                            if (argsStr != "") argsStr += ", ";
+                            argsStr += arg.GetNiceFullName();
+                        }
+
+                        debugContext.LogWarning("Deserialization type lookup failure: The generic type arguments '" + argsStr + "' do not satisfy the generic constraints of generic type definition '" + type.GetNiceFullName() + "'. All this parsed from the full type name string: '" + typeName + "'");
+                    }
+
+                    return null;
+                }
+
+                type = type.MakeGenericType(argsArray);
             }
 
-            return genericTypeDefinition.MakeGenericType(argsArray);
-        }
+            if (isArray)
+            {
+                type = type.MakeArrayType(arrayRank);
+            }
 
-        private static bool TryParseGenericTypeName(string typeName, out string genericDefinitionName, out List<string> argNames)
+            return type;
+        }
+        
+        private static bool TryParseGenericAndOrArrayTypeName(string typeName, out string actualTypeName, out bool isGeneric, out List<string> genericArgNames, out bool isArray, out int arrayRank)
         {
-            bool isGeneric = false;
+            isGeneric = false;
+            isArray = false;
+            arrayRank = 0;
+
+            bool parsingGenericArguments = false;
+
             string argName;
-            argNames = null;
-            genericDefinitionName = null;
+            genericArgNames = null;
+            actualTypeName = null;
 
             for (int i = 0; i < typeName.Length; i++)
             {
                 if (typeName[i] == '[')
                 {
-                    if (!isGeneric)
+                    var next = Peek(typeName, i, 1);
+
+                    if (next == ',' || next == ']')
                     {
-                        genericDefinitionName = typeName.Substring(0, i);
-                        isGeneric = true;
-                        argNames = genericArgNamesList;
-                        argNames.Clear();
+                        if (actualTypeName == null)
+                        {
+                            actualTypeName = typeName.Substring(0, i);
+                        }
+
+                        isArray = true;
+                        arrayRank = 1;
+                        i++;
+
+                        if (next == ',')
+                        {
+                            while (next == ',')
+                            {
+                                arrayRank++;
+                                next = Peek(typeName, i, 1);
+                                i++;
+                            }
+
+                            if (next != ']')
+                                return false; // Malformed type name
+                        }
                     }
-                    else if (isGeneric && ReadGenericArg(typeName, ref i, out argName))
+                    else
                     {
-                        argNames.Add(argName);
+                        if (!isGeneric)
+                        {
+                            actualTypeName = typeName.Substring(0, i);
+                            isGeneric = true;
+                            parsingGenericArguments = true;
+                            genericArgNames = genericArgNamesList;
+                            genericArgNames.Clear();
+                        }
+                        else if (isGeneric && ReadGenericArg(typeName, ref i, out argName))
+                        {
+                            genericArgNames.Add(argName);
+                        }
+                        else return false; // Malformed type name
                     }
-                    else return false;
                 }
                 else if (typeName[i] == ']')
                 {
-                    if (!isGeneric) return false; // This is not a valid generic name, since we're hitting "]" before we've hit "["
-
-                    if (i != typeName.Length - 1)
-                    {
-                        if (typeName[i + 1] == ',')
-                        {
-                            genericDefinitionName += typeName.Substring(i + 1);
-                        }
-                    }
-
-                    return true;
+                    if (!parsingGenericArguments) return false; // This is not a valid type name, since we're hitting "]" without currently being in the process of parsing the generic arguments or an array thingy
+                    parsingGenericArguments = false;
+                }
+                else if (typeName[i] == ',' && !parsingGenericArguments)
+                {
+                    actualTypeName += typeName.Substring(i);
+                    break;
                 }
             }
+            
+            return isArray || isGeneric;
+        }
 
-            return false;
+        private static char Peek(string str, int i, int ahead)
+        {
+            if (i + ahead < str.Length) return str[i + ahead];
+            return '\0';
         }
 
         private static bool ReadGenericArg(string typeName, ref int i, out string argName)
