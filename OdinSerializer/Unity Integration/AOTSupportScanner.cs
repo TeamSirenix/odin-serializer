@@ -46,6 +46,47 @@ namespace OdinSerializer.Editor
             Serializer.OnSerializedType += this.OnSerializedType;
         }
 
+        public bool ScanAssetBundle(string bundle)
+        {
+            string[] assets = AssetDatabase.GetAssetPathsFromAssetBundle(bundle);
+            
+            foreach (var asset in assets)
+            {
+                this.ScanAsset(asset, true);
+            }
+
+            return true;
+        }
+
+        public bool ScanAllAssetBundles(bool showProgressBar)
+        {
+            try
+            {
+                string[] bundles = AssetDatabase.GetAllAssetBundleNames();
+
+                for (int i = 0; i < bundles.Length; i++)
+                {
+                    var bundle = bundles[i];
+
+                    if (showProgressBar && EditorUtility.DisplayCancelableProgressBar("Scanning asset bundles for AOT support", bundle, (float)i / bundles.Length))
+                    {
+                        return false;
+                    }
+
+                    this.ScanAssetBundle(bundle);
+                }
+            }
+            finally
+            {
+                if (showProgressBar)
+                {
+                    EditorUtility.ClearProgressBar();
+                }
+            }
+
+            return true;
+        }
+
         public bool ScanAllResources(bool includeResourceDependencies, bool showProgressBar)
         {
             try
@@ -59,7 +100,7 @@ namespace OdinSerializer.Editor
 
                 for (int i = 0; i < resources.Length; i++)
                 {
-                    if (showProgressBar && EditorUtility.DisplayCancelableProgressBar("Scanning resource " + i + " for AOT support", resources[i].name, i / resources.Length))
+                    if (showProgressBar && EditorUtility.DisplayCancelableProgressBar("Scanning resource " + i + " for AOT support", resources[i].name, (float)i / resources.Length))
                     {
                         return false;
                     }
