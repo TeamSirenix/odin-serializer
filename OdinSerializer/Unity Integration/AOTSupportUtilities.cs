@@ -66,6 +66,13 @@ namespace OdinSerializer.Editor
                     return false;
                 }
 
+                if (!scanner.ScanPreloadedAssets(showProgressBar: true))
+                {
+                    Debug.Log("Project scan canceled while scanning preloaded assets and their depencencies.");
+                    serializedTypes = null;
+                    return false;
+                }
+
                 serializedTypes = scanner.EndScan();
             }
             return true;

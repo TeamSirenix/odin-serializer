@@ -27,12 +27,15 @@ namespace OdinSerializer.Editor
     using UnityEditor;
     using UnityEditor.SceneManagement;
     using UnityEngine;
+    using System.Reflection;
 
     public sealed class AOTSupportScanner : IDisposable
     {
         private bool scanning;
         private bool allowRegisteringScannedTypes;
         private HashSet<Type> seenSerializedTypes = new HashSet<Type>();
+
+        private static readonly MethodInfo PlayerSettings_GetPreloadedAssets_Method = typeof(PlayerSettings).GetMethod("GetPreloadedAssets", BindingFlags.Public | BindingFlags.Static, null, Type.EmptyTypes, null);
 
         public void BeginScan()
         {
@@ -44,6 +47,52 @@ namespace OdinSerializer.Editor
             FormatterLocator.OnLocatedEmittableFormatterForType += this.OnLocatedEmitType;
             FormatterLocator.OnLocatedFormatter += this.OnLocatedFormatter;
             Serializer.OnSerializedType += this.OnSerializedType;
+        }
+
+        public bool ScanPreloadedAssets(bool showProgressBar)
+        {
+            // The API does not exist in this version of Unity
+            if (PlayerSettings_GetPreloadedAssets_Method == null) return true;
+
+            UnityEngine.Object[] assets = (UnityEngine.Object[])PlayerSettings_GetPreloadedAssets_Method.Invoke(null, null);
+
+            if (assets == null) return true;
+
+            try
+            {
+                for (int i = 0; i < assets.Length; i++)
+                {
+                    if (showProgressBar && EditorUtility.DisplayCancelableProgressBar("Scanning preloaded assets for AOT support", (i + 1) + " / " + assets.Length, (float)i / assets.Length))
+                    {
+                        return false;
+                    }
+
+                    var asset = assets[i];
+
+                    if (asset == null) continue;
+
+                    if (AssetDatabase.Contains(asset))
+                    {
+                        // Scan the asset and all its dependencies
+                        var path = AssetDatabase.GetAssetPath(asset);
+                        this.ScanAsset(path, true);
+                    }
+                    else
+                    {
+                        // Just scan the asset
+                        this.ScanObject(assets[i]);
+                    }
+                }
+            }
+            finally
+            {
+                if (showProgressBar)
+                {
+                    EditorUtility.ClearProgressBar();
+                }
+            }
+
+            return true;
         }
 
         public bool ScanAssetBundle(string bundle)
