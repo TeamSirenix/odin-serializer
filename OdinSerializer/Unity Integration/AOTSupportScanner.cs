@@ -389,55 +389,49 @@ namespace OdinSerializer.Editor
 
         private void OnLocatedEmitType(Type type)
         {
-            var typeFlags = AssemblyUtilities.GetAssemblyTypeFlag(type.Assembly);
-            if ((typeFlags & AssemblyTypeFlags.UnityEditorTypes) == AssemblyTypeFlags.UnityEditorTypes)
-            {
-                return;
-            }
-
-            if ((typeFlags & AssemblyTypeFlags.UserEditorTypes) == AssemblyTypeFlags.UserEditorTypes)
-            {
-                return;
-            }
+            if (!AllowRegisterType(type)) return;
 
             this.RegisterType(type);
         }
 
         private void OnSerializedType(Type type)
         {
-            var typeFlags = AssemblyUtilities.GetAssemblyTypeFlag(type.Assembly);
-            if ((typeFlags & AssemblyTypeFlags.UnityEditorTypes) == AssemblyTypeFlags.UnityEditorTypes)
-            {
-                return;
-            }
-
-            if ((typeFlags & AssemblyTypeFlags.UserEditorTypes) == AssemblyTypeFlags.UserEditorTypes)
-            {
-                return;
-            }
+            if (!AllowRegisterType(type)) return;
 
             this.RegisterType(type);
         }
 
         private void OnLocatedFormatter(IFormatter formatter)
         {
-            var typeFlags = AssemblyUtilities.GetAssemblyTypeFlag(formatter.SerializedType.Assembly);
+            var type = formatter.SerializedType;
+
+            if (type == null) return;
+            if (!AllowRegisterType(type)) return;
+            this.RegisterType(type);
+        }
+
+        private static bool AllowRegisterType(Type type)
+        {
+            var typeFlags = AssemblyUtilities.GetAssemblyTypeFlag(type.Assembly);
             if ((typeFlags & AssemblyTypeFlags.UnityEditorTypes) == AssemblyTypeFlags.UnityEditorTypes)
             {
-                return;
+                return false;
             }
 
             if ((typeFlags & AssemblyTypeFlags.UserEditorTypes) == AssemblyTypeFlags.UserEditorTypes)
             {
-                return;
+                return false;
             }
 
-            var type = formatter.SerializedType;
-
-            if (type != null)
+            if (type.IsGenericType)
             {
-                this.RegisterType(type);
+                foreach (var parameter in type.GetGenericArguments())
+                {
+                    if (!AllowRegisterType(parameter)) return false;
+                }
             }
+
+            return true;
         }
 
         private void RegisterType(Type type)
