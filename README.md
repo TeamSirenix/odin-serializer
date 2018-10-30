@@ -88,7 +88,7 @@ The performance graphs in this section are profiled with OdinSerializer's binary
 
 ## How to get started
 
-There are many different use cases for OdinSerializer. If you just need a serialiation library to use in your own private project, we can recommend that you simply use it out of the box. If you would like to make your own tweaks and builds, or if you intend to include OdinSerializer in a package that you are distributing, you would be better served by forking the repository.
+There are many different use cases for OdinSerializer. If you just need a serialization library to use in your own private project, we can recommend that you simply use it out of the box. If you would like to make your own tweaks and builds, or if you intend to include OdinSerializer in a package that you are distributing, you would be better served by forking the repository.
 
 ### Using OdinSerializer out of the box
 
@@ -158,7 +158,7 @@ public static class Example
 {
 	public static void Save(MyData data,  string filePath, ref List<UnityEngine.Object> unityReferences)
 	{
-		byte[] bytes = SerializationUtility.SerializeValue(data, DataFormat.Binary, ref unityReferences);
+		byte[] bytes = SerializationUtility.SerializeValue(data, DataFormat.Binary, out unityReferences);
 		File.WriteAllBytes(bytes, filePath);
 		
 		// The unityReferences list will now be filled with all encountered UnityEngine.Object references, and the saved binary data contains index pointers into this list.
