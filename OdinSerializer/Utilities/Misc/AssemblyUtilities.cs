@@ -112,7 +112,15 @@ namespace OdinSerializer.Utilities
                 }
             };
 
-            new Thread(EnsureInitialized).Start();
+            try
+            {
+                new Thread(EnsureInitialized).Start();
+            }
+            catch (Exception)
+            {
+                // If this fails, we are probably on WebGL - ignore it either way, we will
+                // initialize on the proper main thread eventually when this class is used.
+            }
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
