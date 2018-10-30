@@ -92,7 +92,7 @@ There are many different use cases for OdinSerializer. If you just need a serial
 
 ### Using OdinSerializer out of the box
 
-To use OdinSerializer as-is, simply head to the <a href="https://github.com/TeamSirenix/odin-serializer/releases>releases</a> page to download the latest release .unitypackage file, and import the package into your Unity project. OdinSerializer will then be in your project, ready to use.
+To use OdinSerializer as-is, simply head to the [releases](https://github.com/TeamSirenix/odin-serializer/releases) page to download the latest release .unitypackage file, and import the package into your Unity project. OdinSerializer will then be in your project, ready to use.
 
 ### Forking OdinSerializer
 
