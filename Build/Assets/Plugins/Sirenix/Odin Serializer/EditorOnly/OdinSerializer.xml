@@ -4,14 +4,14 @@
         <name>OdinSerializer</name>
     </assembly>
     <members>
-        <member name="T:OdinSerializer.QueueFormatter`1">
+        <member name="T:OdinSerializer.QueueFormatter`2">
             <summary>
             Custom generic formatter for the generic type definition <see cref="T:System.Collections.Generic.Queue`1"/>.
             </summary>
             <typeparam name="T">The element type of the formatted queue.</typeparam>
             <seealso cref="!:BaseFormatter&lt;System.Collections.Generic.Queue&lt;T&gt;&gt;" />
         </member>
-        <member name="M:OdinSerializer.QueueFormatter`1.GetUninitializedObject">
+        <member name="M:OdinSerializer.QueueFormatter`2.GetUninitializedObject">
             <summary>
             Returns null.
             </summary>
@@ -19,28 +19,28 @@
             A null value.
             </returns>
         </member>
-        <member name="M:OdinSerializer.QueueFormatter`1.DeserializeImplementation(System.Collections.Generic.Queue{`0}@,OdinSerializer.IDataReader)">
+        <member name="M:OdinSerializer.QueueFormatter`2.DeserializeImplementation(`0@,OdinSerializer.IDataReader)">
             <summary>
             Provides the actual implementation for deserializing a value of type <see cref="!:T" />.
             </summary>
             <param name="value">The uninitialized value to serialize into. This value will have been created earlier using <see cref="M:OdinSerializer.BaseFormatter`1.GetUninitializedObject" />.</param>
             <param name="reader">The reader to deserialize with.</param>
         </member>
-        <member name="M:OdinSerializer.QueueFormatter`1.SerializeImplementation(System.Collections.Generic.Queue{`0}@,OdinSerializer.IDataWriter)">
+        <member name="M:OdinSerializer.QueueFormatter`2.SerializeImplementation(`0@,OdinSerializer.IDataWriter)">
             <summary>
             Provides the actual implementation for serializing a value of type <see cref="!:T" />.
             </summary>
             <param name="value">The value to serialize.</param>
             <param name="writer">The writer to serialize with.</param>
         </member>
-        <member name="T:OdinSerializer.StackFormatter`1">
+        <member name="T:OdinSerializer.StackFormatter`2">
             <summary>
-            Custom generic formatter for the generic type definition <see cref="T:System.Collections.Generic.Stack`1"/>.
+            Custom generic formatter for the generic type definition <see cref="T:System.Collections.Generic.Stack`1"/> and types derived from it.
             </summary>
             <typeparam name="T">The element type of the formatted stack.</typeparam>
             <seealso cref="!:BaseFormatter&lt;System.Collections.Generic.Stack&lt;T&gt;&gt;" />
         </member>
-        <member name="M:OdinSerializer.StackFormatter`1.GetUninitializedObject">
+        <member name="M:OdinSerializer.StackFormatter`2.GetUninitializedObject">
             <summary>
             Returns null.
             </summary>
@@ -48,14 +48,14 @@
             A null value.
             </returns>
         </member>
-        <member name="M:OdinSerializer.StackFormatter`1.DeserializeImplementation(System.Collections.Generic.Stack{`0}@,OdinSerializer.IDataReader)">
+        <member name="M:OdinSerializer.StackFormatter`2.DeserializeImplementation(`0@,OdinSerializer.IDataReader)">
             <summary>
             Provides the actual implementation for deserializing a value of type <see cref="!:T" />.
             </summary>
             <param name="value">The uninitialized value to serialize into. This value will have been created earlier using <see cref="M:OdinSerializer.BaseFormatter`1.GetUninitializedObject" />.</param>
             <param name="reader">The reader to deserialize with.</param>
         </member>
-        <member name="M:OdinSerializer.StackFormatter`1.SerializeImplementation(System.Collections.Generic.Stack{`0}@,OdinSerializer.IDataWriter)">
+        <member name="M:OdinSerializer.StackFormatter`2.SerializeImplementation(`0@,OdinSerializer.IDataWriter)">
             <summary>
             Provides the actual implementation for serializing a value of type <see cref="!:T" />.
             </summary>
@@ -72,6 +72,13 @@
         <member name="M:OdinSerializer.Editor.AOTSupportUtilities.GenerateDLL(System.String,System.String,System.Collections.Generic.List{System.Type},System.Boolean)">
             <summary>
             Generates an AOT DLL, using the given parameters.
+            </summary>
+        </member>
+        <member name="T:OdinSerializer.IOverridesSerializationPolicy">
+            <summary>
+            Indicates that an Odin-serialized Unity object provides its own serialization policy rather than using the default policy.
+            <para/>
+            Note that THE VALUES RETURNED BY THIS INTERFACE WILL OVERRIDE THE PARAMETERS PASSED TO <see cref="M:OdinSerializer.UnitySerializationUtility.SerializeUnityObject(UnityEngine.Object,OdinSerializer.SerializationData@,System.Boolean,OdinSerializer.SerializationContext)"/> and <see cref="M:OdinSerializer.UnitySerializationUtility.DeserializeUnityObject(UnityEngine.Object,OdinSerializer.SerializationData@,OdinSerializer.DeserializationContext)"/>.
             </summary>
         </member>
         <member name="T:OdinSerializer.Utilities.Editor.OdinAssemblyImportSettings">
@@ -114,14 +121,24 @@
             All valid Unity BuildTarget platforms that support Just In Time compilation.
             </summary>
         </member>
-        <member name="M:OdinSerializer.Utilities.Editor.AssemblyImportSettingsUtilities.SetAssemblyImportSettings(System.String,OdinSerializer.Utilities.Editor.OdinAssemblyImportSettings)">
+        <member name="F:OdinSerializer.Utilities.Editor.AssemblyImportSettingsUtilities.JITScriptingBackends">
+            <summary>
+            All scripting backends that support JIT.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.Utilities.Editor.AssemblyImportSettingsUtilities.JITApiCompatibilityLevels">
+            <summary>
+            All API compatibility levels that support JIT.
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.Utilities.Editor.AssemblyImportSettingsUtilities.SetAssemblyImportSettings(UnityEditor.BuildTarget,System.String,OdinSerializer.Utilities.Editor.OdinAssemblyImportSettings)">
             <summary>
             Set the import settings on the assembly.
             </summary>
             <param name="assemblyFilePath">The path to the assembly to configure import settings from.</param>
             <param name="importSettings">The import settings to configure for the assembly at the path.</param>
         </member>
-        <member name="M:OdinSerializer.Utilities.Editor.AssemblyImportSettingsUtilities.SetAssemblyImportSettings(System.String,System.Boolean,System.Boolean)">
+        <member name="M:OdinSerializer.Utilities.Editor.AssemblyImportSettingsUtilities.SetAssemblyImportSettings(UnityEditor.BuildTarget,System.String,System.Boolean,System.Boolean)">
             <summary>
             Set the import settings on the assembly.
             </summary>
@@ -134,6 +151,42 @@
             Gets the current scripting backend for the build from the Unity editor. This method is Unity version independent.
             </summary>
             <returns></returns>
+        </member>
+        <member name="M:OdinSerializer.Utilities.Editor.AssemblyImportSettingsUtilities.GetCurrentApiCompatibilityLevel">
+            <summary>
+            Gets the current API compatibility level from the Unity Editor. This method is Unity version independent.
+            </summary>
+            <returns></returns>
+        </member>
+        <member name="M:OdinSerializer.Utilities.Editor.AssemblyImportSettingsUtilities.PlatformSupportsJIT(UnityEditor.BuildTarget)">
+            <summary>
+            Gets a value that indicates if the specified platform supports JIT.
+            </summary>
+            <param name="platform">The platform to test.</param>
+            <returns><c>true</c> if the platform supports JIT; otherwise <c>false</c>.</returns>
+        </member>
+        <member name="M:OdinSerializer.Utilities.Editor.AssemblyImportSettingsUtilities.ScriptingBackendSupportsJIT(UnityEditor.ScriptingImplementation)">
+            <summary>
+            Gets a value that indicates if the specified scripting backend supports JIT.
+            </summary>
+            <param name="backend">The backend to test.</param>
+            <returns><c>true</c> if the backend supports JIT; otherwise <c>false</c>.</returns>
+        </member>
+        <member name="M:OdinSerializer.Utilities.Editor.AssemblyImportSettingsUtilities.ApiCompatibilityLevelSupportsJIT(UnityEditor.ApiCompatibilityLevel)">
+            <summary>
+            Gets a value that indicates if the specified api level supports JIT.
+            </summary>
+            <param name="apiLevel">The api level to test.</param>
+            <returns><c>true</c> if the api level supports JIT; otherwise <c>false</c>.</returns>
+        </member>
+        <member name="M:OdinSerializer.Utilities.Editor.AssemblyImportSettingsUtilities.IsJITSupported(UnityEditor.BuildTarget,UnityEditor.ScriptingImplementation,UnityEditor.ApiCompatibilityLevel)">
+            <summary>
+            Gets a value that indicates if the specified build settings supports JIT.
+            </summary>
+            <param name="platform">The platform build setting.</param>
+            <param name="backend">The scripting backend build settting.</param>
+            <param name="apiLevel">The api level build setting.</param>
+            <returns><c>true</c> if the build settings supports JIT; otherwise <c>false</c>.</returns>
         </member>
         <member name="T:OdinSerializer.Utilities.FieldInfoExtensions">
             <summary>
@@ -461,7 +514,7 @@
         </member>
         <member name="T:OdinSerializer.Utilities.Operator">
             <summary>
-            Determents the type of operator.
+            Determines the type of operator.
             </summary>
             <seealso cref="T:OdinSerializer.Utilities.TypeExtensions" />
         </member>
@@ -485,6 +538,16 @@
             The - operator.
             </summary>
         </member>
+        <member name="F:OdinSerializer.Utilities.Operator.Multiply">
+            <summary>
+            The * operator.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.Utilities.Operator.Division">
+            <summary>
+            The / operator.
+            </summary>
+        </member>
         <member name="F:OdinSerializer.Utilities.Operator.LessThan">
             <summary>
             The &lt; operator.
@@ -505,6 +568,56 @@
             The &gt;= operator.
             </summary>
         </member>
+        <member name="F:OdinSerializer.Utilities.Operator.Modulus">
+            <summary>
+            The % operator.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.Utilities.Operator.RightShift">
+            <summary>
+            The &gt;&gt; operator.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.Utilities.Operator.LeftShift">
+            <summary>
+            The &lt;&lt; operator.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.Utilities.Operator.BitwiseAnd">
+            <summary>
+            The &amp; operator.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.Utilities.Operator.BitwiseOr">
+            <summary>
+            The | operator.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.Utilities.Operator.ExclusiveOr">
+            <summary>
+            The ^ operator.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.Utilities.Operator.BitwiseComplement">
+            <summary>
+            The ~ operator.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.Utilities.Operator.LogicalAnd">
+            <summary>
+            The &amp;&amp; operator.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.Utilities.Operator.LogicalOr">
+            <summary>
+            The || operator.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.Utilities.Operator.LogicalNot">
+            <summary>
+            The ! operator.
+            </summary>
+        </member>
         <member name="T:OdinSerializer.Utilities.PathUtilities">
             <summary>
             DirectoryInfo method extensions.
@@ -522,9 +635,9 @@
             PropertyInfo method extensions.
             </summary>
         </member>
-        <member name="M:OdinSerializer.Utilities.PropertyInfoExtensions.IsAutoProperty(System.Reflection.PropertyInfo)">
+        <member name="M:OdinSerializer.Utilities.PropertyInfoExtensions.IsAutoProperty(System.Reflection.PropertyInfo,System.Boolean)">
             <summary>
-            Determines whether a property is an auto property.
+            Determines whether a property is an auto property with a usable getter and setter.
             </summary>
         </member>
         <member name="M:OdinSerializer.Utilities.PropertyInfoExtensions.IsAliasProperty(System.Reflection.PropertyInfo)">
@@ -911,11 +1024,25 @@
             <param name="genericType">The generic type definition to check.</param>
             <param name="parameters">The parameters to check validity for.</param>
             <exception cref="T:System.ArgumentNullException">
-            genericTypeDefinition is null
+            genericType is null
             or
             types is null
             </exception>
-            <exception cref="T:System.ArgumentException">The genericTypeDefinition parameter must be a generic type definition.</exception>
+            <exception cref="T:System.ArgumentException">The genericType parameter must be a generic type definition.</exception>
+        </member>
+        <member name="M:OdinSerializer.Utilities.TypeExtensions.AreGenericConstraintsSatisfiedBy(System.Reflection.MethodBase,System.Type[])">
+            <summary>
+            <para>Checks whether an array of types satisfy the constraints of a given generic method definition.</para>
+            <para>If this method returns true, the given parameters can be safely used with <see cref="M:System.Reflection.MethodInfo.MakeGenericMethod(System.Type[])"/> with the given generic method definition.</para>
+            </summary>
+            <param name="genericType">The generic method definition to check.</param>
+            <param name="parameters">The parameters to check validity for.</param>
+            <exception cref="T:System.ArgumentNullException">
+            genericType is null
+            or
+            types is null
+            </exception>
+            <exception cref="T:System.ArgumentException">The genericMethod parameter must be a generic method definition.</exception>
         </member>
         <member name="M:OdinSerializer.Utilities.TypeExtensions.GenericParameterIsFulfilledBy(System.Type,System.Type,System.Collections.Generic.Dictionary{System.Type,System.Type},System.Collections.Generic.HashSet{System.Type})">
             <summary>
@@ -1045,14 +1172,24 @@
             A utility class for finding types in various asssembly.
             </summary>
         </member>
-        <member name="M:OdinSerializer.Utilities.AssemblyUtilities.Reload">
+        <member name="F:OdinSerializer.Utilities.AssemblyUtilities.ASSEMBLY_LOAD_QUEUE_LOCK">
             <summary>
-            Re-scans the entire AppDomain.
+            Lock for the assembly load queue
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.Utilities.AssemblyUtilities.MAIN_LOCK">
+            <summary>
+            Lock for everything but the assembly load queue, IsDynamic cache, and the initialized and initializing fields
             </summary>
         </member>
         <member name="M:OdinSerializer.Utilities.AssemblyUtilities.#cctor">
             <summary>
             Initializes the <see cref="T:OdinSerializer.Utilities.AssemblyUtilities"/> class.
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.Utilities.AssemblyUtilities.Reload">
+            <summary>
+            Re-scans the entire AppDomain.
             </summary>
         </member>
         <member name="M:OdinSerializer.Utilities.AssemblyUtilities.GetAllAssemblies">
@@ -2513,7 +2650,7 @@
             <summary>
             Exits the closest array. This method will keep skipping entries using <see cref="!:IDataReader.SkipEntry(DeserializationContext)"/> until an <see cref="F:OdinSerializer.EntryType.EndOfArray"/> is reached, or the end of the stream is reached.
             <para />
-            This call MUST have been preceded by a corresponding call to <see cref="!:IDataReader.EnterArray(out long)(out Type)"/>.
+            This call MUST have been preceded by a corresponding call to <see cref="M:OdinSerializer.IDataReader.EnterArray(System.Int64@)"/>.
             <para />
             This call will change the values of the <see cref="P:OdinSerializer.IDataReader.IsInArrayNode"/>, <see cref="P:OdinSerializer.IDataReader.CurrentNodeName"/>, <see cref="P:OdinSerializer.IDataReader.CurrentNodeId"/> and <see cref="P:OdinSerializer.IDataReader.CurrentNodeDepth"/> to the correct values for the node that was prior to the exited array node.
             </summary>
@@ -3130,7 +3267,7 @@
             <summary>
             Exits the closest array. This method will keep skipping entries using <see cref="M:OdinSerializer.IDataReader.SkipEntry" /> until an <see cref="F:OdinSerializer.EntryType.EndOfArray" /> is reached, or the end of the stream is reached.
             <para />
-            This call MUST have been preceded by a corresponding call to <see cref="!:IDataReader.EnterArray(out long)(out Type)" />.
+            This call MUST have been preceded by a corresponding call to <see cref="M:OdinSerializer.IDataReader.EnterArray(System.Int64@)" />.
             <para />
             This call will change the values of the <see cref="P:OdinSerializer.IDataReader.IsInArrayNode" />, <see cref="P:OdinSerializer.IDataReader.CurrentNodeName" />, <see cref="P:OdinSerializer.IDataReader.CurrentNodeId" /> and <see cref="P:OdinSerializer.IDataReader.CurrentNodeDepth" /> to the correct values for the node that was prior to the exited array node.
             </summary>
@@ -3998,7 +4135,7 @@
             <summary>
             Exits the closest array. This method will keep skipping entries using <see cref="!:IDataReader.SkipEntry(DeserializationContext)"/> until an <see cref="F:OdinSerializer.EntryType.EndOfArray"/> is reached, or the end of the stream is reached.
             <para />
-            This call MUST have been preceded by a corresponding call to <see cref="!:IDataReader.EnterArray(out long)(out Type)"/>.
+            This call MUST have been preceded by a corresponding call to <see cref="M:OdinSerializer.IDataReader.EnterArray(System.Int64@)"/>.
             <para />
             This call will change the values of the <see cref="P:OdinSerializer.IDataReader.IsInArrayNode"/>, <see cref="P:OdinSerializer.IDataReader.CurrentNodeName"/>, <see cref="P:OdinSerializer.IDataReader.CurrentNodeId"/> and <see cref="P:OdinSerializer.IDataReader.CurrentNodeDepth"/> to the correct values for the node that was prior to the exited array node.
             </summary>
@@ -4600,7 +4737,7 @@
             <summary>
             Exits the closest array. This method will keep skipping entries using <see cref="!:IDataReader.SkipEntry(DeserializationContext)" /> until an <see cref="F:OdinSerializer.EntryType.EndOfArray" /> is reached, or the end of the stream is reached.
             <para />
-            This call MUST have been preceded by a corresponding call to <see cref="!:IDataReader.EnterArray(out long)(out Type)" />.
+            This call MUST have been preceded by a corresponding call to <see cref="M:OdinSerializer.IDataReader.EnterArray(System.Int64@)" />.
             <para />
             This call will change the values of the <see cref="P:OdinSerializer.IDataReader.IsInArrayNode" />, <see cref="P:OdinSerializer.IDataReader.CurrentNodeName" />, <see cref="P:OdinSerializer.IDataReader.CurrentNodeId" /> and <see cref="P:OdinSerializer.IDataReader.CurrentNodeDepth" /> to the correct values for the node that was prior to the exited array node.
             </summary>
@@ -7479,16 +7616,20 @@
         </member>
         <member name="P:OdinSerializer.SerializationPolicies.Unity">
             <summary>
-            Public fields and fields or auto-properties marked with <see cref="T:UnityEngine.SerializeField"/> or <see cref="T:OdinSerializer.OdinSerializeAttribute"/> and not marked with <see cref="T:System.NonSerializedAttribute"/> are serialized.
+            Public fields, as well as fields or auto-properties marked with <see cref="T:UnityEngine.SerializeField"/> or <see cref="T:OdinSerializer.OdinSerializeAttribute"/> and not marked with <see cref="T:System.NonSerializedAttribute"/>, are serialized.
             <para />
-            There are two exceptions: all fields in tuples, as well as in private nested types marked as compiler generated (e.g. lambda capture classes) are also serialized.
+            There are two exceptions:
+            <para/>1) All fields in tuples, as well as in private nested types marked as compiler generated (e.g. lambda capture classes) are also serialized.
+            <para/>2) Virtual auto-properties are never serialized. Note that properties specified by an implemented interface are automatically marked virtual by the compiler.
             </summary>
         </member>
         <member name="P:OdinSerializer.SerializationPolicies.Strict">
             <summary>
             Only fields and auto-properties marked with <see cref="T:UnityEngine.SerializeField"/> or <see cref="T:OdinSerializer.OdinSerializeAttribute"/> and not marked with <see cref="T:System.NonSerializedAttribute"/> are serialized.
             <para />
-            There is one exception: all fields in private nested types marked as compiler generated (e.g. lambda capture classes) are also serialized.
+            There are two exceptions:
+            <para/>1) All fields in private nested types marked as compiler generated (e.g. lambda capture classes) are also serialized.
+            <para/>2) Virtual auto-properties are never serialized. Note that properties specified by an implemented interface are automatically marked virtual by the compiler.
             </summary>
         </member>
         <member name="T:OdinSerializer.BooleanSerializer">
@@ -9376,12 +9517,13 @@
             <param name="unityObjects">A list of the Unity objects which were referenced during serialization.</param>
             <param name="context">The context.</param>
         </member>
-        <member name="M:OdinSerializer.SerializationUtility.SerializeValueWeak(System.Object,OdinSerializer.DataFormat)">
+        <member name="M:OdinSerializer.SerializationUtility.SerializeValueWeak(System.Object,OdinSerializer.DataFormat,OdinSerializer.SerializationContext)">
             <summary>
             Serializes the given value using the specified format, and returns the result as a byte array.
             </summary>
             <param name="value">The value to serialize.</param>
             <param name="format">The format to use.</param>
+            <param name="context">The context.</param>
             <returns>A byte array containing the serialized value.</returns>
         </member>
         <member name="M:OdinSerializer.SerializationUtility.SerializeValueWeak(System.Object,OdinSerializer.DataFormat,System.Collections.Generic.List{UnityEngine.Object}@)">
@@ -9498,12 +9640,13 @@
             The deserialized value.
             </returns>
         </member>
-        <member name="M:OdinSerializer.SerializationUtility.DeserializeValueWeak(System.Byte[],OdinSerializer.DataFormat)">
+        <member name="M:OdinSerializer.SerializationUtility.DeserializeValueWeak(System.Byte[],OdinSerializer.DataFormat,OdinSerializer.DeserializationContext)">
             <summary>
             Deserializes a value from the given byte array in the given format. This might fail with primitive values, as they don't come with type metadata.
             </summary>
             <param name="bytes">The bytes to deserialize from.</param>
             <param name="format">The format to read.</param>
+            <param name="context">The context.</param>
             <returns>
             The deserialized value.
             </returns>
@@ -9567,12 +9710,13 @@
             Not yet documented.
             </summary>
         </member>
-        <member name="M:OdinSerializer.UnitySerializationUtility.OdinWillSerialize(System.Reflection.MemberInfo,System.Boolean)">
+        <member name="M:OdinSerializer.UnitySerializationUtility.OdinWillSerialize(System.Reflection.MemberInfo,System.Boolean,OdinSerializer.ISerializationPolicy)">
             <summary>
             Checks whether Odin will serialize a given member.
             </summary>
             <param name="member">The member to check.</param>
             <param name="serializeUnityFields">Whether to allow serialization of members that will also be serialized by Unity.</param>
+            <param name="policy">The policy that Odin should be using for serialization of the given member. If this parameter is null, it defaults to <see cref="P:OdinSerializer.SerializationPolicies.Unity"/>.</param>
             <returns>True if Odin will serialize the member, otherwise false.</returns>
         </member>
         <member name="M:OdinSerializer.UnitySerializationUtility.GuessIfUnityWillSerialize(System.Reflection.MemberInfo)">

@@ -18,7 +18,7 @@
 
 //#define PREFAB_DEBUG
 #if UNITY_EDITOR
-namespace Sirenix.Serialization
+namespace OdinSerializer
 {
     using System;
     using System.Reflection;
