@@ -22,7 +22,16 @@ namespace OdinSerializer.Utilities.Editor
         static OdinBuildAutomation()
         {
             var odinSerializerDir = new DirectoryInfo(typeof(AssemblyImportSettingsUtilities).Assembly.GetAssemblyDirectory())
-                .Parent.FullName.Replace('\\', '/').TrimEnd('/');
+                .Parent.FullName.Replace('\\', '/').Replace("//", "/").TrimEnd('/');
+
+            var unityDataPath = Environment.CurrentDirectory.Replace("\\", "//").Replace("//", "/").TrimEnd('/');
+
+            if (!odinSerializerDir.StartsWith(unityDataPath))
+            {
+                throw new FileNotFoundException("The referenced Odin Serializer assemblies are not inside the current Unity project - cannot use build automation script!");
+            }
+
+            odinSerializerDir = odinSerializerDir.Substring(unityDataPath.Length).TrimStart('/');
 
             EditorAssemblyPath    = odinSerializerDir + "/EditorOnly/OdinSerializer.dll";
             AOTAssemblyPath       = odinSerializerDir + "/AOT/OdinSerializer.dll";
