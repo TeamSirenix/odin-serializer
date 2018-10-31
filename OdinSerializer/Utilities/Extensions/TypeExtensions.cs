@@ -960,7 +960,7 @@ namespace OdinSerializer.Utilities
                     throw new NotImplementedException();
             }
 
-            return type.GetMethod(methodName, Flags.StaticAnyVisibility);
+            return type.GetAllMembers<MethodInfo>(Flags.StaticAnyVisibility).FirstOrDefault(m => m.Name == methodName);
         }
 
         /// <summary>
@@ -1052,8 +1052,8 @@ namespace OdinSerializer.Utilities
                 default:
                     throw new NotImplementedException();
             }
-
-            return type.GetMethods(Flags.StaticAnyVisibility).Where(x => x.Name == methodName).ToArray();
+            
+            return type.GetAllMembers<MethodInfo>(Flags.StaticAnyVisibility).Where(x => x.Name == methodName).ToArray();
         }
 
         /// <summary>
