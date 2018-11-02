@@ -616,12 +616,12 @@ namespace OdinSerializer
                 {
                     id = this.seenTypes.Count;
                     this.seenTypes.Add(type, id);
-                    this.WriteString(JsonConfig.TYPE_SIG, id + "|" + this.Binder.BindToName(type, this.Context.Config.DebugContext));
+                    this.WriteString(JsonConfig.TYPE_SIG, id + "|" + this.Context.Binder.BindToName(type, this.Context.Config.DebugContext));
                 }
             }
             else
             {
-                this.WriteString(JsonConfig.TYPE_SIG, this.Binder.BindToName(type, this.Context.Config.DebugContext));
+                this.WriteString(JsonConfig.TYPE_SIG, this.Context.Binder.BindToName(type, this.Context.Config.DebugContext));
             }
         }
 

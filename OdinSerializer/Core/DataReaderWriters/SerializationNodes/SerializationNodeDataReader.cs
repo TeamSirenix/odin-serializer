@@ -226,7 +226,7 @@ namespace OdinSerializer
 
                     if (typeName != null)
                     {
-                        type = this.Binder.BindToType(typeName, this.Context.Config.DebugContext);
+                        type = this.Context.Binder.BindToType(typeName, this.Context.Config.DebugContext);
                     }
                 }
 

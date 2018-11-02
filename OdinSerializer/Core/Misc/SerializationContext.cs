@@ -33,6 +33,7 @@ namespace OdinSerializer
         private Dictionary<object, int> internalReferenceIdMap = new Dictionary<object, int>(128, ReferenceEqualityComparer<object>.Default);
         private StreamingContext streamingContext;
         private IFormatterConverter formatterConverter;
+        private TwoWaySerializationBinder binder;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SerializationContext"/> class.
@@ -77,6 +78,30 @@ namespace OdinSerializer
             this.formatterConverter = formatterConverter;
 
             this.ResetToDefault();
+        }
+
+        /// <summary>
+        /// Gets or sets the context's type binder.
+        /// </summary>
+        /// <value>
+        /// The context's serialization binder.
+        /// </value>
+        public TwoWaySerializationBinder Binder
+        {
+            get
+            {
+                if (this.binder == null)
+                {
+                    this.binder = DefaultSerializationBinder.Default;
+                }
+
+                return this.binder;
+            }
+
+            set
+            {
+                this.binder = value;
+            }
         }
 
         /// <summary>
@@ -278,6 +303,7 @@ namespace OdinSerializer
             this.IndexReferenceResolver = null;
             this.GuidReferenceResolver = null;
             this.StringReferenceResolver = null;
+            this.binder = null;
         }
 
         void ICacheNotificationReceiver.OnFreed()

@@ -680,7 +680,7 @@ namespace OdinSerializer
                     this.types.Add(type, id);
                     this.Stream.WriteByte((byte)BinaryEntryType.TypeName);
                     this.WriteIntValue(id);
-                    this.WriteStringValue(this.Binder.BindToName(type, this.Context.Config.DebugContext));
+                    this.WriteStringValue(this.Context.Binder.BindToName(type, this.Context.Config.DebugContext));
                 }
             }
         }

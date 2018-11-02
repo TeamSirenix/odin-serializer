@@ -194,7 +194,7 @@ namespace OdinSerializer
                             }
                         }
 
-                        type = this.Binder.BindToType(this.peekedEntryContent.Substring(typeNameStartIndex, this.peekedEntryContent.Length - (1 + typeNameStartIndex)), this.Context.Config.DebugContext);
+                        type = this.Context.Binder.BindToType(this.peekedEntryContent.Substring(typeNameStartIndex, this.peekedEntryContent.Length - (1 + typeNameStartIndex)), this.Context.Config.DebugContext);
 
                         if (typeID >= 0)
                         {

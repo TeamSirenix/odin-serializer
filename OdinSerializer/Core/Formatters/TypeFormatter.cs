@@ -40,7 +40,7 @@ namespace OdinSerializer
             if (reader.PeekEntry(out name) == EntryType.String)
             {
                 reader.ReadString(out name);
-                value = reader.Binder.BindToType(name, reader.Context.Config.DebugContext);
+                value = reader.Context.Binder.BindToType(name, reader.Context.Config.DebugContext);
 
                 if (value != null)
                 {
@@ -56,7 +56,7 @@ namespace OdinSerializer
         /// <param name="writer">The writer to use.</param>
         protected override void Write(ref Type value, IDataWriter writer)
         {
-            writer.WriteString(null, writer.Binder.BindToName(value, writer.Context.Config.DebugContext));
+            writer.WriteString(null, writer.Context.Binder.BindToName(value, writer.Context.Config.DebugContext));
         }
 
         /// <summary>

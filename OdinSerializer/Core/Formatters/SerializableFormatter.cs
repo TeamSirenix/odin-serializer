@@ -178,7 +178,7 @@ namespace OdinSerializer
                         {
                             string typeName;
                             reader.ReadString(out typeName);
-                            type = reader.Binder.BindToType(typeName, reader.Context.Config.DebugContext);
+                            type = reader.Context.Binder.BindToType(typeName, reader.Context.Config.DebugContext);
                         }
 
                         if (type == null)
@@ -220,7 +220,7 @@ namespace OdinSerializer
                 {
                     try
                     {
-                        writer.WriteString("type", writer.Binder.BindToName(entry.ObjectType, writer.Context.Config.DebugContext));
+                        writer.WriteString("type", writer.Context.Binder.BindToName(entry.ObjectType, writer.Context.Config.DebugContext));
                         var readerWriter = Serializer.Get(entry.ObjectType);
                         readerWriter.WriteValueWeak(entry.Name, entry.Value, writer);
                     }

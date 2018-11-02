@@ -26,30 +26,41 @@ namespace OdinSerializer
     /// </summary>
     public abstract class BaseDataReaderWriter
     {
-        private TwoWaySerializationBinder binder;
         private Stack<NodeInfo> nodes = new Stack<NodeInfo>(32);
 
         /// <summary>
-        /// Gets or sets the reader's or writer's serialization binder.
+        /// Gets or sets the context's or writer's serialization binder.
         /// </summary>
         /// <value>
         /// The reader's or writer's serialization binder.
         /// </value>
+        [Obsolete("Use the Binder member on the writer's SerializationContext/DeserializationContext instead.", error: false)]
         public TwoWaySerializationBinder Binder
         {
             get
             {
-                if (this.binder == null)
+                if (this is IDataWriter)
                 {
-                    this.binder = DefaultSerializationBinder.Default;
+                    return (this as IDataWriter).Context.Binder;
+                }
+                else if (this is IDataReader)
+                {
+                    return (this as IDataReader).Context.Binder;
                 }
 
-                return this.binder;
+                return TwoWaySerializationBinder.Default;
             }
 
             set
             {
-                this.binder = value;
+                if (this is IDataWriter)
+                {
+                    (this as IDataWriter).Context.Binder = value;
+                }
+                else if (this is IDataReader)
+                {
+                    (this as IDataReader).Context.Binder = value;
+                }
             }
         }
 

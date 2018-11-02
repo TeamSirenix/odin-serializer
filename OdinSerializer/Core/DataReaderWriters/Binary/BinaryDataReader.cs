@@ -1812,7 +1812,7 @@ namespace OdinSerializer
             {
                 int id = this.ReadIntValue();
                 string name = this.ReadStringValue();
-                type = this.Binder.BindToType(name, this.Context.Config.DebugContext);
+                type = this.Context.Binder.BindToType(name, this.Context.Config.DebugContext);
                 this.types.Add(id, type);
             }
             else if (entryType == BinaryEntryType.TypeID)
