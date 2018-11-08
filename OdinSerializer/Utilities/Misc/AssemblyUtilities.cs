@@ -108,7 +108,7 @@ namespace OdinSerializer.Utilities
             {
                 if (!args.LoadedAssembly.IsDynamic() && !args.LoadedAssembly.ReflectionOnly)
                 {
-                    RegisterAssembly_THREADSAFE(args.LoadedAssembly);
+                    RegisterAssembly_THREADSAFE(args.LoadedAssembly, mightNotBeInitialized: true);
                 }
             };
 
@@ -143,7 +143,7 @@ namespace OdinSerializer.Utilities
                 {
                     for (int i = 0; i < queuedAssemblies.Length; i++)
                     {
-                        RegisterAssembly_THREADSAFE(queuedAssemblies[i]);
+                        RegisterAssembly_THREADSAFE(queuedAssemblies[i], mightNotBeInitialized: false);
                     }
                 }
 
@@ -202,14 +202,17 @@ namespace OdinSerializer.Utilities
 
                 for (int i = 0; i < loadedAssemblies.Length; i++)
                 {
-                    RegisterAssembly_THREADSAFE(loadedAssemblies[i]);
+                    RegisterAssembly_THREADSAFE(loadedAssemblies[i], mightNotBeInitialized: false);
                 }
             }
         }
 
-        private static void RegisterAssembly_THREADSAFE(Assembly assembly)
+        private static void RegisterAssembly_THREADSAFE(Assembly assembly, bool mightNotBeInitialized)
         {
-            EnsureInitialized();
+            if (mightNotBeInitialized)
+            {
+                EnsureInitialized();
+            }
 
             // This immediately fails to acquire the lock if it is not available,
             // deadlocks should be fundamentally impossible.
