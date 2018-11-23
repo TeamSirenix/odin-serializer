@@ -21,6 +21,7 @@ namespace OdinSerializer
     using System.Collections.Generic;
     using System.Globalization;
     using System.IO;
+    using System.Linq;
 
     /// <summary>
     /// Not yet documented.
@@ -965,6 +966,34 @@ namespace OdinSerializer
                 value = default(ulong);
                 return false;
             }
+        }
+
+        public override string GetDataDump()
+        {
+            var sb = new System.Text.StringBuilder();
+
+            sb.Append("Nodes: \n\n");
+
+            for (int i = 0; i < this.nodes.Count; i++)
+            {
+                var node = this.nodes[i];
+
+                sb.Append("    - Name: " + node.Name);
+
+                if (i == this.currentIndex)
+                {
+                    sb.AppendLine("    <<<< READ POSITION");
+                }
+                else
+                {
+                    sb.AppendLine();
+                }
+
+                sb.AppendLine("      Entry: " + (int)node.Entry);
+                sb.AppendLine("      Data: " + node.Data);
+            }
+
+            return sb.ToString();
         }
 
         private void ConsumeCurrentEntry()

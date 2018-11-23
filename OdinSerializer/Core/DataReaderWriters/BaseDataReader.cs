@@ -525,6 +525,11 @@ namespace OdinSerializer
         }
 
         /// <summary>
+        /// Gets a dump of the data being read by the writer. The format of this dump varies, but should be useful for debugging purposes.
+        /// </summary>
+        public abstract string GetDataDump();
+
+        /// <summary>
         /// Peeks the current entry.
         /// </summary>
         /// <returns>The peeked entry.</returns>

@@ -306,5 +306,10 @@ namespace OdinSerializer
         {
             this.ClearNodes();
         }
+
+        /// <summary>
+        /// Gets a dump of the data currently written by the writer. The format of this dump varies, but should be useful for debugging purposes.
+        /// </summary>
+        public abstract string GetDataDump();
     }
 }

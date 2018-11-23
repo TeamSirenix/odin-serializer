@@ -1519,6 +1519,25 @@ namespace OdinSerializer
             this.types.Clear();
         }
 
+        public override string GetDataDump()
+        {
+            if (!this.Stream.CanSeek)
+            {
+                return "Binary data stream cannot seek; cannot dump data.";
+            }
+
+            var oldPosition = this.Stream.Position;
+
+            var bytes = new byte[this.Stream.Length];
+
+            this.Stream.Position = 0;
+            this.Stream.Read(bytes, 0, bytes.Length);
+
+            this.Stream.Position = oldPosition;
+
+            return "Binary hex dump: " + ProperBitConverter.BytesToHexString(bytes);
+        }
+
         private string ReadStringValue()
         {
             int charSizeFlag = this.Stream.ReadByte();

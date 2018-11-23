@@ -45,6 +45,7 @@ namespace OdinSerializer
         /// <value>
         /// The base stream of the writer.
         /// </value>
+        [Obsolete("Data readers and writers don't necessarily have streams any longer, so this API has been made obsolete. Using this property may result in NotSupportedExceptions being thrown.", false)]
         Stream Stream { get; set; }
 
         /// <summary>
@@ -62,6 +63,11 @@ namespace OdinSerializer
         /// The serialization context.
         /// </value>
         SerializationContext Context { get; set; }
+
+        /// <summary>
+        /// Gets a dump of the data currently written by the writer. The format of this dump varies, but should be useful for debugging purposes.
+        /// </summary>
+        string GetDataDump();
 
         /// <summary>
         /// Flushes everything that has been written so far to the writer's base stream.

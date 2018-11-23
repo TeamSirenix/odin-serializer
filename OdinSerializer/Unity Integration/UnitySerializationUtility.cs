@@ -1580,15 +1580,16 @@ namespace OdinSerializer
 
                         try
                         {
-                            if (reader is SerializationNodeDataReader)
-                            {
-                                var nodes = (reader as SerializationNodeDataReader).Nodes;
-                                message += "    Nodes dump: \n\n" + string.Join("\n", nodes.Select(node => "    - Name: " + node.Name + "\n      Entry: " + node.Entry + "\n      Data: " + node.Data).ToArray());
-                            }
-                            else if (reader.Stream is MemoryStream)
-                            {
-                                message += "    Data stream dump (base64): " + ProperBitConverter.BytesToHexString((reader.Stream as MemoryStream).ToArray());
-                            }
+                            message += "    Data dump: " + reader.GetDataDump();
+                            //if (reader is SerializationNodeDataReader)
+                            //{
+                            //    var nodes = (reader as SerializationNodeDataReader).Nodes;
+                            //    message += "    Nodes dump: \n\n" + string.Join("\n", nodes.Select(node => "    - Name: " + node.Name + "\n      Entry: " + node.Entry + "\n      Data: " + node.Data).ToArray());
+                            //}
+                            //else if (reader.Stream is MemoryStream)
+                            //{
+                            //    message += "    Data stream dump (base64): " + ProperBitConverter.BytesToHexString((reader.Stream as MemoryStream).ToArray());
+                            //}
                         }
                         finally
                         {
@@ -2155,7 +2156,15 @@ namespace OdinSerializer
             else
             {
                 writer.Context = context;
-                writer.Stream = stream;
+
+                if (writer is BinaryDataWriter)
+                {
+                    (writer as BinaryDataWriter).Stream = stream;
+                }
+                else if (writer is JsonDataWriter)
+                {
+                    (writer as JsonDataWriter).Stream = stream;
+                }
             }
 
             return writer;
@@ -2173,7 +2182,15 @@ namespace OdinSerializer
             else
             {
                 reader.Context = context;
-                reader.Stream = stream;
+
+                if (reader is BinaryDataReader)
+                {
+                    (reader as BinaryDataReader).Stream = stream;
+                }
+                else if (reader is JsonDataReader)
+                {
+                    (reader as JsonDataReader).Stream = stream;
+                }
             }
 
             return reader;

@@ -45,8 +45,9 @@ namespace OdinSerializer
         /// <value>
         /// The base stream of the reader.
         /// </value>
+        [Obsolete("Data readers and writers don't necessarily have streams any longer, so this API has been made obsolete. Using this property may result in NotSupportedExceptions being thrown.", false)]
         Stream Stream { get; set; }
-
+        
         /// <summary>
         /// Gets a value indicating whether the reader is in an array node.
         /// </summary>
@@ -86,6 +87,11 @@ namespace OdinSerializer
         /// The deserialization context.
         /// </value>
         DeserializationContext Context { get; set; }
+
+        /// <summary>
+        /// Gets a dump of the data being read by the writer. The format of this dump varies, but should be useful for debugging purposes.
+        /// </summary>
+        string GetDataDump();
 
         /// <summary>
         /// Tries to enter a node. This will succeed if the next entry is an <see cref="EntryType.StartOfNode"/>.

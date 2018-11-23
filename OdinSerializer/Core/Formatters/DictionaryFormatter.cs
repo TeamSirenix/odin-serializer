@@ -146,7 +146,7 @@ namespace OdinSerializer
 
                         if (reader.IsInArrayNode == false)
                         {
-                            reader.Context.Config.DebugContext.LogError("Reading array went wrong at position " + reader.Stream.Position + ".");
+                            reader.Context.Config.DebugContext.LogError("Reading array went wrong. Data dump: " + reader.GetDataDump());
                             break;
                         }
                     }
