@@ -155,6 +155,10 @@ namespace OdinSerializer.Editor
                     }
 
                     var assetPath = AssetDatabase.GetAssetPath(resources[i]);
+
+                    // Exclude editor-only resources
+                    if (assetPath.ToLower().Contains("/editor/")) continue;
+
                     this.ScanAsset(assetPath, includeAssetDependencies: includeResourceDependencies);
                 }
 
