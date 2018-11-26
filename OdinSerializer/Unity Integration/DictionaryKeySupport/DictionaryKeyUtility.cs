@@ -53,7 +53,7 @@ namespace OdinSerializer
 
         private static readonly HashSet<char> AllowedSpecialKeyStrChars = new HashSet<char>()
         {
-            ',', '(', ')', '\\', '|', '-'
+            ',', '(', ')', '\\', '|', '-', '+'
         };
 
         private static readonly Dictionary<Type, IDictionaryKeyPathProvider> TypeToKeyPathProviders = new Dictionary<Type, IDictionaryKeyPathProvider>();
