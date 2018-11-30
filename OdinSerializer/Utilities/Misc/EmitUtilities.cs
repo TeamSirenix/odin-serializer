@@ -1547,7 +1547,7 @@ namespace OdinSerializer.Utilities
         }
 
         /// <summary>
-        /// Creates a fast delegate method which calls a given parameterless instance method.
+        /// Creates a fast delegate method which calls a given parameterless instance method on a reference type.
         /// </summary>
         /// <typeparam name="InstanceType">The type of the class which the method is on.</typeparam>
         /// <param name="methodInfo">The method info instance which is used.</param>
@@ -1569,6 +1569,11 @@ namespace OdinSerializer.Utilities
                 throw new ArgumentException("Given method cannot have any parameters.");
             }
 
+            if (typeof(InstanceType).IsValueType)
+            {
+                throw new ArgumentException("This method does not work with struct instances; please use CreateInstanceRefMethodCaller instead.");
+            }
+
             methodInfo = methodInfo.DeAliasMethod();
 
             // Luckily there's no need to emit this - we can just create a delegate and it's only ~10% slower than calling the method directly
@@ -1577,7 +1582,7 @@ namespace OdinSerializer.Utilities
         }
 
         /// <summary>
-        /// Creates a fast delegate method which calls a given instance method with a given argument.
+        /// Creates a fast delegate method which calls a given instance method with a given argument on a reference type.
         /// </summary>
         /// <typeparam name="InstanceType">The type of the class which the method is on.</typeparam>
         /// <typeparam name="Arg1">The type of the argument with which to call the method.</typeparam>
@@ -1600,11 +1605,138 @@ namespace OdinSerializer.Utilities
                 throw new ArgumentException("Given method must have only one parameter.");
             }
 
+            if (typeof(InstanceType).IsValueType)
+            {
+                throw new ArgumentException("This method does not work with struct instances; please use CreateInstanceRefMethodCaller instead.");
+            }
+
             methodInfo = methodInfo.DeAliasMethod();
 
             // Luckily there's no need to emit this - we can just create a delegate and it's only ~10% slower than calling the method directly
             // from normal compiled/emitted code. As opposed to using MethodInfo.Invoke, which is on average 600 (!!!) times slower.
             return (Action<InstanceType, Arg1>)Delegate.CreateDelegate(typeof(Action<InstanceType, Arg1>), methodInfo);
+        }
+
+        public delegate void InstanceRefMethodCaller<InstanceType>(ref InstanceType instance);
+        public delegate void InstanceRefMethodCaller<InstanceType, TArg1>(ref InstanceType instance, TArg1 arg1);
+
+        /// <summary>
+        /// Creates a fast delegate method which calls a given parameterless instance method.
+        /// </summary>
+        /// <typeparam name="InstanceType">The type of the class which the method is on.</typeparam>
+        /// <param name="methodInfo">The method info instance which is used.</param>
+        /// <returns>A delegate which calls the method and returns the result, except it's hundreds of times faster than MethodInfo.Invoke.</returns>
+        public static InstanceRefMethodCaller<InstanceType> CreateInstanceRefMethodCaller<InstanceType>(MethodInfo methodInfo)
+        {
+            if (methodInfo == null)
+            {
+                throw new ArgumentNullException("methodInfo");
+            }
+
+            if (methodInfo.IsStatic)
+            {
+                throw new ArgumentException("Given method '" + methodInfo.Name + "' is static when it has to be an instance method.");
+            }
+
+            if (methodInfo.GetParameters().Length > 0)
+            {
+                throw new ArgumentException("Given method cannot have any parameters.");
+            }
+
+            methodInfo = methodInfo.DeAliasMethod();
+
+#if !CAN_EMIT
+            // Platform does not support emitting dynamic code
+            return (ref InstanceType instance) =>
+            {
+                object obj = instance;
+                methodInfo.Invoke(obj, null);
+                instance = (InstanceType)obj;
+            };
+#else
+            Type declaringType = methodInfo.DeclaringType;
+            string methodName = methodInfo.ReflectedType.FullName + ".call_" + methodInfo.Name;
+
+            DynamicMethod method = new DynamicMethod(methodName, typeof(void), new Type[] { typeof(InstanceType).MakeByRefType() }, true);
+            ILGenerator gen = method.GetILGenerator();
+
+            if (declaringType.IsValueType)
+            {
+                gen.Emit(OpCodes.Ldarg_0);
+                gen.Emit(OpCodes.Call, methodInfo);
+            }
+            else
+            {
+                gen.Emit(OpCodes.Ldarg_0);
+                gen.Emit(OpCodes.Ldind_Ref);
+                gen.Emit(OpCodes.Callvirt, methodInfo);
+            }
+
+            gen.Emit(OpCodes.Ret);
+
+            return (InstanceRefMethodCaller<InstanceType>)method.CreateDelegate(typeof(InstanceRefMethodCaller<InstanceType>));
+#endif
+        }
+
+        /// <summary>
+        /// Creates a fast delegate method which calls a given instance method with a given argument on a struct type.
+        /// </summary>
+        /// <typeparam name="InstanceType">The type of the class which the method is on.</typeparam>
+        /// <typeparam name="Arg1">The type of the argument with which to call the method.</typeparam>
+        /// <param name="methodInfo">The method info instance which is used.</param>
+        /// <returns>A delegate which calls the method and returns the result, except it's hundreds of times faster than MethodInfo.Invoke.</returns>
+        public static InstanceRefMethodCaller<InstanceType, Arg1> CreateInstanceRefMethodCaller<InstanceType, Arg1>(MethodInfo methodInfo)
+        {
+            if (methodInfo == null)
+            {
+                throw new ArgumentNullException("methodInfo");
+            }
+
+            if (methodInfo.IsStatic)
+            {
+                throw new ArgumentException("Given method '" + methodInfo.Name + "' is static when it has to be an instance method.");
+            }
+
+            if (methodInfo.GetParameters().Length != 1)
+            {
+                throw new ArgumentException("Given method must have only one parameter.");
+            }
+            
+            methodInfo = methodInfo.DeAliasMethod();
+
+#if !CAN_EMIT
+            // Platform does not support emitting dynamic code
+            return (ref InstanceType instance, Arg1 arg1) =>
+            {
+                object obj = instance;
+                methodInfo.Invoke(obj, new object[] { arg1 });
+                instance = (InstanceType)obj;
+            };
+#else
+            Type declaringType = methodInfo.DeclaringType;
+            string methodName = methodInfo.ReflectedType.FullName + ".call_" + methodInfo.Name;
+
+            DynamicMethod method = new DynamicMethod(methodName, typeof(void), new Type[] { typeof(InstanceType).MakeByRefType(), typeof(Arg1) }, true);
+            ILGenerator gen = method.GetILGenerator();
+
+            if (declaringType.IsValueType)
+            {
+                gen.Emit(OpCodes.Ldarg_0);
+                gen.Emit(OpCodes.Ldarg_1);
+                gen.Emit(OpCodes.Call, methodInfo);
+            }
+            else
+            {
+                gen.Emit(OpCodes.Ldarg_0);
+                gen.Emit(OpCodes.Ldind_Ref);
+                gen.Emit(OpCodes.Ldarg_1);
+                gen.Emit(OpCodes.Callvirt, methodInfo);
+            }
+
+            gen.Emit(OpCodes.Ret);
+
+            return (InstanceRefMethodCaller<InstanceType, Arg1>)method.CreateDelegate(typeof(InstanceRefMethodCaller<InstanceType, Arg1>));
+#endif
         }
     }
 }

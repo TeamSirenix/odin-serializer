@@ -33,25 +33,27 @@ namespace OdinSerializer
     /// <seealso cref="IFormatter{T}" />
     public abstract class BaseFormatter<T> : IFormatter<T>
     {
+        protected delegate void SerializationCallback(ref T value, StreamingContext context);
+
         /// <summary>
         /// The on serializing callbacks for type <see cref="T"/>.
         /// </summary>
-        protected static readonly Action<T, StreamingContext>[] OnSerializingCallbacks;
+        protected static readonly SerializationCallback[] OnSerializingCallbacks;
 
         /// <summary>
         /// The on serialized callbacks for type <see cref="T"/>.
         /// </summary>
-        protected static readonly Action<T, StreamingContext>[] OnSerializedCallbacks;
+        protected static readonly SerializationCallback[] OnSerializedCallbacks;
 
         /// <summary>
         /// The on deserializing callbacks for type <see cref="T"/>.
         /// </summary>
-        protected static readonly Action<T, StreamingContext>[] OnDeserializingCallbacks;
+        protected static readonly SerializationCallback[] OnDeserializingCallbacks;
 
         /// <summary>
         /// The on deserialized callbacks for type <see cref="T"/>.
         /// </summary>
-        protected static readonly Action<T, StreamingContext>[] OnDeserializedCallbacks;
+        protected static readonly SerializationCallback[] OnDeserializedCallbacks;
 
         /// <summary>
         /// Whether the serialized value is a value type.
@@ -71,17 +73,20 @@ namespace OdinSerializer
 
             var methods = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
 
-            Func<MethodInfo, Action<T, StreamingContext>> selector = (info) =>
+            Func<MethodInfo, SerializationCallback> selector;
+
+            selector = (info) =>
             {
                 var parameters = info.GetParameters();
                 if (parameters.Length == 0)
                 {
-                    var action = EmitUtilities.CreateInstanceMethodCaller<T>(info);
-                    return (value, context) => action(value);
+                    var action = EmitUtilities.CreateInstanceRefMethodCaller<T>(info);
+                    return (ref T value, StreamingContext context) => action(ref value);
                 }
                 else if (parameters.Length == 1 && parameters[0].ParameterType == typeof(StreamingContext) && parameters[0].ParameterType.IsByRef == false)
                 {
-                    return EmitUtilities.CreateInstanceMethodCaller<T, StreamingContext>(info);
+                    var action = EmitUtilities.CreateInstanceRefMethodCaller<T, StreamingContext>(info);
+                    return (ref T value, StreamingContext context) => action(ref value, context);
                 }
                 else
                 {
@@ -159,14 +164,14 @@ namespace OdinSerializer
             // Therefore, those who override GetUninitializedObject and return null must call RegisterReferenceID and InvokeOnDeserializingCallbacks manually.
             if (BaseFormatter<T>.IsValueType)
             {
-                this.InvokeOnDeserializingCallbacks(value, context);
+                this.InvokeOnDeserializingCallbacks(ref value, context);
             }
             else
             {
                 if (object.ReferenceEquals(value, null) == false)
                 {
                     this.RegisterReferenceID(value, reader);
-                    this.InvokeOnDeserializingCallbacks(value, context);
+                    this.InvokeOnDeserializingCallbacks(ref value, context);
 
                     if (ImplementsIObjectReference)
                     {
@@ -199,7 +204,7 @@ namespace OdinSerializer
                 {
                     try
                     {
-                        OnDeserializedCallbacks[i](value, context.StreamingContext);
+                        OnDeserializedCallbacks[i](ref value, context.StreamingContext);
                     }
                     catch (Exception ex)
                     {
@@ -209,14 +214,18 @@ namespace OdinSerializer
 
                 if (ImplementsIDeserializationCallback)
                 {
-                    (value as IDeserializationCallback).OnDeserialization(this);
+                    IDeserializationCallback v = value as IDeserializationCallback;
+                    v.OnDeserialization(this);
+                    value = (T)v;
                 }
 
                 if (ImplementsISerializationCallbackReceiver)
                 {
                     try
                     {
-                        (value as UnityEngine.ISerializationCallbackReceiver).OnAfterDeserialize();
+                        UnityEngine.ISerializationCallbackReceiver v = value as UnityEngine.ISerializationCallbackReceiver;
+                        v.OnAfterDeserialize();
+                        value = (T)v;
                     }
                     catch (Exception ex)
                     {
@@ -241,7 +250,7 @@ namespace OdinSerializer
             {
                 try
                 {
-                    OnSerializingCallbacks[i](value, context.StreamingContext);
+                    OnSerializingCallbacks[i](ref value, context.StreamingContext);
                 }
                 catch (Exception ex)
                 {
@@ -253,7 +262,10 @@ namespace OdinSerializer
             {
                 try
                 {
-                    (value as UnityEngine.ISerializationCallbackReceiver).OnBeforeSerialize();
+
+                    UnityEngine.ISerializationCallbackReceiver v = value as UnityEngine.ISerializationCallbackReceiver;
+                    v.OnBeforeSerialize();
+                    value = (T)v;
                 }
                 catch (Exception ex)
                 {
@@ -274,7 +286,7 @@ namespace OdinSerializer
             {
                 try
                 {
-                    OnSerializedCallbacks[i](value, context.StreamingContext);
+                    OnSerializedCallbacks[i](ref value, context.StreamingContext);
                 }
                 catch (Exception ex)
                 {
@@ -331,13 +343,26 @@ namespace OdinSerializer
         /// </summary>
         /// <param name="value">The value to invoke the callbacks on.</param>
         /// <param name="context">The deserialization context.</param>
+        [Obsolete("Use the InvokeOnDeserializingCallbacks variant that takes a ref T value instead. This is for struct compatibility reasons.", false)]
         protected void InvokeOnDeserializingCallbacks(T value, DeserializationContext context)
+        {
+            this.InvokeOnDeserializingCallbacks(ref value, context);
+        }
+
+        /// <summary>
+        /// Invokes all methods on the object with the [OnDeserializing] attribute.
+        /// <para />
+        /// WARNING: This method will not be called automatically if you override GetUninitializedObject and return null! You will have to call it manually after having created the object instance during deserialization.
+        /// </summary>
+        /// <param name="value">The value to invoke the callbacks on.</param>
+        /// <param name="context">The deserialization context.</param>
+        protected void InvokeOnDeserializingCallbacks(ref T value, DeserializationContext context)
         {
             for (int i = 0; i < OnDeserializingCallbacks.Length; i++)
             {
                 try
                 {
-                    OnDeserializingCallbacks[i](value, context.StreamingContext);
+                    OnDeserializingCallbacks[i](ref value, context.StreamingContext);
                 }
                 catch (Exception ex)
                 {
