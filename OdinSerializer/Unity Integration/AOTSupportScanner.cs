@@ -222,12 +222,14 @@ namespace OdinSerializer.Editor
                             return false;
                         }
 
-                        EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+                        var openScene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
 
-                        var sceneGOs = UnityEngine.Object.FindObjectsOfType<GameObject>();
+                        var sceneGOs = Resources.FindObjectsOfTypeAll<GameObject>();
 
                         foreach (var go in sceneGOs)
                         {
+                            if (go.scene != openScene) continue;
+                            
                             if ((go.hideFlags & HideFlags.DontSaveInBuild) == 0)
                             {
                                 foreach (var component in go.GetComponents<ISerializationCallbackReceiver>())
