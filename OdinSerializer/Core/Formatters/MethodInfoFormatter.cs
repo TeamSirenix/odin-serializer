@@ -1,5 +1,5 @@
 ﻿//-----------------------------------------------------------------------
-// <copyright file="DelegateFormatter.cs" company="Sirenix IVS">
+// <copyright file="MethodInfoFormatter.cs" company="Sirenix IVS">
 // Copyright (c) 2018 Sirenix IVS
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -16,6 +16,10 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+using OdinSerializer;
+
+[assembly: RegisterFormatter(typeof(MethodInfoFormatter<>))]
+
 namespace OdinSerializer
 {
     using System;
@@ -24,27 +28,15 @@ namespace OdinSerializer
     using Utilities;
 
     /// <summary>
-    /// Formatter for all delegate types.
-    /// <para />
-    /// This formatter can handle anything but delegates for dynamic methods.
+    /// Custom formatter for MethodInfo, since Unity Mono's MethodInfo ISerializable implementation will often crash if the method no longer exists upon deserialization.
     /// </summary>
-    /// <typeparam name="T"></typeparam>
     /// <seealso cref="BaseFormatter{T}" />
-    public sealed class DelegateFormatter<T> : BaseFormatter<T> where T : class
+    public sealed class MethodInfoFormatter<T> : BaseFormatter<T>
+        where T : MethodInfo
     {
-        private static readonly Serializer<object> ObjectSerializer = Serializer.Get<object>();
         private static readonly Serializer<string> StringSerializer = Serializer.Get<string>();
         private static readonly Serializer<Type> TypeSerializer = Serializer.Get<Type>();
         private static readonly Serializer<Type[]> TypeArraySerializer = Serializer.Get<Type[]>();
-        private static readonly Serializer<Delegate[]> DelegateArraySerializer = Serializer.Get<Delegate[]>();
-
-        static DelegateFormatter()
-        {
-            if (typeof(Delegate).IsAssignableFrom(typeof(T)) == false)
-            {
-                throw new ArgumentException("The type " + typeof(T) + " is not a delegate.");
-            }
-        }
 
         /// <summary>
         /// Provides the actual implementation for deserializing a value of type <see cref="!:T" />.
@@ -56,30 +48,40 @@ namespace OdinSerializer
             string name;
             EntryType entry;
 
-            Type delegateType = typeof(T);
+            entry = reader.PeekEntry(out name);
+
+            if (entry == EntryType.StartOfArray)
+            {
+                // We have legacy ISerializable data for the MethodInfo, since in no case will data written by this formatter ever start with an array.
+                // In this case, get the proper legacy formatter for this type and read the data using that.
+
+                IFormatter<T> serializableFormatter;
+
+                try
+                {
+                    serializableFormatter = (IFormatter<T>)Activator.CreateInstance(typeof(SerializableFormatter<>).MakeGenericType(typeof(T)));
+                }
+                catch (Exception)
+                {
+                    reader.Context.Config.DebugContext.LogWarning("MethodInfo with legacy ISerializable data serialized was read in a context where a SerializableFormatter<T> formatter for the type could not be instantiated, likely in an IL2CPP build. This means legacy data cannot be read properly - please reserialize all data in your project to ensure no legacy MethodInfo data is included in your build, as this case is not AOT-supported by default.");
+
+                    value = null;
+                    return;
+                }
+
+                value = serializableFormatter.Deserialize(reader);
+                return;
+            }
+
             Type declaringType = null;
-            object target = null;
             string methodName = null;
             Type[] signature = null;
             Type[] genericArguments = null;
-            Delegate[] invocationList = null;
 
             while ((entry = reader.PeekEntry(out name)) != EntryType.EndOfNode && entry != EntryType.EndOfArray && entry != EntryType.EndOfStream)
             {
                 switch (name)
                 {
-                    case "invocationList":
-                        {
-                            invocationList = DelegateArraySerializer.ReadValue(reader);
-                        }
-                        break;
-
-                    case "target":
-                        {
-                            target = ObjectSerializer.ReadValue(reader);
-                        }
-                        break;
-
                     case "declaringType":
                         {
                             var t = TypeSerializer.ReadValue(reader);
@@ -94,17 +96,6 @@ namespace OdinSerializer
                     case "methodName":
                         {
                             methodName = StringSerializer.ReadValue(reader);
-                        }
-                        break;
-
-                    case "delegateType":
-                        {
-                            var t = TypeSerializer.ReadValue(reader);
-
-                            if (t != null)
-                            {
-                                delegateType = t;
-                            }
                         }
                         break;
 
@@ -126,43 +117,15 @@ namespace OdinSerializer
                 }
             }
 
-            if (invocationList != null)
-            {
-                Delegate combinedDelegate = null;
-
-                try
-                {
-                    combinedDelegate = Delegate.Combine(invocationList);
-                }
-                catch (Exception ex)
-                {
-                    reader.Context.Config.DebugContext.LogError("Recombining delegate invocation list upon deserialization failed with an exception of type " + ex.GetType().GetNiceFullName() + " with the message: " + ex.Message);
-                }
-
-                if (combinedDelegate != null)
-                {
-                    try
-                    {
-                        value = (T)(object)combinedDelegate;
-                    }
-                    catch (InvalidCastException)
-                    {
-                        reader.Context.Config.DebugContext.LogWarning("Could not cast recombined delegate of type " + combinedDelegate.GetType().GetNiceFullName() + " to expected delegate type " + typeof(T).GetNiceFullName() + ".");
-                    }
-                }
-
-                return;
-            }
-
             if (declaringType == null)
             {
-                reader.Context.Config.DebugContext.LogWarning("Missing declaring type of delegate on deserialize.");
+                reader.Context.Config.DebugContext.LogWarning("Missing declaring type of MethodInfo on deserialize.");
                 return;
             }
 
             if (methodName == null)
             {
-                reader.Context.Config.DebugContext.LogError("Missing method name of delegate on deserialize.");
+                reader.Context.Config.DebugContext.LogError("Missing method name of MethodInfo on deserialize.");
                 return;
             }
 
@@ -227,7 +190,7 @@ namespace OdinSerializer
             {
                 if (genericArguments == null)
                 {
-                    reader.Context.Config.DebugContext.LogWarning("Method '" + declaringType.GetNiceFullName() + "." + methodInfo.GetNiceName() + "' of delegate to deserialize is a generic method definition, but no generic arguments were in the serialization data.");
+                    reader.Context.Config.DebugContext.LogWarning("Method '" + declaringType.GetNiceFullName() + "." + methodInfo.GetNiceName() + "' to deserialize is a generic method definition, but no generic arguments were in the serialization data.");
                     return;
                 }
 
@@ -235,7 +198,7 @@ namespace OdinSerializer
 
                 if (genericArguments.Length != argCount)
                 {
-                    reader.Context.Config.DebugContext.LogWarning("Method '" + declaringType.GetNiceFullName() + "." + methodInfo.GetNiceName() + "' of delegate to deserialize is a generic method definition, but there is the wrong number of generic arguments in the serialization data.");
+                    reader.Context.Config.DebugContext.LogWarning("Method '" + declaringType.GetNiceFullName() + "." + methodInfo.GetNiceName() + "' to deserialize is a generic method definition, but there is the wrong number of generic arguments in the serialization data.");
                     return;
                 }
 
@@ -243,7 +206,7 @@ namespace OdinSerializer
                 {
                     if (genericArguments[i] == null)
                     {
-                        reader.Context.Config.DebugContext.LogWarning("Method '" + declaringType.GetNiceFullName() + "." + methodInfo.GetNiceName() + "' of delegate to deserialize is a generic method definition, but one of the serialized generic argument types failed to bind on deserialization.");
+                        reader.Context.Config.DebugContext.LogWarning("Method '" + declaringType.GetNiceFullName() + "." + methodInfo.GetNiceName() + "' to deserialize is a generic method definition, but one of the serialized generic argument types failed to bind on deserialization.");
                         return;
                     }
                 }
@@ -254,47 +217,22 @@ namespace OdinSerializer
                 }
                 catch (Exception ex)
                 {
-                    reader.Context.Config.DebugContext.LogWarning("Method '" + declaringType.GetNiceFullName() + "." + methodInfo.GetNiceName() + "' of delegate to deserialize is a generic method definition, but failed to create generic method from definition, using generic arguments '" + string.Join(", ", genericArguments.Select(p => p.GetNiceFullName()).ToArray()) + "'. Method creation failed with an exception of type " + ex.GetType().GetNiceFullName() + ", with the message: " + ex.Message);
+                    reader.Context.Config.DebugContext.LogWarning("Method '" + declaringType.GetNiceFullName() + "." + methodInfo.GetNiceName() + "' to deserialize is a generic method definition, but failed to create generic method from definition, using generic arguments '" + string.Join(", ", genericArguments.Select(p => p.GetNiceFullName()).ToArray()) + "'. Method creation failed with an exception of type " + ex.GetType().GetNiceFullName() + ", with the message: " + ex.Message);
                     return;
                 }
             }
 
-            if (methodInfo.IsStatic)
+            try
             {
-                value = (T)(object)Delegate.CreateDelegate(delegateType, methodInfo, false);
+                value = (T)methodInfo;
             }
-            else
+            catch (InvalidCastException)
             {
-                Type targetType = methodInfo.DeclaringType;
-
-                if (typeof(UnityEngine.Object).IsAssignableFrom(targetType))
-                {
-                    if ((target as UnityEngine.Object) == null)
-                    {
-                        reader.Context.Config.DebugContext.LogWarning("Method '" + declaringType.GetNiceFullName() + "." + methodInfo.GetNiceName() + "' of delegate to deserialize is an instance method, but Unity object target of type '" + targetType.GetNiceFullName() + "' was null on deserialization. Did something destroy it, or did you apply a delegate value targeting a scene-based UnityEngine.Object instance to a prefab?");
-                        return;
-                    }
-                }
-                else
-                {
-                    if (object.ReferenceEquals(target, null))
-                    {
-                        reader.Context.Config.DebugContext.LogWarning("Method '" + declaringType.GetNiceFullName() + "." + methodInfo.GetNiceName() + "' of delegate to deserialize is an instance method, but no valid instance target of type '" + targetType.GetNiceFullName() + "' was in the serialization data. Has something been renamed since serialization?");
-                        return;
-                    }
-                }
-
-                value = (T)(object)Delegate.CreateDelegate(delegateType, target, methodInfo, false);
-            }
-
-            if (value == null)
-            {
-                reader.Context.Config.DebugContext.LogWarning("Failed to create delegate of type " + delegateType.GetNiceFullName() + " from method '" + declaringType.GetNiceFullName() + "." + methodInfo.GetNiceName() + "'.");
+                reader.Context.Config.DebugContext.LogWarning("The serialized method '" + declaringType.GetNiceFullName() + "." + methodInfo.GetNiceName() + "' was successfully resolved into a MethodInfo reference of the runtime type '" + methodInfo.GetType().GetNiceFullName() + "', but failed to be cast to expected type '" + typeof(T).GetNiceFullName() + "'.");
                 return;
             }
 
             this.RegisterReferenceID(value, reader);
-            this.InvokeOnDeserializingCallbacks(ref value, reader.Context);
         }
 
         /// <summary>
@@ -304,41 +242,22 @@ namespace OdinSerializer
         /// <param name="writer">The writer to serialize with.</param>
         protected override void SerializeImplementation(ref T value, IDataWriter writer)
         {
-            Delegate del = (Delegate)(object)value;
-
-            Delegate[] invocationList = del.GetInvocationList();
-
-            if (invocationList.Length > 1)
-            {
-                // We're serializing an invocation list, not a single delegate
-                // Serialize that array of delegates instead
-                DelegateArraySerializer.WriteValue("invocationList", invocationList, writer);
-                return;
-            }
-
-            // We're serializing just one delegate invocation
-            MethodInfo methodInfo = del.Method;
+            MethodInfo methodInfo = value;
 
             if (methodInfo.GetType().Name.Contains("DynamicMethod"))
             {
-                writer.Context.Config.DebugContext.LogError("Cannot serialize delegate made from dynamically emitted method " + methodInfo + ".");
+                writer.Context.Config.DebugContext.LogWarning("Cannot serialize a dynamically emitted method " + methodInfo + ".");
                 return;
             }
 
             if (methodInfo.IsGenericMethodDefinition)
             {
-                writer.Context.Config.DebugContext.LogError("Cannot serialize delegate made from the unresolved generic method definition " + methodInfo + "; how did this even happen? It should not even be possible to have a delegate for a generic method definition that hasn't been turned into a generic method yet.");
+                writer.Context.Config.DebugContext.LogWarning("Serializing a MethodInfo for a generic method definition '" + methodInfo.GetNiceName() + "' is not currently supported.");
                 return;
-            }
-
-            if (del.Target != null)
-            {
-                ObjectSerializer.WriteValue("target", del.Target, writer);
             }
 
             TypeSerializer.WriteValue("declaringType", methodInfo.DeclaringType, writer);
             StringSerializer.WriteValue("methodName", methodInfo.Name, writer);
-            TypeSerializer.WriteValue("delegateType", del.GetType(), writer);
 
             ParameterInfo[] parameters;
 

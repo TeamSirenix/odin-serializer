@@ -257,7 +257,7 @@ namespace OdinSerializer
 
             ParseName(typeName, out typeStr, out assemblyStr);
 
-            if (assemblyStr != null && assemblyNameLookUp.ContainsKey(assemblyStr))
+            if (!string.IsNullOrEmpty(typeStr) && assemblyStr != null && assemblyNameLookUp.ContainsKey(assemblyStr))
             {
                 var assembly = assemblyNameLookUp[assemblyStr];
                 type = assembly.GetType(typeStr);

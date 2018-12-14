@@ -91,7 +91,7 @@ namespace OdinSerializer
                     {
                         value = SerializableFormatter<T>.ISerializableConstructor(info, reader.Context.StreamingContext);
 
-                        this.InvokeOnDeserializingCallbacks(value, reader.Context);
+                        this.InvokeOnDeserializingCallbacks(ref value, reader.Context);
 
                         if (IsValueType == false)
                         {
@@ -110,7 +110,7 @@ namespace OdinSerializer
             {
                 value = ReflectionFormatter.Deserialize(reader);
 
-                this.InvokeOnDeserializingCallbacks(value, reader.Context);
+                this.InvokeOnDeserializingCallbacks(ref value, reader.Context);
 
                 if (IsValueType == false)
                 {

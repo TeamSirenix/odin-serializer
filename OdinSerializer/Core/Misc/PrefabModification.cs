@@ -260,12 +260,17 @@ namespace OdinSerializer
 
             if (this.DictionaryKeysRemoved != null && this.DictionaryKeysRemoved.Length > 0)
             {
-                MethodInfo method = iType.GetMethod("Remove");
+                MethodInfo method = iType.GetMethod("Remove", new Type[] { typeArgs[0] });
                 object[] parameters = new object[1];
 
                 for (int i = 0; i < this.DictionaryKeysRemoved.Length; i++)
                 {
                     parameters[0] = this.DictionaryKeysRemoved[i];
+
+                    // Ensure the key value is safe to add
+                    if (object.ReferenceEquals(parameters[0], null) || !typeArgs[0].IsAssignableFrom(parameters[0].GetType()))
+                        continue;
+
                     method.Invoke(dictionaryObj, parameters);
                 }
             }
@@ -276,7 +281,7 @@ namespace OdinSerializer
 
             if (this.DictionaryKeysAdded != null && this.DictionaryKeysAdded.Length > 0)
             {
-                MethodInfo method = iType.GetMethod("set_Item");
+                MethodInfo method = iType.GetMethod("set_Item", typeArgs);
                 object[] parameters = new object[2];
 
                 // Get default value to set key to
@@ -285,6 +290,11 @@ namespace OdinSerializer
                 for (int i = 0; i < this.DictionaryKeysAdded.Length; i++)
                 {
                     parameters[0] = this.DictionaryKeysAdded[i];
+
+                    // Ensure the key value is safe to add
+                    if (object.ReferenceEquals(parameters[0], null) || !typeArgs[0].IsAssignableFrom(parameters[0].GetType()))
+                        continue;
+
                     method.Invoke(dictionaryObj, parameters);
                 }
             }

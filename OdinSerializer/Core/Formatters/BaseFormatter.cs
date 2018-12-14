@@ -297,7 +297,7 @@ namespace OdinSerializer
 
         /// <summary>
         /// Get an uninitialized object of type <see cref="T"/>. WARNING: If you override this and return null, the object's ID will not be automatically registered and its OnDeserializing callbacks will not be automatically called, before deserialization begins.
-        /// You will have to call <see cref="BaseFormatter{T}.RegisterReferenceID(T, IDataReader)"/> and <see cref="BaseFormatter{T}.InvokeOnDeserializingCallbacks(T, DeserializationContext)"/> immediately after creating the object yourself during deserialization.
+        /// You will have to call <see cref="BaseFormatter{T}.RegisterReferenceID(T, IDataReader)"/> and <see cref="BaseFormatter{T}.InvokeOnDeserializingCallbacks(ref T, DeserializationContext)"/> immediately after creating the object yourself during deserialization.
         /// </summary>
         /// <returns>An uninitialized object of type <see cref="T"/>.</returns>
         protected virtual T GetUninitializedObject()
