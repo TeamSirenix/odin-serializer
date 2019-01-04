@@ -28,7 +28,7 @@ namespace OdinSerializer
     /// <seealso cref="ICacheNotificationReceiver" />
     public sealed class UnityReferenceResolver : IExternalIndexReferenceResolver, ICacheNotificationReceiver
     {
-        private Dictionary<UnityEngine.Object, int> referenceIndexMapping = new Dictionary<UnityEngine.Object, int>(32);
+        private Dictionary<UnityEngine.Object, int> referenceIndexMapping = new Dictionary<UnityEngine.Object, int>(32, ReferenceEqualityComparer<UnityEngine.Object>.Default);
         private List<UnityEngine.Object> referencedUnityObjects;
 
         /// <summary>
