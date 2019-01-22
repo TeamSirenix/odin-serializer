@@ -307,7 +307,9 @@ namespace OdinSerializer
                 if (!ObjectsToTempKeys.TryGetValue(key, out keyString))
                 {
                     keyString = (tempKeyCounter++).ToString();
-                    ObjectsToTempKeys[key] = "{temp:" + keyString + "}";
+                    var str = "{temp:" + keyString + "}";
+                    ObjectsToTempKeys[key] = str;
+                    TempKeysToObjects[str] = key;
                 }
 
                 return keyString;
