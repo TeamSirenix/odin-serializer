@@ -752,6 +752,13 @@ namespace OdinSerializer
                             using (var writer = new SerializationNodeDataWriter(newContext))
                             using (var resolver = Cache<UnityReferenceResolver>.Claim())
                             {
+                                if (data.SerializationNodes != null)
+                                {
+                                    // Reuse pre-expanded list to keep GC down
+                                    data.SerializationNodes.Clear();
+                                    writer.Nodes = data.SerializationNodes;
+                                }
+
                                 resolver.Value.SetReferencedUnityObjects(data.ReferencedUnityObjects);
 
                                 newContext.Value.Config.SerializationPolicy = serializationPolicy;
@@ -769,6 +776,13 @@ namespace OdinSerializer
                             using (var writer = new SerializationNodeDataWriter(context))
                             using (var resolver = Cache<UnityReferenceResolver>.Claim())
                             {
+                                if (data.SerializationNodes != null)
+                                {
+                                    // Reuse pre-expanded list to keep GC down
+                                    data.SerializationNodes.Clear();
+                                    writer.Nodes = data.SerializationNodes;
+                                }
+
                                 resolver.Value.SetReferencedUnityObjects(data.ReferencedUnityObjects);
                                 context.IndexReferenceResolver = resolver.Value;
 
