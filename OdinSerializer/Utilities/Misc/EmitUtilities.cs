@@ -711,6 +711,11 @@ namespace OdinSerializer.Utilities
 
             propertyInfo = propertyInfo.DeAliasProperty();
 
+            if (propertyInfo.GetIndexParameters().Length > 0)
+            {
+                throw new ArgumentException("Property must not have any index parameters");
+            }
+
             var getMethod = propertyInfo.GetGetMethod(true);
 
             if (getMethod == null)
@@ -806,6 +811,11 @@ namespace OdinSerializer.Utilities
             }
 
             propertyInfo = propertyInfo.DeAliasProperty();
+
+            if (propertyInfo.GetIndexParameters().Length > 0)
+            {
+                throw new ArgumentException("Property must not have any index parameters");
+            }
 
             var setMethod = propertyInfo.GetSetMethod(true);
 
@@ -909,6 +919,11 @@ namespace OdinSerializer.Utilities
 
             propertyInfo = propertyInfo.DeAliasProperty();
 
+            if (propertyInfo.GetIndexParameters().Length > 0)
+            {
+                throw new ArgumentException("Property must not have any index parameters");
+            }
+
             MethodInfo setMethod = propertyInfo.GetSetMethod(true);
 
             if (setMethod == null)
@@ -956,6 +971,11 @@ namespace OdinSerializer.Utilities
             }
 
             propertyInfo = propertyInfo.DeAliasProperty();
+
+            if (propertyInfo.GetIndexParameters().Length > 0)
+            {
+                throw new ArgumentException("Property must not have any index parameters");
+            }
 
             MethodInfo getMethod = propertyInfo.GetGetMethod(true);
 
@@ -1012,6 +1032,11 @@ namespace OdinSerializer.Utilities
             }
 
             propertyInfo = propertyInfo.DeAliasProperty();
+
+            if (propertyInfo.GetIndexParameters().Length > 0)
+            {
+                throw new ArgumentException("Property must not have any index parameters");
+            }
 
             MethodInfo setMethod = propertyInfo.GetSetMethod(true);
 
@@ -1085,6 +1110,11 @@ namespace OdinSerializer.Utilities
             }
 
             propertyInfo = propertyInfo.DeAliasProperty();
+
+            if (propertyInfo.GetIndexParameters().Length > 0)
+            {
+                throw new ArgumentException("Property must not have any index parameters");
+            }
 
             MethodInfo getMethod = propertyInfo.GetGetMethod(true);
 
