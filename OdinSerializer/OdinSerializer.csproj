@@ -90,6 +90,7 @@
   <ItemGroup>
     <Compile Include="Core\Formatters\MethodInfoFormatter.cs" />
     <Compile Include="Core\Formatters\QueueFormatter.cs" />
+    <Compile Include="Core\Formatters\ReflectionOrEmittedBaseFormatter.cs" />
     <Compile Include="Core\Formatters\StackFormatter.cs" />
     <Compile Include="Unity Integration\AOTSupportScanner.cs" />
     <Compile Include="Unity Integration\OdinPrefabSerializationEditorUtility.cs" />

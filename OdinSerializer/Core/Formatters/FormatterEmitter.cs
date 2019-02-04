@@ -89,30 +89,30 @@ namespace OdinSerializer
         private static AssemblyBuilder runtimeEmittedAssembly;
         private static ModuleBuilder runtimeEmittedModule;
 
-        internal delegate void ReadDataEntryMethodDelegate<T>(ref T value, string entryName, EntryType entryType, IDataReader reader);
+        public delegate void ReadDataEntryMethodDelegate<T>(ref T value, string entryName, EntryType entryType, IDataReader reader);
 
-        internal delegate void WriteDataEntriesMethodDelegate<T>(ref T value, IDataWriter writer);
+        public delegate void WriteDataEntriesMethodDelegate<T>(ref T value, IDataWriter writer);
 
         [EmittedFormatter]
-        internal sealed class RuntimeEmittedFormatter<T> : EasyBaseFormatter<T>
+        public sealed class RuntimeEmittedFormatter<T> : EasyBaseFormatter<T>
         {
-            private readonly ReadDataEntryMethodDelegate<T> read;
-            private readonly WriteDataEntriesMethodDelegate<T> write;
+            public readonly ReadDataEntryMethodDelegate<T> Read;
+            public readonly WriteDataEntriesMethodDelegate<T> Write;
 
             public RuntimeEmittedFormatter(ReadDataEntryMethodDelegate<T> read, WriteDataEntriesMethodDelegate<T> write)
             {
-                this.read = read;
-                this.write = write;
+                this.Read = read;
+                this.Write = write;
             }
 
             protected override void ReadDataEntry(ref T value, string entryName, EntryType entryType, IDataReader reader)
             {
-                this.read(ref value, entryName, entryType, reader);
+                this.Read(ref value, entryName, entryType, reader);
             }
 
             protected override void WriteDataEntries(ref T value, IDataWriter writer)
             {
-                this.write(ref value, writer);
+                this.Write(ref value, writer);
             }
         }
 
@@ -597,5 +597,6 @@ namespace OdinSerializer
         }
 
 #endif
+
     }
 }
