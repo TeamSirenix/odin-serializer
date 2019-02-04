@@ -42,8 +42,8 @@ namespace OdinSerializer
 
         void ISerializationCallbackReceiver.OnBeforeSerialize()
         {
-            UnitySerializationUtility.SerializeUnityObject(this, ref this.serializationData);
             this.OnBeforeSerialize();
+            UnitySerializationUtility.SerializeUnityObject(this, ref this.serializationData);
         }
 
         /// <summary>
