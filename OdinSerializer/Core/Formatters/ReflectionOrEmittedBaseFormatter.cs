@@ -28,7 +28,11 @@ namespace OdinSerializer
 
         protected override void DeserializeImplementation(ref T value, IDataReader reader)
         {
-            var formatter = (FormatterEmitter.RuntimeEmittedFormatter<T>)FormatterEmitter.GetEmittedFormatter(typeof(T), reader.Context.Config.SerializationPolicy);
+            var formatter = FormatterEmitter.GetEmittedFormatter(typeof(T), reader.Context.Config.SerializationPolicy) as FormatterEmitter.RuntimeEmittedFormatter<T>;
+
+            if (formatter == null)
+                return;
+
             int count = 0;
             string name;
             EntryType entry;
@@ -49,7 +53,11 @@ namespace OdinSerializer
 
         protected override void SerializeImplementation(ref T value, IDataWriter writer)
         {
-            var formatter = (FormatterEmitter.RuntimeEmittedFormatter<T>)FormatterEmitter.GetEmittedFormatter(typeof(T), writer.Context.Config.SerializationPolicy);
+            var formatter = FormatterEmitter.GetEmittedFormatter(typeof(T), writer.Context.Config.SerializationPolicy) as FormatterEmitter.RuntimeEmittedFormatter<T>;
+
+            if (formatter == null)
+                return;
+
             formatter.Write(ref value, writer);
         }
 #endif
