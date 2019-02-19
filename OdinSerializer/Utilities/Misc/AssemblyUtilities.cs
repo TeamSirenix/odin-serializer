@@ -249,9 +249,18 @@ namespace OdinSerializer.Utilities
             // assemblies being registered.
             else
             {
-                lock (ASSEMBLY_LOAD_QUEUE_LOCK)
+                // A regular lock here can apparently interact with locks deep in Mono's runtime and cause
+                // deadlocks to occur sometimes. Therefore we make sure to not do a "hard lock" and keep trying
+                // with 1ms spins between thread sleeps to make sure we can't enter a deadlock.
+
+                try
                 {
+                    while (!Monitor.TryEnter(ASSEMBLY_LOAD_QUEUE_LOCK, 1)) { Thread.Sleep(0); }
                     AssemblyLoadQueue.Enqueue(assembly);
+                }
+                finally
+                {
+                    Monitor.Exit(ASSEMBLY_LOAD_QUEUE_LOCK);
                 }
             }
         }
@@ -313,8 +322,13 @@ namespace OdinSerializer.Utilities
 
         private static bool GetAndClearQueuedAssemblies(out Assembly[] queue)
         {
-            lock (ASSEMBLY_LOAD_QUEUE_LOCK)
+            // A regular lock here can apparently interact with locks deep in Mono's runtime and cause
+            // deadlocks to occur sometimes. Therefore we make sure to not do a "hard lock" and keep trying
+            // with 1ms spins between thread sleeps to make sure we can't enter a deadlock.
+
+            try
             {
+                while (!Monitor.TryEnter(ASSEMBLY_LOAD_QUEUE_LOCK, 1)) { Thread.Sleep(0); }
                 if (AssemblyLoadQueue.Count == 0)
                 {
                     queue = null;
@@ -324,6 +338,10 @@ namespace OdinSerializer.Utilities
                 queue = AssemblyLoadQueue.ToArray();
                 AssemblyLoadQueue.Clear();
                 return true;
+            }
+            finally
+            {
+                Monitor.Exit(ASSEMBLY_LOAD_QUEUE_LOCK);
             }
         }
 
