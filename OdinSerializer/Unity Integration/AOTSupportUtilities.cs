@@ -54,21 +54,21 @@ namespace OdinSerializer.Editor
 
                 if (!scanner.ScanAllResources(includeResourceDependencies: true, showProgressBar: true))
                 {
-                    Debug.Log("Project scan canceled while scanning resources and their depencencies.");
+                    Debug.Log("Project scan canceled while scanning resources and their dependencies.");
                     serializedTypes = null;
                     return false;
                 }
 
                 if (!scanner.ScanAllAssetBundles(showProgressBar: true))
                 {
-                    Debug.Log("Project scan canceled while scanning asset bundles and their depencencies.");
+                    Debug.Log("Project scan canceled while scanning asset bundles and their dependencies.");
                     serializedTypes = null;
                     return false;
                 }
 
                 if (!scanner.ScanPreloadedAssets(showProgressBar: true))
                 {
-                    Debug.Log("Project scan canceled while scanning preloaded assets and their depencencies.");
+                    Debug.Log("Project scan canceled while scanning preloaded assets and their dependencies.");
                     serializedTypes = null;
                     return false;
                 }
