@@ -136,8 +136,13 @@ namespace OdinSerializer.Editor
             return true;
         }
 
-        public bool ScanAllResources(bool includeResourceDependencies, bool showProgressBar)
+        public bool ScanAllResources(bool includeResourceDependencies, bool showProgressBar, List<string> resourcesPaths = null)
         {
+            if (resourcesPaths == null)
+            {
+                resourcesPaths = new List<string>() {""};
+            }
+
             try
             {
                 if (showProgressBar && EditorUtility.DisplayCancelableProgressBar("Scanning resources for AOT support", "Loading resource assets", 0f))
@@ -145,7 +150,20 @@ namespace OdinSerializer.Editor
                     return false;
                 }
 
-                var resources = Resources.LoadAll("");
+                var resourcesSet = new HashSet<UnityEngine.Object>();
+                for (int i = 0; i < resourcesPaths.Count; i++)
+                {
+                    var resourcesPath = resourcesPaths[i];
+
+                    if (showProgressBar && EditorUtility.DisplayCancelableProgressBar("Listing resources for AOT support", resourcesPath, (float)i / resourcesPaths.Count))
+                    {
+                        return false;
+                    }
+
+                    resourcesSet.UnionWith(Resources.LoadAll(resourcesPath));
+                }
+
+                var resources = resourcesSet.ToArray();
 
                 for (int i = 0; i < resources.Length; i++)
                 {
