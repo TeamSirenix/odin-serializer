@@ -323,13 +323,13 @@ namespace OdinSerializer
 
         private static IEnumerable<string> GetAllPossibleMissingAOTTypes(Type type)
         {
-            yield return type.GetNiceFullName();
+            yield return type.GetNiceFullName() + " (name string: '" + TwoWaySerializationBinder.Default.BindToName(type) + "')";
 
             if (!type.IsGenericType) yield break;
 
             foreach (var arg in type.GetGenericArguments())
             {
-                yield return arg.GetNiceFullName();
+                yield return arg.GetNiceFullName() + " (name string: '" + TwoWaySerializationBinder.Default.BindToName(arg) + "');
 
                 if (arg.IsGenericType)
                 {

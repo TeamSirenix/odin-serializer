@@ -128,8 +128,11 @@ namespace OdinSerializer
         {
             if (this.referencedUnityObjects == null || index < 0 || index >= this.referencedUnityObjects.Count)
             {
+                // Sometimes something has destroyed the list of references in between serialization and deserialization
+                // (Unity prefab instances are especially bad at preserving such data), and in these cases we still don't
+                // want the system to fall back to a formatter, so we give out a null value.
                 value = null;
-                return false;
+                return true;
             }
 
             value = this.referencedUnityObjects[index];

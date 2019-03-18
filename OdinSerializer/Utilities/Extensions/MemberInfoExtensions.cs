@@ -31,15 +31,22 @@ namespace OdinSerializer.Utilities
         /// <summary>
         /// Returns true if the attribute whose type is specified by the generic argument is defined on this member
         /// </summary>
-        public static bool IsDefined<T>(this MemberInfo member, bool inherit) where T : Attribute
+        public static bool IsDefined<T>(this ICustomAttributeProvider member, bool inherit) where T : Attribute
         {
-            return member.IsDefined(typeof(T), inherit);
+            try
+            {
+                return member.IsDefined(typeof(T), inherit);
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         /// <summary>
         /// Returns true if the attribute whose type is specified by the generic argument is defined on this member
         /// </summary>
-        public static bool IsDefined<T>(this MemberInfo member) where T : Attribute
+        public static bool IsDefined<T>(this ICustomAttributeProvider member) where T : Attribute
         {
             return IsDefined<T>(member, false);
         }
@@ -48,7 +55,7 @@ namespace OdinSerializer.Utilities
         /// Returns the first found custom attribute of type T on this member
         /// Returns null if none was found
         /// </summary>
-        public static T GetAttribute<T>(this MemberInfo member, bool inherit) where T : Attribute
+        public static T GetAttribute<T>(this ICustomAttributeProvider member, bool inherit) where T : Attribute
         {
             var all = GetAttributes<T>(member, inherit).ToArray();
             return (all == null || all.Length == 0) ? null : all[0];
@@ -58,7 +65,7 @@ namespace OdinSerializer.Utilities
         /// Returns the first found non-inherited custom attribute of type T on this member
         /// Returns null if none was found
         /// </summary>
-        public static T GetAttribute<T>(this MemberInfo member) where T : Attribute
+        public static T GetAttribute<T>(this ICustomAttributeProvider member) where T : Attribute
         {
             return GetAttribute<T>(member, false);
         }
@@ -67,7 +74,7 @@ namespace OdinSerializer.Utilities
         /// Gets all attributes of the specified generic type.
         /// </summary>
         /// <param name="member">The member.</param>
-        public static IEnumerable<T> GetAttributes<T>(this MemberInfo member) where T : Attribute
+        public static IEnumerable<T> GetAttributes<T>(this ICustomAttributeProvider member) where T : Attribute
         {
             return GetAttributes<T>(member, false);
         }
@@ -77,18 +84,32 @@ namespace OdinSerializer.Utilities
         /// </summary>
         /// <param name="member">The member.</param>
         /// <param name="inherit">If true, specifies to also search the ancestors of element for custom attributes.</param>
-        public static IEnumerable<T> GetAttributes<T>(this MemberInfo member, bool inherit) where T : Attribute
+        public static IEnumerable<T> GetAttributes<T>(this ICustomAttributeProvider member, bool inherit) where T : Attribute
         {
-            return member.GetCustomAttributes(typeof(T), inherit).Cast<T>();
+            try
+            {
+                return member.GetCustomAttributes(typeof(T), inherit).Cast<T>();
+            }
+            catch
+            {
+                return new T[0];
+            }
         }
 
         /// <summary>
         /// Gets all attribute instances defined on a MemeberInfo.
         /// </summary>
         /// <param name="member">The member.</param>
-        public static Attribute[] GetAttributes(this MemberInfo member)
+        public static Attribute[] GetAttributes(this ICustomAttributeProvider member)
         {
-            return member.GetAttributes<Attribute>().ToArray();
+            try
+            {
+                return member.GetAttributes<Attribute>().ToArray();
+            }
+            catch
+            {
+                return new Attribute[0];
+            }
         }
 
         /// <summary>
@@ -96,9 +117,16 @@ namespace OdinSerializer.Utilities
         /// </summary>
         /// <param name="member">The member.</param>
         /// <param name="inherit">If true, specifies to also search the ancestors of element for custom attributes.</param>
-        public static Attribute[] GetAttributes(this MemberInfo member, bool inherit)
+        public static Attribute[] GetAttributes(this ICustomAttributeProvider member, bool inherit)
         {
-            return member.GetAttributes<Attribute>(inherit).ToArray();
+            try
+            {
+                return member.GetAttributes<Attribute>(inherit).ToArray();
+            }
+            catch
+            {
+                return new Attribute[0];
+            }
         }
 
         /// <summary>
