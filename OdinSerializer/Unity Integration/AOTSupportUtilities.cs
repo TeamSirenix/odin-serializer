@@ -38,35 +38,40 @@ namespace OdinSerializer.Editor
         /// Scans the project's build scenes and resources, plus their dependencies, for serialized types to support. Progress bars are shown during the scan.
         /// </summary>
         /// <param name="serializedTypes">The serialized types to support.</param>
+        /// <param name="scanBuildScenes">Whether to scan the project's build scenes.</param>
+        /// <param name="scanAllAssetBundles">Whether to scan all the project's asset bundles.</param>
+        /// <param name="scanPreloadedAssets">Whether to scan the project's preloaded assets.</param>
+        /// <param name="scanResources">Whether to scan the project's resources.</param>
+        /// <param name="resourcesToScan">An optional list of the resource paths to scan. Only has an effect if the scanResources argument is true. All the resources will be scanned if null.</param>
         /// <returns>true if the scan succeeded, false if the scan failed or was cancelled</returns>
-        public static bool ScanProjectForSerializedTypes(out List<Type> serializedTypes)
+        public static bool ScanProjectForSerializedTypes(out List<Type> serializedTypes, bool scanBuildScenes = true, bool scanAllAssetBundles = true, bool scanPreloadedAssets = true, bool scanResources = true, List<string> resourcesToScan = null)
         {
             using (var scanner = new AOTSupportScanner())
             {
                 scanner.BeginScan();
 
-                if (!scanner.ScanBuildScenes(includeSceneDependencies: true, showProgressBar: true))
+                if (scanBuildScenes && !scanner.ScanBuildScenes(includeSceneDependencies: true, showProgressBar: true))
                 {
                     Debug.Log("Project scan canceled while scanning scenes and their dependencies.");
                     serializedTypes = null;
                     return false;
                 }
 
-                if (!scanner.ScanAllResources(includeResourceDependencies: true, showProgressBar: true))
+                if (scanResources && !scanner.ScanAllResources(includeResourceDependencies: true, showProgressBar: true, resourcesPaths: resourcesToScan))
                 {
                     Debug.Log("Project scan canceled while scanning resources and their dependencies.");
                     serializedTypes = null;
                     return false;
                 }
 
-                if (!scanner.ScanAllAssetBundles(showProgressBar: true))
+                if (scanAllAssetBundles && !scanner.ScanAllAssetBundles(showProgressBar: true))
                 {
                     Debug.Log("Project scan canceled while scanning asset bundles and their dependencies.");
                     serializedTypes = null;
                     return false;
                 }
 
-                if (!scanner.ScanPreloadedAssets(showProgressBar: true))
+                if (scanPreloadedAssets && !scanner.ScanPreloadedAssets(showProgressBar: true))
                 {
                     Debug.Log("Project scan canceled while scanning preloaded assets and their dependencies.");
                     serializedTypes = null;
