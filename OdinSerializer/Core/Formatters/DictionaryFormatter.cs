@@ -185,8 +185,8 @@ namespace OdinSerializer
                     try
                     {
                         writer.BeginStructNode(null, null);
-                        KeyReaderWriter.WriteValue(pair.Key, writer);
-                        ValueReaderWriter.WriteValue(pair.Value, writer);
+                        KeyReaderWriter.WriteValue("$k", pair.Key, writer);
+                        ValueReaderWriter.WriteValue("$v", pair.Value, writer);
                     }
                     catch (SerializationAbortException ex)
                     {
