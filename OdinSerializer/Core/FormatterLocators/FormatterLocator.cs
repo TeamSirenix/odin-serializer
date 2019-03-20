@@ -329,7 +329,7 @@ namespace OdinSerializer
 
             foreach (var arg in type.GetGenericArguments())
             {
-                yield return arg.GetNiceFullName() + " (name string: '" + TwoWaySerializationBinder.Default.BindToName(arg) + "');
+                yield return arg.GetNiceFullName() + " (name string: '" + TwoWaySerializationBinder.Default.BindToName(arg) + "')";
 
                 if (arg.IsGenericType)
                 {
