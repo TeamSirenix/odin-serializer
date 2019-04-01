@@ -392,10 +392,10 @@ namespace OdinSerializer
                 {
                     var sData = supporter.SerializationData;
 
-                    if (!sData.ContainsData)
-                    {
-                        return;
-                    }
+                    //if (!sData.ContainsData)
+                    //{
+                    //    return;
+                    //}
 
                     sData.Prefab = null;
                     supporter.SerializationData = sData;
