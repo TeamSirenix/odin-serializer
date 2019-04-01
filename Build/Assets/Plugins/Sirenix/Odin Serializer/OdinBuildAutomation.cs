@@ -8,6 +8,7 @@ namespace OdinSerializer.Utilities.Editor
     using System;
     using System.Collections.Generic;
     using OdinSerializer.Utilities;
+    using System.Reflection;
 #if UNITY_2018_1_OR_NEWER
     using UnityEditor.Build.Reporting;
 #endif
@@ -41,6 +42,12 @@ namespace OdinSerializer.Utilities.Editor
             if  (!File.Exists(EditorAssemblyPath))  throw new FileNotFoundException("Make sure all release configurations specified in the Visual Studio project are built.", EditorAssemblyPath);
             else if (!File.Exists(AOTAssemblyPath)) throw new FileNotFoundException("Make sure all release configurations specified in the Visual Studio project are built.", AOTAssemblyPath);
             else if (!File.Exists(JITAssemblyPath)) throw new FileNotFoundException("Make sure all release configurations specified in the Visual Studio project are built.", JITAssemblyPath);
+        }
+
+        private static string GetAssemblyDirectory(this Assembly assembly)
+        {
+            string filePath = new Uri(assembly.CodeBase).LocalPath;
+            return Path.GetDirectoryName(filePath);
         }
 
         public static void OnPreprocessBuild()
