@@ -436,16 +436,8 @@ namespace OdinSerializer.Editor
 
         private static bool AllowRegisterType(Type type)
         {
-            var typeFlags = AssemblyUtilities.GetAssemblyTypeFlag(type.Assembly);
-            if ((typeFlags & AssemblyTypeFlags.UnityEditorTypes) == AssemblyTypeFlags.UnityEditorTypes)
-            {
+            if (IsEditorOnlyAssembly(type.Assembly))
                 return false;
-            }
-
-            if ((typeFlags & AssemblyTypeFlags.UserEditorTypes) == AssemblyTypeFlags.UserEditorTypes)
-            {
-                return false;
-            }
 
             if (type.IsGenericType)
             {
@@ -457,6 +449,22 @@ namespace OdinSerializer.Editor
 
             return true;
         }
+
+        private static bool IsEditorOnlyAssembly(Assembly assembly)
+        {
+            return EditorAssemblyNames.Contains(assembly.GetName().Name);
+        }
+
+        private static HashSet<string> EditorAssemblyNames = new HashSet<string>()
+        {
+            "Assembly-CSharp-Editor",
+            "Assembly-UnityScript-Editor",
+            "Assembly-Boo-Editor",
+            "Assembly-CSharp-Editor-firstpass",
+            "Assembly-UnityScript-Editor-firstpass",
+            "Assembly-Boo-Editor-firstpass",
+            typeof(Editor).Assembly.GetName().Name
+        };
 
         private void RegisterType(Type type)
         {

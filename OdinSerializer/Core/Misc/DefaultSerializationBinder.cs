@@ -75,28 +75,49 @@ namespace OdinSerializer
     /// <seealso cref="BindTypeNameToTypeAttribute" />
     public class DefaultSerializationBinder : TwoWaySerializationBinder
     {
+        private static readonly object ASSEMBLY_LOOKUP_LOCK = new object();
         private static readonly Dictionary<string, Assembly> assemblyNameLookUp = new Dictionary<string, Assembly>();
+        private static readonly Dictionary<string, Type> customTypeNameToTypeBindings = new Dictionary<string, Type>();
 
         private static readonly object TYPETONAME_LOCK = new object();
         private static readonly Dictionary<Type, string> nameMap = new Dictionary<Type, string>();
 
         private static readonly object NAMETOTYPE_LOCK = new object();
         private static readonly Dictionary<string, Type> typeMap = new Dictionary<string, Type>();
-        private static readonly Dictionary<string, Type> customTypeNameToTypeBindings = new Dictionary<string, Type>();
+
         private static readonly List<string> genericArgNamesList = new List<string>();
         private static readonly List<Type> genericArgTypesList = new List<Type>();
 
         static DefaultSerializationBinder()
         {
+            AppDomain.CurrentDomain.AssemblyLoad += (sender, args) =>
+            {
+                RegisterAssembly(args.LoadedAssembly);
+            };
+
             foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
-                var name = assembly.GetName().Name;
+                RegisterAssembly(assembly);
+            }
+        }
 
+        private static void RegisterAssembly(Assembly assembly)
+        {
+            var name = assembly.GetName().Name;
+
+            bool wasAdded = false;
+
+            lock (ASSEMBLY_LOOKUP_LOCK)
+            {
                 if (!assemblyNameLookUp.ContainsKey(name))
                 {
                     assemblyNameLookUp.Add(name, assembly);
+                    wasAdded = true;
                 }
+            }
 
+            if (wasAdded)
+            {
                 var customAttributes = assembly.GetCustomAttributes(typeof(BindTypeNameToTypeAttribute), false);
                 if (customAttributes != null)
                 {
@@ -105,13 +126,16 @@ namespace OdinSerializer
                         var attr = customAttributes[i] as BindTypeNameToTypeAttribute;
                         if (attr != null && attr.NewType != null)
                         {
-                            if (attr.OldTypeName.Contains(","))
+                            lock (ASSEMBLY_LOOKUP_LOCK)
                             {
-                                customTypeNameToTypeBindings[attr.OldTypeName] = attr.NewType;
-                            }
-                            else
-                            {
-                                customTypeNameToTypeBindings[attr.OldTypeName + ", " + assembly.GetName().Name] = attr.NewType;
+                                //if (attr.OldTypeName.Contains(","))
+                                //{
+                                    customTypeNameToTypeBindings[attr.OldTypeName] = attr.NewType;
+                                //}
+                                //else
+                                //{
+                                //    customTypeNameToTypeBindings[attr.OldTypeName + ", " + assembly.GetName().Name] = attr.NewType;
+                                //}
                             }
                         }
                     }
@@ -235,18 +259,17 @@ namespace OdinSerializer
         {
             Type type;
 
-            // Look for custom defined type name lookups defined with the BindTypeNameToTypeAttribute.
-            if (customTypeNameToTypeBindings.TryGetValue(typeName, out type))
+            lock (ASSEMBLY_LOOKUP_LOCK)
             {
-                return type;
+                // Look for custom defined type name lookups defined with the BindTypeNameToTypeAttribute.
+                if (customTypeNameToTypeBindings.TryGetValue(typeName, out type))
+                {
+                    return type;
+                }
             }
 
             // Let's try it the traditional .NET way
             type = Type.GetType(typeName);
-            if (type != null) return type;
-
-            // Let's try a short-cut
-            type = AssemblyUtilities.GetTypeByCachedFullName(typeName);
             if (type != null) return type;
             
             // Generic/array type name handling
@@ -257,15 +280,57 @@ namespace OdinSerializer
 
             ParseName(typeName, out typeStr, out assemblyStr);
 
-            if (!string.IsNullOrEmpty(typeStr) && assemblyStr != null && assemblyNameLookUp.ContainsKey(assemblyStr))
+            if (!string.IsNullOrEmpty(typeStr))
             {
-                var assembly = assemblyNameLookUp[assemblyStr];
-                type = assembly.GetType(typeStr);
-                if (type != null) return type;
+                lock (ASSEMBLY_LOOKUP_LOCK)
+                {
+                    // Look for custom defined type name lookups defined with the BindTypeNameToTypeAttribute.
+                    if (customTypeNameToTypeBindings.TryGetValue(typeStr, out type))
+                    {
+                        return type;
+                    }
+                }
+
+                Assembly assembly;
+
+                // Try to load from the named assembly
+                if (assemblyStr != null)
+                {
+                    lock (ASSEMBLY_LOOKUP_LOCK)
+                    {
+                        assemblyNameLookUp.TryGetValue(assemblyStr, out assembly);
+                    }
+
+                    if (assembly == null)
+                    {
+                        try
+                        {
+                            assembly = Assembly.Load(assemblyStr);
+                        }
+                        catch { }
+                    }
+
+                    if (assembly != null)
+                    {
+                        type = assembly.GetType(typeStr);
+                        if (type != null) return type;
+                    }
+                }
+
+                // Try to check all assemblies for the type string
+                var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+
+                for (int i = 0; i < assemblies.Length; i++)
+                {
+                    assembly = assemblies[i];
+
+                    type = assembly.GetType(typeStr, false);
+                    if (type != null) return type;
+                }
             }
 
-            type = AssemblyUtilities.GetTypeByCachedFullName(typeStr);
-            if (type != null) return type;
+            //type = AssemblyUtilities.GetTypeByCachedFullName(typeStr);
+            //if (type != null) return type;
             
             return null;
         }
@@ -316,6 +381,8 @@ namespace OdinSerializer
 
             if (isGeneric)
             {
+                if (!type.IsGenericType) return null;
+
                 List<Type> args = genericArgTypesList;
                 args.Clear();
 

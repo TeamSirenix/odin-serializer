@@ -118,8 +118,6 @@
     <Compile Include="Utilities\Extensions\StringExtensions.cs" />
     <Compile Include="Utilities\Extensions\TypeExtensions.cs" />
     <Compile Include="Utilities\Extensions\UnityExtensions.cs" />
-    <Compile Include="Utilities\Misc\AssemblyTypeFlags.cs" />
-    <Compile Include="Utilities\Misc\AssemblyUtilities.cs" />
     <Compile Include="Utilities\Misc\Cache.cs" />
     <Compile Include="Utilities\Misc\DoubleLookupDictionary.cs" />
     <Compile Include="Utilities\Misc\EmitUtilities.cs" />
