@@ -78,10 +78,6 @@
       <HintPath>..\Libraries\Unity\UnityEngine.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="UnityEngine.Networking">
-      <HintPath>..\Libraries\Unity\UnityEngine.Networking.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
     <Reference Include="UnityEngine.UI">
       <HintPath>..\Libraries\Unity\UnityEngine.UI.dll</HintPath>
       <Private>False</Private>
