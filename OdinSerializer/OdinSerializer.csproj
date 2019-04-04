@@ -244,7 +244,6 @@
     <Compile Include="Unity Integration\SerializedUnityObjects\SerializedBehaviour.cs" />
     <Compile Include="Unity Integration\SerializedUnityObjects\SerializedComponent.cs" />
     <Compile Include="Unity Integration\SerializedUnityObjects\SerializedMonoBehaviour.cs" />
-    <Compile Include="Unity Integration\SerializedUnityObjects\SerializedNetworkBehaviour.cs" />
     <Compile Include="Unity Integration\SerializedUnityObjects\SerializedScriptableObject.cs" />
     <Compile Include="Unity Integration\SerializedUnityObjects\SerializedStateMachineBehaviour.cs" />
     <Compile Include="Unity Integration\SerializedUnityObjects\SerializedUnityObject.cs" />
