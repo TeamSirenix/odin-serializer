@@ -35,6 +35,9 @@ namespace OdinSerializer.Editor
         private bool allowRegisteringScannedTypes;
         private HashSet<Type> seenSerializedTypes = new HashSet<Type>();
 
+        private static System.Diagnostics.Stopwatch smartProgressBarWatch = System.Diagnostics.Stopwatch.StartNew();
+        private static int smartProgressBarDisplaysSinceLastUpdate = 0;
+
         private static readonly MethodInfo PlayerSettings_GetPreloadedAssets_Method = typeof(PlayerSettings).GetMethod("GetPreloadedAssets", BindingFlags.Public | BindingFlags.Static, null, Type.EmptyTypes, null);
 
         public void BeginScan()
@@ -62,7 +65,7 @@ namespace OdinSerializer.Editor
             {
                 for (int i = 0; i < assets.Length; i++)
                 {
-                    if (showProgressBar && EditorUtility.DisplayCancelableProgressBar("Scanning preloaded assets for AOT support", (i + 1) + " / " + assets.Length, (float)i / assets.Length))
+                    if (showProgressBar && DisplaySmartUpdatingCancellableProgressBar("Scanning preloaded assets for AOT support", (i + 1) + " / " + assets.Length, (float)i / assets.Length))
                     {
                         return false;
                     }
@@ -117,7 +120,7 @@ namespace OdinSerializer.Editor
                 {
                     var bundle = bundles[i];
 
-                    if (showProgressBar && EditorUtility.DisplayCancelableProgressBar("Scanning asset bundles for AOT support", bundle, (float)i / bundles.Length))
+                    if (showProgressBar && DisplaySmartUpdatingCancellableProgressBar("Scanning asset bundles for AOT support", bundle, (float)i / bundles.Length))
                     {
                         return false;
                     }
@@ -145,7 +148,7 @@ namespace OdinSerializer.Editor
 
             try
             {
-                if (showProgressBar && EditorUtility.DisplayCancelableProgressBar("Scanning resources for AOT support", "Loading resource assets", 0f))
+                if (showProgressBar && DisplaySmartUpdatingCancellableProgressBar("Scanning resources for AOT support", "Loading resource assets", 0f))
                 {
                     return false;
                 }
@@ -155,7 +158,7 @@ namespace OdinSerializer.Editor
                 {
                     var resourcesPath = resourcesPaths[i];
 
-                    if (showProgressBar && EditorUtility.DisplayCancelableProgressBar("Listing resources for AOT support", resourcesPath, (float)i / resourcesPaths.Count))
+                    if (showProgressBar && DisplaySmartUpdatingCancellableProgressBar("Listing resources for AOT support", resourcesPath, (float)i / resourcesPaths.Count))
                     {
                         return false;
                     }
@@ -167,7 +170,7 @@ namespace OdinSerializer.Editor
 
                 for (int i = 0; i < resources.Length; i++)
                 {
-                    if (showProgressBar && EditorUtility.DisplayCancelableProgressBar("Scanning resource " + i + " for AOT support", resources[i].name, (float)i / resources.Length))
+                    if (showProgressBar && DisplaySmartUpdatingCancellableProgressBar("Scanning resource " + i + " for AOT support", resources[i].name, (float)i / resources.Length))
                     {
                         return false;
                     }
@@ -235,7 +238,7 @@ namespace OdinSerializer.Editor
                     {
                         var scenePath = scenePaths[i];
 
-                        if (showProgressBar && EditorUtility.DisplayCancelableProgressBar("Scanning scenes for AOT support", "Scene " + (i + 1) + "/" + scenePaths.Length + " - " + scenePath, (float)i / scenePaths.Length))
+                        if (showProgressBar && DisplaySmartUpdatingCancellableProgressBar("Scanning scenes for AOT support", "Scene " + (i + 1) + "/" + scenePaths.Length + " - " + scenePath, (float)i / scenePaths.Length))
                         {
                             return false;
                         }
@@ -297,7 +300,7 @@ namespace OdinSerializer.Editor
                     for (int i = 0; i < scenePaths.Length; i++)
                     {
                         var scenePath = scenePaths[i];
-                        if (showProgressBar && EditorUtility.DisplayCancelableProgressBar("Scanning scene dependencies for AOT support", "Scene " + (i + 1) + "/" + scenePaths.Length + " - " + scenePath, (float)i / scenePaths.Length))
+                        if (showProgressBar && DisplaySmartUpdatingCancellableProgressBar("Scanning scene dependencies for AOT support", "Scene " + (i + 1) + "/" + scenePaths.Length + " - " + scenePath, (float)i / scenePaths.Length))
                         {
                             return false;
                         }
@@ -486,6 +489,29 @@ namespace OdinSerializer.Editor
                     this.RegisterType(arg);
                 }
             }
+        }
+
+        private static bool DisplaySmartUpdatingCancellableProgressBar(string title, string details, float progress, int updateIntervalByMS = 200, int updateIntervalByCall = 50)
+        {
+            bool updateProgressBar =
+                    smartProgressBarWatch.ElapsedMilliseconds >= updateIntervalByMS
+                || ++smartProgressBarDisplaysSinceLastUpdate >= updateIntervalByCall;
+
+            if (updateProgressBar)
+            {
+                smartProgressBarWatch.Stop();
+                smartProgressBarWatch.Reset();
+                smartProgressBarWatch.Start();
+
+                smartProgressBarDisplaysSinceLastUpdate = 0;
+
+                if (EditorUtility.DisplayCancelableProgressBar(title, details, progress))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }
