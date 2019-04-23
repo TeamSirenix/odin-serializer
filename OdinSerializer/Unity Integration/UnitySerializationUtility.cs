@@ -1586,11 +1586,53 @@ namespace OdinSerializer
 
                     if (entryType == EntryType.Invalid)
                     {
-                        var message = "Encountered invalid entry while reading serialization data for Unity object of type '" + unityObject.GetType().GetNiceFullName() + "'. Please report this issue at 'https://bitbucket.org/sirenix/odin-inspector/issues', and copy paste this debug message into the issue report, along with any potential actions or recent changes in the project that might have happened to cause this message to occur. If the data dump in this message is cut off, please find the editor's log file (see https://docs.unity3d.com/Manual/LogFiles.html) and copy paste the full version of this message from there.\n" +
-                            "\n\n" +
-                            "Data dump:\n\n";
+                        // Oh boy. We have a lot of logging to do!
 
-                        message += "    Reader type: " + reader.GetType().Name + "\n";
+                        var message = "Encountered invalid entry while reading serialization data for Unity object of type '" + unityObject.GetType().GetNiceFullName() + "'. " +
+                            "This likely means that Unity has filled Odin's stored serialization data with garbage, which can randomly happen after upgrading the Unity version of the project, or when otherwise doing things that have a lot of fragile interactions with the asset database. " +
+                            "Locating the asset which causes this error log and causing it to reserialize (IE, modifying it and then causing it to be saved to disk) is likely to 'fix' the issue and make this message go away. " +
+                            "Even so, DATA MAY HAVE BEEN LOST, and you should verify with your version control system (you're using one, right?!) that everything is alright, and if not, use it to rollback the asset to recover your data.\n\n\n";
+
+#if UNITY_EDITOR
+                        // Schedule a delayed log:
+                        try
+                        {
+                            message += "A delayed warning message containing the originating object's name, type and scene/asset path (if applicable) will be scheduled for logging on Unity's main thread. Search for \"DELAYED SERIALIZATION LOG\". " +
+                                "This logging callback will also mark the object dirty if it is an asset, hopefully making the issue 'fix' itself. HOWEVER, THERE MAY STILL BE DATA LOSS.\n\n\n";
+
+                            UnityEditor.EditorApplication.delayCall += () =>
+                            {
+                                var log = "DELAYED SERIALIZATION LOG: Name = " + unityObject.name + ", Type = " + unityObject.GetType().GetNiceFullName();
+
+                                var component = unityObject as Component;
+
+                                if (component != null && component.gameObject.scene.IsValid())
+                                {
+                                    log += ", ScenePath = " + component.gameObject.scene.path;
+                                }
+
+                                if (UnityEditor.AssetDatabase.Contains(unityObject))
+                                {
+                                    log += ", AssetPath = " + UnityEditor.AssetDatabase.GetAssetPath(unityObject);
+
+                                    UnityEditor.EditorUtility.SetDirty(unityObject);
+                                    UnityEditor.AssetDatabase.SaveAssets();
+                                }
+
+                                Debug.LogWarning(log, unityObject);
+                            };
+                        }
+                        catch
+                        {
+                            Debug.LogWarning("DELAYED SERIALIZATION LOG: Delaying log to main thread failed, likely due to a race condition when subscribing to EditorApplication.delayCall; this cannot be guarded against from our code. Try to provoke the error again and hope to get luckier next time!");
+                        }
+#endif
+
+                        message += 
+                            "IF YOU HAVE CONSISTENT REPRODUCTION STEPS THAT MAKE THIS ISSUE REOCCUR, please report it at this issue at 'https://bitbucket.org/sirenix/odin-inspector/issues/526', and copy paste this debug message into your comment, along with any potential actions or recent changes in the project that might have happened to cause this message to occur. " +
+                            "If the data dump in this message is cut off, please find the editor's log file (see https://docs.unity3d.com/Manual/LogFiles.html) and copy paste the full version of this message from there.\n\n\n" +
+                            "Data dump:\n\n" +
+                            "    Reader type: " + reader.GetType().Name + "\n";
 
                         try
                         {
