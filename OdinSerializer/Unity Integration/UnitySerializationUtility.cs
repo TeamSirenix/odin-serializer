@@ -1604,6 +1604,8 @@ namespace OdinSerializer
                             {
                                 var log = "DELAYED SERIALIZATION LOG: Name = " + unityObject.name + ", Type = " + unityObject.GetType().GetNiceFullName();
 
+                                UnityEngine.Object toPing = unityObject;
+
                                 var component = unityObject as Component;
 
                                 if (component != null && component.gameObject.scene.IsValid())
@@ -1613,13 +1615,18 @@ namespace OdinSerializer
 
                                 if (UnityEditor.AssetDatabase.Contains(unityObject))
                                 {
-                                    log += ", AssetPath = " + UnityEditor.AssetDatabase.GetAssetPath(unityObject);
+                                    var path = UnityEditor.AssetDatabase.GetAssetPath(unityObject);
+                                    log += ", AssetPath = " + path;
+
+                                    toPing = UnityEditor.AssetDatabase.LoadMainAssetAtPath(path);
+
+                                    if (toPing == null) toPing = unityObject;
 
                                     UnityEditor.EditorUtility.SetDirty(unityObject);
                                     UnityEditor.AssetDatabase.SaveAssets();
                                 }
 
-                                Debug.LogWarning(log, unityObject);
+                                Debug.LogWarning(log, toPing);
                             };
                         }
                         catch
