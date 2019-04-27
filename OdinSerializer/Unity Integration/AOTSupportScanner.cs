@@ -281,7 +281,39 @@ namespace OdinSerializer.Editor
                     }
 
                     // Load a new empty scene that will be unloaded immediately, just to be sure we completely clear all changes made by the scan
-                    EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+                    // Sometimes this fails for unknown reasons. In that case, swallow any exceptions, and just soldier on and hope for the best!
+                    // Additionally, also eat any debug logs that happen here, because logged errors can stop the build process, and we don't want
+                    // that to happen.
+
+#if UNITY_2017_1_OR_NEWER
+                    bool previous = Debug.unityLogger.logEnabled;
+
+                    try
+                    {
+                        Debug.unityLogger.logEnabled = false;
+                        EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+                    }
+                    catch { }
+                    finally
+                    {
+                        Debug.unityLogger.logEnabled = previous;
+                    }
+#else
+                    bool previous = Debug.logger.logEnabled;
+
+                    try
+                    {
+                        Debug.logger.logEnabled = false;
+                        EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+                    }
+                    catch { } 
+                    finally
+                    {
+                        Debug.logger.logEnabled = previous;
+                    }
+#endif
+
+
                 }
                 finally
                 {
