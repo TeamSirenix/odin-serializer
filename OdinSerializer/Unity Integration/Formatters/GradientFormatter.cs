@@ -22,6 +22,7 @@ using OdinSerializer;
 
 namespace OdinSerializer
 {
+    using System;
     using System.Reflection;
     using UnityEngine;
 
@@ -60,13 +61,20 @@ namespace OdinSerializer
 
             if (name == "mode")
             {
-                if (ModeProperty != null)
+                try
                 {
-                    ModeProperty.SetValue(value, EnumSerializer.ReadValue(reader), null);
+                    if (ModeProperty != null)
+                    {
+                        ModeProperty.SetValue(value, EnumSerializer.ReadValue(reader), null);
+                    }
+                    else
+                    {
+                        reader.SkipEntry();
+                    }
                 }
-                else
+                catch (Exception)
                 {
-                    reader.SkipEntry();
+                    reader.Context.Config.DebugContext.LogWarning("Failed to read Gradient.mode, due to Unity's API disallowing setting of this member on other threads than the main thread. Gradient.mode value will have been lost.");
                 }
             }
         }
@@ -83,7 +91,15 @@ namespace OdinSerializer
 
             if (ModeProperty != null)
             {
-                EnumSerializer.WriteValue("mode", ModeProperty.GetValue(value, null), writer);
+                try
+                {
+                    EnumSerializer.WriteValue("mode", ModeProperty.GetValue(value, null), writer);
+                }
+                catch (Exception)
+                {
+                    writer.Context.Config.DebugContext.LogWarning("Failed to write Gradient.mode, due to Unity's API disallowing setting of this member on other threads than the main thread. Gradient.mode will have been lost upon deserialization.");
+                }
+
             }
         }
     }
