@@ -291,7 +291,11 @@ namespace OdinSerializer.Editor
                     try
                     {
                         Debug.unityLogger.logEnabled = false;
+                        AssetDatabase.StopAssetEditing();
+                        AssetDatabase.StopAssetEditing();
                         EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+                        AssetDatabase.StartAssetEditing();
+                        AssetDatabase.StartAssetEditing();
                     }
                     catch { }
                     finally
@@ -304,7 +308,11 @@ namespace OdinSerializer.Editor
                     try
                     {
                         Debug.logger.logEnabled = false;
+                        AssetDatabase.StopAssetEditing();
+                        AssetDatabase.StopAssetEditing();
                         EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
+                        AssetDatabase.StartAssetEditing();
+                        AssetDatabase.StartAssetEditing();
                     }
                     catch { } 
                     finally
