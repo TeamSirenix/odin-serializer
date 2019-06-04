@@ -18,35 +18,63 @@
 
 using OdinSerializer;
 
-[assembly: RegisterFormatter(typeof(ColorBlockFormatter))]
+[assembly: RegisterFormatterLocator(typeof(ColorBlockFormatterLocator))]
 
 namespace OdinSerializer
 {
+    using System;
+    using System.Reflection;
     using UnityEngine;
-    using UnityEngine.UI;
+
+    public class ColorBlockFormatterLocator : IFormatterLocator
+    {
+        public bool TryGetFormatter(Type type, FormatterLocationStep step, ISerializationPolicy policy, out IFormatter formatter)
+        {
+            if (step == FormatterLocationStep.BeforeRegisteredFormatters && type.FullName == "UnityEngine.UI.ColorBlock")
+            {
+                var formatterType = typeof(ColorBlockFormatter<>).MakeGenericType(type);
+                formatter = (IFormatter)Activator.CreateInstance(formatterType);
+                return true;
+            }
+
+            formatter = null;
+            return false;
+        }
+    }
 
     /// <summary>
     /// Custom formatter for the <see cref="ColorBlock"/> type.
     /// </summary>
     /// <seealso cref="MinimalBaseFormatter{UnityEngine.UI.ColorBlock}" />
-    public class ColorBlockFormatter : MinimalBaseFormatter<ColorBlock>
+    public class ColorBlockFormatter<T> : MinimalBaseFormatter<T>
     {
         private static readonly Serializer<float> FloatSerializer = Serializer.Get<float>();
         private static readonly Serializer<Color> ColorSerializer = Serializer.Get<Color>();
 
+        private static readonly PropertyInfo normalColor = typeof(T).GetProperty("normalColor");
+        private static readonly PropertyInfo highlightedColor = typeof(T).GetProperty("highlightedColor");
+        private static readonly PropertyInfo pressedColor = typeof(T).GetProperty("pressedColor");
+        private static readonly PropertyInfo disabledColor = typeof(T).GetProperty("disabledColor");
+        private static readonly PropertyInfo colorMultiplier = typeof(T).GetProperty("colorMultiplier");
+        private static readonly PropertyInfo fadeDuration = typeof(T).GetProperty("fadeDuration");
+        
         /// <summary>
         /// Reads into the specified value using the specified reader.
         /// </summary>
         /// <param name="value">The value to read into.</param>
         /// <param name="reader">The reader to use.</param>
-        protected override void Read(ref ColorBlock value, IDataReader reader)
+        protected override void Read(ref T value, IDataReader reader)
         {
-            value.normalColor = ColorBlockFormatter.ColorSerializer.ReadValue(reader);
-            value.highlightedColor = ColorBlockFormatter.ColorSerializer.ReadValue(reader);
-            value.pressedColor = ColorBlockFormatter.ColorSerializer.ReadValue(reader);
-            value.disabledColor = ColorBlockFormatter.ColorSerializer.ReadValue(reader);
-            value.colorMultiplier = ColorBlockFormatter.FloatSerializer.ReadValue(reader);
-            value.fadeDuration = ColorBlockFormatter.FloatSerializer.ReadValue(reader);
+            object boxed = value;
+
+            normalColor.SetValue(boxed, ColorSerializer.ReadValue(reader), null);
+            highlightedColor.SetValue(boxed, ColorSerializer.ReadValue(reader), null);
+            pressedColor.SetValue(boxed, ColorSerializer.ReadValue(reader), null);
+            disabledColor.SetValue(boxed, ColorSerializer.ReadValue(reader), null);
+            colorMultiplier.SetValue(boxed, FloatSerializer.ReadValue(reader), null);
+            fadeDuration.SetValue(boxed, FloatSerializer.ReadValue(reader), null);
+
+            value = (T)boxed;
         }
 
         /// <summary>
@@ -54,14 +82,14 @@ namespace OdinSerializer
         /// </summary>
         /// <param name="value">The value to write from.</param>
         /// <param name="writer">The writer to use.</param>
-        protected override void Write(ref ColorBlock value, IDataWriter writer)
+        protected override void Write(ref T value, IDataWriter writer)
         {
-            ColorBlockFormatter.ColorSerializer.WriteValue(value.normalColor, writer);
-            ColorBlockFormatter.ColorSerializer.WriteValue(value.highlightedColor, writer);
-            ColorBlockFormatter.ColorSerializer.WriteValue(value.pressedColor, writer);
-            ColorBlockFormatter.ColorSerializer.WriteValue(value.disabledColor, writer);
-            ColorBlockFormatter.FloatSerializer.WriteValue(value.colorMultiplier, writer);
-            ColorBlockFormatter.FloatSerializer.WriteValue(value.fadeDuration, writer);
+            ColorSerializer.WriteValue((Color)normalColor.GetValue(value, null), writer);
+            ColorSerializer.WriteValue((Color)highlightedColor.GetValue(value, null), writer);
+            ColorSerializer.WriteValue((Color)pressedColor.GetValue(value, null), writer);
+            ColorSerializer.WriteValue((Color)disabledColor.GetValue(value, null), writer);
+            FloatSerializer.WriteValue((float)colorMultiplier.GetValue(value, null), writer);
+            FloatSerializer.WriteValue((float)fadeDuration.GetValue(value, null), writer);
         }
     }
 }

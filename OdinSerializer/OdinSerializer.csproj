@@ -78,10 +78,6 @@
       <HintPath>..\Libraries\Unity\UnityEngine.dll</HintPath>
       <Private>False</Private>
     </Reference>
-    <Reference Include="UnityEngine.UI">
-      <HintPath>..\Libraries\Unity\UnityEngine.UI.dll</HintPath>
-      <Private>False</Private>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Core\Formatters\MethodInfoFormatter.cs" />
