@@ -39,6 +39,7 @@ namespace OdinSerializer.Editor
         private static int smartProgressBarDisplaysSinceLastUpdate = 0;
 
         private static readonly MethodInfo PlayerSettings_GetPreloadedAssets_Method = typeof(PlayerSettings).GetMethod("GetPreloadedAssets", BindingFlags.Public | BindingFlags.Static, null, Type.EmptyTypes, null);
+        private static readonly PropertyInfo Debug_Logger_Property = typeof(Debug).GetProperty("unityLogger") ?? typeof(Debug).GetProperty("logger");
 
         public void BeginScan()
         {
@@ -285,34 +286,33 @@ namespace OdinSerializer.Editor
                     // Additionally, also eat any debug logs that happen here, because logged errors can stop the build process, and we don't want
                     // that to happen.
 
-#if UNITY_2017_1_OR_NEWER
-                    bool previous = Debug.unityLogger.logEnabled;
+                    UnityEngine.ILogger logger = null;
 
+                    if (Debug_Logger_Property != null)
+                    {
+                        logger = (UnityEngine.ILogger)Debug_Logger_Property.GetValue(null, null);
+                    }
+
+                    bool previous = true;
+                    
                     try
                     {
-                        Debug.unityLogger.logEnabled = false;
+                        if (logger != null)
+                        {
+                            previous = logger.logEnabled;
+                            logger.logEnabled = false;
+                        }
+
                         EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
                     }
                     catch { }
                     finally
                     {
-                        Debug.unityLogger.logEnabled = previous;
+                        if (logger != null)
+                        {
+                            logger.logEnabled = previous;
+                        }
                     }
-#else
-                    bool previous = Debug.logger.logEnabled;
-
-                    try
-                    {
-                        Debug.logger.logEnabled = false;
-                        EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
-                    }
-                    catch { } 
-                    finally
-                    {
-                        Debug.logger.logEnabled = previous;
-                    }
-#endif
-
 
                 }
                 finally
