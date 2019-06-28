@@ -33,6 +33,8 @@ namespace OdinSerializer
         private static readonly bool ComplexTypeIsNullable = typeof(T).IsGenericType && typeof(T).GetGenericTypeDefinition() == typeof(Nullable<>);
         private static readonly bool ComplexTypeIsValueType = typeof(T).IsValueType;
 
+        private static readonly bool AllowDeserializeInvalidDataForT = typeof(T).IsDefined(typeof(AllowDeserializeInvalidDataAttribute), true);
+
         /// <summary>
         /// Reads a value of type <see cref="T" />.
         /// </summary>
@@ -101,15 +103,25 @@ namespace OdinSerializer
                                         return (T)value;
                                     }
                                 }
+                                else if (AllowDeserializeInvalidDataForT || reader.Context.Config.AllowDeserializeInvalidData)
+                                {
+                                    context.Config.DebugContext.LogWarning("Can't cast serialized type " + serializedType.Name + " into expected type " + expectedType.Name + ". Attempting to deserialize with possibly invalid data. Value may be lost or corrupted for node '" + name + "'.");
+                                    return FormatterLocator.GetFormatter<T>(context.Config.SerializationPolicy).Deserialize(reader);
+                                }
                                 else
                                 {
                                     context.Config.DebugContext.LogWarning("Can't cast serialized type " + serializedType.Name + " into expected type " + expectedType.Name + ". Value lost for node '" + name + "'.");
                                     return default(T);
                                 }
                             }
+                            else if (AllowDeserializeInvalidDataForT || reader.Context.Config.AllowDeserializeInvalidData)
+                            {
+                                context.Config.DebugContext.LogWarning("Expected complex struct value " + expectedType.Name + " but the serialized type could not be resolved. Attempting to deserialize with possibly invalid data. Value may be lost or corrupted for node '" + name + "'.");
+                                return FormatterLocator.GetFormatter<T>(context.Config.SerializationPolicy).Deserialize(reader);
+                            }
                             else
                             {
-                                context.Config.DebugContext.LogWarning("Expected complex struct value " + expectedType.Name + " but the serialized type could not be resolved.");
+                                context.Config.DebugContext.LogWarning("Expected complex struct value " + expectedType.Name + " but the serialized type could not be resolved. Value lost for node '" + name + "'.");
                                 return default(T);
                             }
                         }
@@ -300,6 +312,13 @@ namespace OdinSerializer
                                                 success = false;
                                                 result = default(T);
                                             }
+                                        }
+                                        else if (!ComplexTypeIsAbstract && (AllowDeserializeInvalidDataForT || reader.Context.Config.AllowDeserializeInvalidData))
+                                        {
+                                            // We will try to deserialize an instance of T with the invalid data.
+                                            context.Config.DebugContext.LogWarning("Can't cast serialized type " + serializedType.Name + " into expected type " + expectedType.Name + ". Attempting to deserialize with invalid data. Value may be lost or corrupted for node '" + name + "'.");
+                                            result = FormatterLocator.GetFormatter<T>(context.Config.SerializationPolicy).Deserialize(reader);
+                                            success = true;
                                         }
                                         else
                                         {

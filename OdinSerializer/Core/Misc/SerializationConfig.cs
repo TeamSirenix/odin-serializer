@@ -38,6 +38,20 @@ namespace OdinSerializer
         }
 
         /// <summary>
+        /// <para>
+        /// Setting this member to true indicates that in the case where, when expecting to deserialize an instance of a certain type, 
+        /// but encountering an incompatible, uncastable type in the data being read, the serializer should attempt to deserialize an 
+        /// instance of the expected type using the stored, possibly invalid data.
+        /// </para>
+        /// <para>
+        /// This is equivalent to applying the <see cref="SerializationConfig.AllowDeserializeInvalidData"/> attribute, except global 
+        /// instead of specific to a single type. Note that if this member is set to false, individual types may still be deserialized
+        /// with invalid data if they are decorated with the <see cref="SerializationConfig.AllowDeserializeInvalidData"/> attribute.
+        /// </para>
+        /// </summary>
+        public bool AllowDeserializeInvalidData = false;
+
+        /// <summary>
         /// Gets or sets the serialization policy. This value is never null; if set to null, it will default to <see cref="SerializationPolicies.Unity"/>.
         /// </summary>
         /// <value>
@@ -110,6 +124,7 @@ namespace OdinSerializer
         {
             lock (this.LOCK)
             {
+                this.AllowDeserializeInvalidData = false;
                 this.serializationPolicy = null;
                 if (!object.ReferenceEquals(this.debugContext, null))
                 {
