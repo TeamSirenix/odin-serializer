@@ -7,7 +7,7 @@
 </h3>
 <p align="center">
 	OdinSerializer is an open-source version of the custom serializer built for and used by 
-	<a href="https://www.assetstore.unity3d.com/en/#!/content/89041">Odin - Inspector & Serializer</a>
+	<a href="https://odininspector.com/">Odin - Inspector & Serializer</a>
 </p>
 <hr>
 <p align="center">	
@@ -17,7 +17,7 @@
 	<a href="https://discord.gg/AgDmStu">
 		<img src="https://discordapp.com/api/guilds/355444042009673728/embed.png" alt="Discord server">
 	</a>
-	<a href="https://www.assetstore.unity3d.com/#!/content/89041?aid=1011l36zv">
+	<a href="https://odininspector.com/">
 		<img src="/Images/BtnOdinInspector.png" alt="Inspect all data with Odin Serializer">
 	</a>
 	<a href="https://github.com/TeamSirenix/odin-serializer/releases">
@@ -57,7 +57,6 @@ The performance graphs in this section are profiled with OdinSerializer's binary
 |Cross Platform                         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:
 |Out of the box Unity Support           |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:x:               |:x:               |:x:
 |Supports Unity structs                 |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:x:               |:x:               |:x:
-|Prefab Modifications                   |:heavy_check_mark:|:x:               |:x:               |:x:               |:x:               |:x:
 |Binary Formatter                       |:heavy_check_mark:|:x:               |:x:               |:heavy_check_mark:|:x:               |:heavy_check_mark:
 |Json Formatter                         |:heavy_check_mark:|:heavy_check_mark:|:heavy_check_mark:|:x:               |:heavy_check_mark:|:x:
 |Merge-friendly data in Unity objects   |:heavy_check_mark:|:x:               |:x:               |:x:               |:x:               |:x:
