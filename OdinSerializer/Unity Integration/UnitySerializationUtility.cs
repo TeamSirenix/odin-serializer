@@ -1427,6 +1427,10 @@ namespace OdinSerializer
                             UnitySerializationUtility.DeserializeUnityObject(unityObject, reader);
                         }
                     }
+                    else if (data.SerializedBytes != null && data.SerializedBytes.Length > 0)
+                    {
+                        UnitySerializationUtility.DeserializeUnityObject(unityObject, ref data.SerializedBytes, ref unityObjects, data.SerializedFormat, context);
+                    }
                     else
                     {
                         UnitySerializationUtility.DeserializeUnityObject(unityObject, ref data.SerializedBytesString, ref unityObjects, data.SerializedFormat, context);
@@ -1455,8 +1459,21 @@ namespace OdinSerializer
                 return;
             }
 
-            byte[] bytes = Convert.FromBase64String(base64Bytes);
-            DeserializeUnityObject(unityObject, ref bytes, ref referencedUnityObjects, format, context);
+            byte[] bytes = null;
+
+            try
+            {
+                bytes = Convert.FromBase64String(base64Bytes);
+            }
+            catch (FormatException)
+            {
+                Debug.LogError("Invalid base64 string when deserializing data: " + base64Bytes);
+            }
+
+            if (bytes != null)
+            {
+                DeserializeUnityObject(unityObject, ref bytes, ref referencedUnityObjects, format, context);
+            }
         }
 
         /// <summary>
@@ -2362,7 +2379,9 @@ namespace OdinSerializer
         public static class PrefabModificationCache
         {
             private static readonly Dictionary<UnityEngine.Object, List<PrefabModification>> CachedDeserializedModifications = new Dictionary<UnityEngine.Object, List<PrefabModification>>(ReferenceEqualityComparer<UnityEngine.Object>.Default);
-            private static readonly Dictionary<UnityEngine.Object, DateTime> CachedDeserializedModificationTimes = new Dictionary<UnityEngine.Object, DateTime>(ReferenceEqualityComparer<UnityEngine.Object>.Default);
+            private static readonly Dictionary<UnityEngine.Object, int> CachedDeserializedModificationTimes = new Dictionary<UnityEngine.Object, int>(ReferenceEqualityComparer<UnityEngine.Object>.Default);
+
+            private static int counter = 0;
 
             public static List<PrefabModification> DeserializePrefabModificationsCached(UnityEngine.Object obj, List<string> modifications, List<UnityEngine.Object> referencedUnityObjects)
             {
@@ -2374,7 +2393,7 @@ namespace OdinSerializer
                     CachedDeserializedModifications.Add(obj, result);
                 }
 
-                CachedDeserializedModificationTimes[obj] = DateTime.Now;
+                CachedDeserializedModificationTimes[obj] = ++counter;
                 PrunePrefabModificationsCache();
 
                 return result;
@@ -2383,7 +2402,7 @@ namespace OdinSerializer
             public static void CachePrefabModifications(UnityEngine.Object obj, List<PrefabModification> modifications)
             {
                 CachedDeserializedModifications[obj] = modifications;
-                CachedDeserializedModificationTimes[obj] = DateTime.Now;
+                CachedDeserializedModificationTimes[obj] = ++counter;
                 PrunePrefabModificationsCache();
             }
 
@@ -2400,7 +2419,7 @@ namespace OdinSerializer
                 while (CachedDeserializedModificationTimes.Count > CACHE_SIZE)
                 {
                     UnityEngine.Object lowestObj = null;
-                    DateTime lowestTime = DateTime.MaxValue;
+                    int lowestTime = int.MaxValue;
 
                     foreach (var pair in CachedDeserializedModificationTimes)
                     {
