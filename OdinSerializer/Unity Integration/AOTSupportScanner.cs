@@ -504,7 +504,7 @@ namespace OdinSerializer.Editor
         private void RegisterType(Type type)
         {
             if (!this.allowRegisteringScannedTypes) return;
-            if (type.IsAbstract || type.IsInterface) return;
+            //if (type.IsAbstract || type.IsInterface) return;
             if (type.IsGenericType && (type.IsGenericTypeDefinition || !type.IsFullyConstructedGenericType())) return;
 
             //if (this.seenSerializedTypes.Add(type))

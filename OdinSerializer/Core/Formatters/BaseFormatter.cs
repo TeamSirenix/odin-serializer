@@ -16,11 +16,15 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+#if (UNITY_EDITOR || UNITY_STANDALONE) && !ENABLE_IL2CPP
+#define CAN_EMIT
+#endif
+
 namespace OdinSerializer
 {
     using OdinSerializer.Utilities;
     using System;
-    using System.Linq;
+    using System.Collections.Generic;
     using System.Reflection;
     using System.Runtime.Serialization;
 
@@ -71,49 +75,74 @@ namespace OdinSerializer
                 DefaultLoggers.DefaultLogger.LogWarning("A formatter has been created for the UnityEngine.Object type " + typeof(T).Name + " - this is *strongly* discouraged. Unity should be allowed to handle serialization and deserialization of its own weird objects. Remember to serialize with a UnityReferenceResolver as the external index reference resolver in the serialization context.\n\n Stacktrace: " + new System.Diagnostics.StackTrace().ToString());
             }
 
-            var methods = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            MethodInfo[] methods = typeof(T).GetMethods(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance);
+            
+            List<SerializationCallback> callbacks = new List<SerializationCallback>();
+            
+            OnSerializingCallbacks = GetCallbacks(methods, typeof(OnSerializingAttribute), ref callbacks);
+            OnSerializedCallbacks = GetCallbacks(methods, typeof(OnSerializedAttribute), ref callbacks);
+            OnDeserializingCallbacks = GetCallbacks(methods, typeof(OnDeserializingAttribute), ref callbacks);
+            OnDeserializedCallbacks = GetCallbacks(methods, typeof(OnDeserializedAttribute), ref callbacks);
+        }
 
-            Func<MethodInfo, SerializationCallback> selector;
-
-            selector = (info) =>
+        private static SerializationCallback[] GetCallbacks(MethodInfo[] methods, Type callbackAttribute, ref List<SerializationCallback> list)
+        {
+            for (int i = 0; i < methods.Length; i++)
             {
-                var parameters = info.GetParameters();
-                if (parameters.Length == 0)
+                var method = methods[i];
+
+                if (method.IsDefined(callbackAttribute, true))
                 {
-                    var action = EmitUtilities.CreateInstanceRefMethodCaller<T>(info);
-                    return (ref T value, StreamingContext context) => action(ref value);
+                    var callback = CreateCallback(method);
+
+                    if (callback != null)
+                    {
+                        list.Add(callback);
+                    }
                 }
-                else if (parameters.Length == 1 && parameters[0].ParameterType == typeof(StreamingContext) && parameters[0].ParameterType.IsByRef == false)
+            }
+
+            var result = list.ToArray();
+            list.Clear();
+            return result;
+        }
+
+        private static SerializationCallback CreateCallback(MethodInfo info)
+        {
+            var parameters = info.GetParameters();
+            if (parameters.Length == 0)
+            {
+#if CAN_EMIT
+                var action = EmitUtilities.CreateInstanceRefMethodCaller<T>(info);
+                return (ref T value, StreamingContext context) => action(ref value);
+#else
+                return (ref T value, StreamingContext context) =>
                 {
-                    var action = EmitUtilities.CreateInstanceRefMethodCaller<T, StreamingContext>(info);
-                    return (ref T value, StreamingContext context) => action(ref value, context);
-                }
-                else
+                    object obj = value;
+                    info.Invoke(obj, null);
+                    value = (T)obj;
+                };
+#endif
+            }
+            else if (parameters.Length == 1 && parameters[0].ParameterType == typeof(StreamingContext) && parameters[0].ParameterType.IsByRef == false)
+            {
+#if CAN_EMIT
+                var action = EmitUtilities.CreateInstanceRefMethodCaller<T, StreamingContext>(info);
+                return (ref T value, StreamingContext context) => action(ref value, context);
+#else
+                return (ref T value, StreamingContext context) =>
                 {
-                    DefaultLoggers.DefaultLogger.LogWarning("The method " + info.GetNiceName() + " has an invalid signature and will be ignored by the serialization system.");
-                    return null;
-                }
-            };
-
-            OnSerializingCallbacks = methods.Where(n => n.IsDefined(typeof(OnSerializingAttribute), true))
-                                            .Select(selector)
-                                            .Where(n => n != null)
-                                            .ToArray();
-
-            OnSerializedCallbacks = methods.Where(n => n.IsDefined(typeof(OnSerializedAttribute), true))
-                                           .Select(selector)
-                                           .Where(n => n != null)
-                                           .ToArray();
-
-            OnDeserializingCallbacks = methods.Where(n => n.IsDefined(typeof(OnDeserializingAttribute), true))
-                                              .Select(selector)
-                                              .Where(n => n != null)
-                                              .ToArray();
-
-            OnDeserializedCallbacks = methods.Where(n => n.IsDefined(typeof(OnDeserializedAttribute), true))
-                                             .Select(selector)
-                                             .Where(n => n != null)
-                                             .ToArray();
+                    object obj = value;
+                    info.Invoke(obj, new object[] { context });
+                    value = (T)obj;
+                };
+#endif
+            }
+            else
+            {
+                DefaultLoggers.DefaultLogger.LogWarning("The method " + info.GetNiceName() + " has an invalid signature and will be ignored by the serialization system.");
+                return null;
+            }
         }
 
         /// <summary>

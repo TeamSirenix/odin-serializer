@@ -130,6 +130,11 @@ namespace OdinSerializer.Editor
             var staticConstructor = type.DefineTypeInitializer();
             var il = staticConstructor.GetILGenerator();
 
+            var falseLocal = il.DeclareLocal(typeof(bool));
+
+            il.Emit(OpCodes.Ldc_I4_0);                  // Load false
+            il.Emit(OpCodes.Stloc, falseLocal);         // Set to falseLocal
+
             HashSet<Type> seenTypes = new HashSet<Type>();
 
             //var endPoint = il.DefineLabel();
@@ -139,12 +144,8 @@ namespace OdinSerializer.Editor
             {
                 if (serializedType == null) continue;
 
-                if (serializedType.IsAbstract || serializedType.IsInterface)
-                {
-                    Debug.LogError("Skipping type '" + serializedType.GetNiceFullName() + "'! Type is abstract or an interface.");
-                    continue;
-                }
-
+                bool isAbstract = serializedType.IsAbstract || serializedType.IsInterface;
+                
                 if (serializedType.IsGenericType && (serializedType.IsGenericTypeDefinition || !serializedType.IsFullyConstructedGenericType()))
                 {
                     Debug.LogError("Skipping type '" + serializedType.GetNiceFullName() + "'! Type is a generic type definition, or its arguments contain generic parameters; type must be a fully constructed generic type.");
@@ -164,7 +165,7 @@ namespace OdinSerializer.Editor
                         il.Emit(OpCodes.Ldloca, local);
                         il.Emit(OpCodes.Initobj, serializedType);
                     }
-                    else
+                    else if (!isAbstract)
                     {
                         var constructor = serializedType.GetConstructor(Type.EmptyTypes);
 
@@ -177,7 +178,7 @@ namespace OdinSerializer.Editor
                 }
 
                 // Reference and/or create formatter type
-                if (!FormatterUtilities.IsPrimitiveType(serializedType) && !typeof(UnityEngine.Object).IsAssignableFrom(serializedType))
+                if (!FormatterUtilities.IsPrimitiveType(serializedType) && !typeof(UnityEngine.Object).IsAssignableFrom(serializedType) && !isAbstract)
                 {
                     var actualFormatter = FormatterLocator.GetFormatter(serializedType, SerializationPolicies.Unity);
 
@@ -219,17 +220,55 @@ namespace OdinSerializer.Editor
                 ConstructorInfo serializerConstructor;
 
                 // Reference serializer variant
-                if (serializedType.IsEnum)
+                if (serializedType.IsValueType)
                 {
-                    serializerConstructor = typeof(EnumSerializer<>).MakeGenericType(serializedType).GetConstructor(Type.EmptyTypes);
+                    serializerConstructor = Serializer.Get(serializedType).GetType().GetConstructor(Type.EmptyTypes);
+
+                    il.Emit(OpCodes.Newobj, serializerConstructor);
+
+                    // The following section is a fix for an issue on IL2CPP for PS4, where sometimes bytecode isn't
+                    //   generated for methods in base types of needed types - FX, Serializer<T>.ReadValueWeak()
+                    //   may be missing. This only seems to happen in a relevant way for value types.
+                    {
+                        var endLabel = il.DefineLabel();
+
+                        // Load a false local value, then jump to the end of this segment of code due to that
+                        //   false value. This is an attempt to trick any potential code flow analysis made
+                        //   by IL2CPP that checks whether this segment of code is actually run.
+                        //
+                        // We don't run the code because if we did, that would actually throw a bunch of
+                        //   exceptions from invalid calls to ReadValueWeak and WriteValueWeak.
+                        il.Emit(OpCodes.Ldloc, falseLocal);
+                        il.Emit(OpCodes.Brfalse, endLabel);
+
+                        var baseSerializerType = typeof(Serializer<>).MakeGenericType(serializedType);
+
+                        var readValueWeakMethod = baseSerializerType.GetMethod("ReadValueWeak", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly, null, new Type[] { typeof(IDataReader) }, null);
+                        var writeValueWeakMethod = baseSerializerType.GetMethod("WriteValueWeak", BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly, null, new Type[] { typeof(string), typeof(object), typeof(IDataWriter) }, null);
+
+                        il.Emit(OpCodes.Dup);                               // Duplicate serializer instance
+                        il.Emit(OpCodes.Ldnull);                            // Load null argument for IDataReader reader
+                        il.Emit(OpCodes.Callvirt, readValueWeakMethod);     // Call ReadValueWeak on serializer instance
+                        il.Emit(OpCodes.Pop);                               // Pop result of ReadValueWeak
+
+                        il.Emit(OpCodes.Dup);                               // Duplicate serializer instance
+                        il.Emit(OpCodes.Ldnull);                            // Load null argument for string name
+                        il.Emit(OpCodes.Ldnull);                            // Load null argument for object value
+                        il.Emit(OpCodes.Ldnull);                            // Load null argument for IDataWriter writer
+                        il.Emit(OpCodes.Callvirt, writeValueWeakMethod);    // Call WriteValueWeak on serializer instance
+
+                        il.MarkLabel(endLabel);                             // This is where the code always jumps to, skipping the above
+                    }
+
+                    il.Emit(OpCodes.Pop);       // Pop the serializer instance
                 }
                 else
                 {
                     serializerConstructor = typeof(ComplexTypeSerializer<>).MakeGenericType(serializedType).GetConstructor(Type.EmptyTypes);
+                    il.Emit(OpCodes.Newobj, serializerConstructor);
+                    il.Emit(OpCodes.Pop);
                 }
 
-                il.Emit(OpCodes.Newobj, serializerConstructor);
-                il.Emit(OpCodes.Pop);
             }
 
             //il.MarkLabel(endPoint);

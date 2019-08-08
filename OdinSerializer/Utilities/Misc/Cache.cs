@@ -54,7 +54,7 @@ namespace OdinSerializer.Utilities
     {
         private static readonly object LOCK = new object();
         private static readonly bool IsNotificationReceiver = typeof(ICacheNotificationReceiver).IsAssignableFrom(typeof(T));
-        private static readonly Stack<Cache<T>> FreeValues = new Stack<Cache<T>>();
+        private static readonly List<object> FreeValues = new List<object>();
 
         private T value;
         private bool isFree;
@@ -124,9 +124,10 @@ namespace OdinSerializer.Utilities
 
             lock (LOCK)
             {
-                if (Cache<T>.FreeValues.Count > 0)
+                if (FreeValues.Count > 0)
                 {
-                    result = Cache<T>.FreeValues.Pop();
+                    result = (Cache<T>)FreeValues[FreeValues.Count - 1];
+                    FreeValues.RemoveAt(FreeValues.Count - 1);
                     result.isFree = false;
                 }
             }
@@ -169,7 +170,7 @@ namespace OdinSerializer.Utilities
 
                         if (Cache<T>.FreeValues.Count < Cache<T>.MaxCacheSize)
                         {
-                            Cache<T>.FreeValues.Push(cache);
+                            Cache<T>.FreeValues.Add(cache);
                         }
                     }
                 }
