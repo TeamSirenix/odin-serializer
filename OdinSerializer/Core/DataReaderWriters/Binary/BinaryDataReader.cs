@@ -22,12 +22,13 @@ namespace OdinSerializer
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Runtime.InteropServices;
 
     /// <summary>
     /// Reads data from a stream that has been written by a <see cref="BinaryDataWriter"/>.
     /// </summary>
     /// <seealso cref="BaseDataReader" />
-    public class BinaryDataReader : BaseDataReader
+    public unsafe class BinaryDataReader : BaseDataReader
     {
         private static readonly Dictionary<Type, Delegate> PrimitiveFromByteMethods = new Dictionary<Type, Delegate>()
         {
@@ -47,7 +48,11 @@ namespace OdinSerializer
             { typeof(Guid),     (Func<byte[], int, Guid>)      ProperBitConverter.ToGuid }
         };
 
-        private readonly byte[] buffer = new byte[16]; // For byte caching while writing values up to sizeof(decimal), and to provide a permanent buffer to read into
+        private byte[] internalBufferBackup;
+        private byte[] buffer = new byte[1024 * 100];
+
+        private int bufferIndex;
+        private int bufferEnd;
 
         private EntryType? peekedEntryType;
         private BinaryEntryType peekedBinaryEntryType;
@@ -56,6 +61,7 @@ namespace OdinSerializer
 
         public BinaryDataReader() : base(null, null)
         {
+            this.internalBufferBackup = this.buffer;
         }
 
         /// <summary>
@@ -65,6 +71,7 @@ namespace OdinSerializer
         /// <param name="context">The deserialization context to use.</param>
         public BinaryDataReader(Stream stream, DeserializationContext context) : base(stream, context)
         {
+            this.internalBufferBackup = this.buffer;
         }
 
         /// <summary>
@@ -90,282 +97,264 @@ namespace OdinSerializer
                 return (EntryType)this.peekedEntryType;
             }
 
-            var entryByte = this.Stream.ReadByte();
+            this.peekedBinaryEntryType = this.HasBufferData(1) ? (BinaryEntryType)this.buffer[this.bufferIndex++] : BinaryEntryType.EndOfStream;
 
-            if (entryByte < 0)
+            // Switch on entry type
+            switch (this.peekedBinaryEntryType)
             {
-                name = null;
-                this.peekedEntryName = null;
-                this.peekedEntryType = EntryType.EndOfStream;
-                this.peekedBinaryEntryType = BinaryEntryType.EndOfStream;
-                return EntryType.EndOfStream;
-            }
-            else
-            {
-                this.peekedBinaryEntryType = (BinaryEntryType)entryByte;
+                case BinaryEntryType.EndOfStream:
+                    name = null;
+                    this.peekedEntryName = null;
+                    this.peekedEntryType = EntryType.EndOfStream;
+                    break;
 
-                // Switch on entry type
-                switch (this.peekedBinaryEntryType)
-                {
-                    case BinaryEntryType.NamedStartOfReferenceNode:
-                    case BinaryEntryType.NamedStartOfStructNode:
-                        name = this.ReadStringValue();
-                        this.peekedEntryType = EntryType.StartOfNode;
-                        break;
+                case BinaryEntryType.NamedStartOfReferenceNode:
+                case BinaryEntryType.NamedStartOfStructNode:
+                    name = this.ReadStringValue();
+                    this.peekedEntryType = EntryType.StartOfNode;
+                    break;
 
-                    case BinaryEntryType.UnnamedStartOfReferenceNode:
-                    case BinaryEntryType.UnnamedStartOfStructNode:
-                        name = null;
-                        this.peekedEntryType = EntryType.StartOfNode;
-                        break;
+                case BinaryEntryType.UnnamedStartOfReferenceNode:
+                case BinaryEntryType.UnnamedStartOfStructNode:
+                    name = null;
+                    this.peekedEntryType = EntryType.StartOfNode;
+                    break;
 
-                    case BinaryEntryType.EndOfNode:
-                        name = null;
-                        this.peekedEntryType = EntryType.EndOfNode;
-                        break;
+                case BinaryEntryType.EndOfNode:
+                    name = null;
+                    this.peekedEntryType = EntryType.EndOfNode;
+                    break;
 
-                    case BinaryEntryType.StartOfArray:
-                        name = null;
-                        this.peekedEntryType = EntryType.StartOfArray;
-                        break;
+                case BinaryEntryType.StartOfArray:
+                    name = null;
+                    this.peekedEntryType = EntryType.StartOfArray;
+                    break;
 
-                    case BinaryEntryType.EndOfArray:
-                        name = null;
-                        this.peekedEntryType = EntryType.EndOfArray;
-                        break;
+                case BinaryEntryType.EndOfArray:
+                    name = null;
+                    this.peekedEntryType = EntryType.EndOfArray;
+                    break;
 
-                    case BinaryEntryType.PrimitiveArray:
-                        name = null;
-                        this.peekedEntryType = EntryType.PrimitiveArray;
-                        break;
+                case BinaryEntryType.PrimitiveArray:
+                    name = null;
+                    this.peekedEntryType = EntryType.PrimitiveArray;
+                    break;
 
-                    case BinaryEntryType.NamedInternalReference:
-                        name = this.ReadStringValue();
-                        this.peekedEntryType = EntryType.InternalReference;
-                        break;
+                case BinaryEntryType.NamedInternalReference:
+                    name = this.ReadStringValue();
+                    this.peekedEntryType = EntryType.InternalReference;
+                    break;
 
-                    case BinaryEntryType.UnnamedInternalReference:
-                        name = null;
-                        this.peekedEntryType = EntryType.InternalReference;
-                        break;
+                case BinaryEntryType.UnnamedInternalReference:
+                    name = null;
+                    this.peekedEntryType = EntryType.InternalReference;
+                    break;
 
-                    case BinaryEntryType.NamedExternalReferenceByIndex:
-                        name = this.ReadStringValue();
-                        this.peekedEntryType = EntryType.ExternalReferenceByIndex;
-                        break;
+                case BinaryEntryType.NamedExternalReferenceByIndex:
+                    name = this.ReadStringValue();
+                    this.peekedEntryType = EntryType.ExternalReferenceByIndex;
+                    break;
 
-                    case BinaryEntryType.UnnamedExternalReferenceByIndex:
-                        name = null;
-                        this.peekedEntryType = EntryType.ExternalReferenceByIndex;
-                        break;
+                case BinaryEntryType.UnnamedExternalReferenceByIndex:
+                    name = null;
+                    this.peekedEntryType = EntryType.ExternalReferenceByIndex;
+                    break;
 
-                    case BinaryEntryType.NamedExternalReferenceByGuid:
-                        name = this.ReadStringValue();
-                        this.peekedEntryType = EntryType.ExternalReferenceByGuid;
-                        break;
+                case BinaryEntryType.NamedExternalReferenceByGuid:
+                    name = this.ReadStringValue();
+                    this.peekedEntryType = EntryType.ExternalReferenceByGuid;
+                    break;
 
-                    case BinaryEntryType.UnnamedExternalReferenceByGuid:
-                        name = null;
-                        this.peekedEntryType = EntryType.ExternalReferenceByGuid;
-                        break;
+                case BinaryEntryType.UnnamedExternalReferenceByGuid:
+                    name = null;
+                    this.peekedEntryType = EntryType.ExternalReferenceByGuid;
+                    break;
 
-                    case BinaryEntryType.NamedExternalReferenceByString:
-                        name = this.ReadStringValue();
-                        this.peekedEntryType = EntryType.ExternalReferenceByString;
-                        break;
+                case BinaryEntryType.NamedExternalReferenceByString:
+                    name = this.ReadStringValue();
+                    this.peekedEntryType = EntryType.ExternalReferenceByString;
+                    break;
 
-                    case BinaryEntryType.UnnamedExternalReferenceByString:
-                        name = null;
-                        this.peekedEntryType = EntryType.ExternalReferenceByString;
-                        break;
+                case BinaryEntryType.UnnamedExternalReferenceByString:
+                    name = null;
+                    this.peekedEntryType = EntryType.ExternalReferenceByString;
+                    break;
 
-                    case BinaryEntryType.NamedSByte:
-                        name = this.ReadStringValue();
-                        this.peekedEntryType = EntryType.Integer;
-                        break;
+                case BinaryEntryType.NamedSByte:
+                    name = this.ReadStringValue();
+                    this.peekedEntryType = EntryType.Integer;
+                    break;
 
-                    case BinaryEntryType.UnnamedSByte:
-                        name = null;
-                        this.peekedEntryType = EntryType.Integer;
-                        break;
+                case BinaryEntryType.UnnamedSByte:
+                    name = null;
+                    this.peekedEntryType = EntryType.Integer;
+                    break;
 
-                    case BinaryEntryType.NamedByte:
-                        name = this.ReadStringValue();
-                        this.peekedEntryType = EntryType.Integer;
-                        break;
+                case BinaryEntryType.NamedByte:
+                    name = this.ReadStringValue();
+                    this.peekedEntryType = EntryType.Integer;
+                    break;
 
-                    case BinaryEntryType.UnnamedByte:
-                        name = null;
-                        this.peekedEntryType = EntryType.Integer;
-                        break;
+                case BinaryEntryType.UnnamedByte:
+                    name = null;
+                    this.peekedEntryType = EntryType.Integer;
+                    break;
 
-                    case BinaryEntryType.NamedShort:
-                        name = this.ReadStringValue();
-                        this.peekedEntryType = EntryType.Integer;
-                        break;
+                case BinaryEntryType.NamedShort:
+                    name = this.ReadStringValue();
+                    this.peekedEntryType = EntryType.Integer;
+                    break;
 
-                    case BinaryEntryType.UnnamedShort:
-                        name = null;
-                        this.peekedEntryType = EntryType.Integer;
-                        break;
+                case BinaryEntryType.UnnamedShort:
+                    name = null;
+                    this.peekedEntryType = EntryType.Integer;
+                    break;
 
-                    case BinaryEntryType.NamedUShort:
-                        name = this.ReadStringValue();
-                        this.peekedEntryType = EntryType.Integer;
-                        break;
+                case BinaryEntryType.NamedUShort:
+                    name = this.ReadStringValue();
+                    this.peekedEntryType = EntryType.Integer;
+                    break;
 
-                    case BinaryEntryType.UnnamedUShort:
-                        name = null;
-                        this.peekedEntryType = EntryType.Integer;
-                        break;
+                case BinaryEntryType.UnnamedUShort:
+                    name = null;
+                    this.peekedEntryType = EntryType.Integer;
+                    break;
 
-                    case BinaryEntryType.NamedInt:
-                        name = this.ReadStringValue();
-                        this.peekedEntryType = EntryType.Integer;
-                        break;
+                case BinaryEntryType.NamedInt:
+                    name = this.ReadStringValue();
+                    this.peekedEntryType = EntryType.Integer;
+                    break;
 
-                    case BinaryEntryType.UnnamedInt:
-                        name = null;
-                        this.peekedEntryType = EntryType.Integer;
-                        break;
+                case BinaryEntryType.UnnamedInt:
+                    name = null;
+                    this.peekedEntryType = EntryType.Integer;
+                    break;
 
-                    case BinaryEntryType.NamedUInt:
-                        name = this.ReadStringValue();
-                        this.peekedEntryType = EntryType.Integer;
-                        break;
+                case BinaryEntryType.NamedUInt:
+                    name = this.ReadStringValue();
+                    this.peekedEntryType = EntryType.Integer;
+                    break;
 
-                    case BinaryEntryType.UnnamedUInt:
-                        name = null;
-                        this.peekedEntryType = EntryType.Integer;
-                        break;
+                case BinaryEntryType.UnnamedUInt:
+                    name = null;
+                    this.peekedEntryType = EntryType.Integer;
+                    break;
 
-                    case BinaryEntryType.NamedLong:
-                        name = this.ReadStringValue();
-                        this.peekedEntryType = EntryType.Integer;
-                        break;
+                case BinaryEntryType.NamedLong:
+                    name = this.ReadStringValue();
+                    this.peekedEntryType = EntryType.Integer;
+                    break;
 
-                    case BinaryEntryType.UnnamedLong:
-                        name = null;
-                        this.peekedEntryType = EntryType.Integer;
-                        break;
+                case BinaryEntryType.UnnamedLong:
+                    name = null;
+                    this.peekedEntryType = EntryType.Integer;
+                    break;
 
-                    case BinaryEntryType.NamedULong:
-                        name = this.ReadStringValue();
-                        this.peekedEntryType = EntryType.Integer;
-                        break;
+                case BinaryEntryType.NamedULong:
+                    name = this.ReadStringValue();
+                    this.peekedEntryType = EntryType.Integer;
+                    break;
 
-                    case BinaryEntryType.UnnamedULong:
-                        name = null;
-                        this.peekedEntryType = EntryType.Integer;
-                        break;
+                case BinaryEntryType.UnnamedULong:
+                    name = null;
+                    this.peekedEntryType = EntryType.Integer;
+                    break;
 
-                    case BinaryEntryType.NamedFloat:
-                        name = this.ReadStringValue();
-                        this.peekedEntryType = EntryType.FloatingPoint;
-                        break;
+                case BinaryEntryType.NamedFloat:
+                    name = this.ReadStringValue();
+                    this.peekedEntryType = EntryType.FloatingPoint;
+                    break;
 
-                    case BinaryEntryType.UnnamedFloat:
-                        name = null;
-                        this.peekedEntryType = EntryType.FloatingPoint;
-                        break;
+                case BinaryEntryType.UnnamedFloat:
+                    name = null;
+                    this.peekedEntryType = EntryType.FloatingPoint;
+                    break;
 
-                    case BinaryEntryType.NamedDouble:
-                        name = this.ReadStringValue();
-                        this.peekedEntryType = EntryType.FloatingPoint;
-                        break;
+                case BinaryEntryType.NamedDouble:
+                    name = this.ReadStringValue();
+                    this.peekedEntryType = EntryType.FloatingPoint;
+                    break;
 
-                    case BinaryEntryType.UnnamedDouble:
-                        name = null;
-                        this.peekedEntryType = EntryType.FloatingPoint;
-                        break;
+                case BinaryEntryType.UnnamedDouble:
+                    name = null;
+                    this.peekedEntryType = EntryType.FloatingPoint;
+                    break;
 
-                    case BinaryEntryType.NamedDecimal:
-                        name = this.ReadStringValue();
-                        this.peekedEntryType = EntryType.FloatingPoint;
-                        break;
+                case BinaryEntryType.NamedDecimal:
+                    name = this.ReadStringValue();
+                    this.peekedEntryType = EntryType.FloatingPoint;
+                    break;
 
-                    case BinaryEntryType.UnnamedDecimal:
-                        name = null;
-                        this.peekedEntryType = EntryType.FloatingPoint;
-                        break;
+                case BinaryEntryType.UnnamedDecimal:
+                    name = null;
+                    this.peekedEntryType = EntryType.FloatingPoint;
+                    break;
 
-                    case BinaryEntryType.NamedChar:
-                        name = this.ReadStringValue();
-                        this.peekedEntryType = EntryType.String;
-                        break;
+                case BinaryEntryType.NamedChar:
+                    name = this.ReadStringValue();
+                    this.peekedEntryType = EntryType.String;
+                    break;
 
-                    case BinaryEntryType.UnnamedChar:
-                        name = null;
-                        this.peekedEntryType = EntryType.String;
-                        break;
+                case BinaryEntryType.UnnamedChar:
+                    name = null;
+                    this.peekedEntryType = EntryType.String;
+                    break;
 
-                    case BinaryEntryType.NamedString:
-                        name = this.ReadStringValue();
-                        this.peekedEntryType = EntryType.String;
-                        break;
+                case BinaryEntryType.NamedString:
+                    name = this.ReadStringValue();
+                    this.peekedEntryType = EntryType.String;
+                    break;
 
-                    case BinaryEntryType.UnnamedString:
-                        name = null;
-                        this.peekedEntryType = EntryType.String;
-                        break;
+                case BinaryEntryType.UnnamedString:
+                    name = null;
+                    this.peekedEntryType = EntryType.String;
+                    break;
 
-                    case BinaryEntryType.NamedGuid:
-                        name = this.ReadStringValue();
-                        this.peekedEntryType = EntryType.Guid;
-                        break;
+                case BinaryEntryType.NamedGuid:
+                    name = this.ReadStringValue();
+                    this.peekedEntryType = EntryType.Guid;
+                    break;
 
-                    case BinaryEntryType.UnnamedGuid:
-                        name = null;
-                        this.peekedEntryType = EntryType.Guid;
-                        break;
+                case BinaryEntryType.UnnamedGuid:
+                    name = null;
+                    this.peekedEntryType = EntryType.Guid;
+                    break;
 
-                    case BinaryEntryType.NamedBoolean:
-                        name = this.ReadStringValue();
-                        this.peekedEntryType = EntryType.Boolean;
-                        break;
+                case BinaryEntryType.NamedBoolean:
+                    name = this.ReadStringValue();
+                    this.peekedEntryType = EntryType.Boolean;
+                    break;
 
-                    case BinaryEntryType.UnnamedBoolean:
-                        name = null;
-                        this.peekedEntryType = EntryType.Boolean;
-                        break;
+                case BinaryEntryType.UnnamedBoolean:
+                    name = null;
+                    this.peekedEntryType = EntryType.Boolean;
+                    break;
 
-                    case BinaryEntryType.NamedNull:
-                        name = this.ReadStringValue();
-                        this.peekedEntryType = EntryType.Null;
-                        break;
+                case BinaryEntryType.NamedNull:
+                    name = this.ReadStringValue();
+                    this.peekedEntryType = EntryType.Null;
+                    break;
 
-                    case BinaryEntryType.UnnamedNull:
-                        name = null;
-                        this.peekedEntryType = EntryType.Null;
-                        break;
+                case BinaryEntryType.UnnamedNull:
+                    name = null;
+                    this.peekedEntryType = EntryType.Null;
+                    break;
 
-                    case BinaryEntryType.EndOfStream:
-                        name = null;
-                        this.peekedEntryType = EntryType.EndOfStream;
-                        break;
+                case BinaryEntryType.TypeName:
+                case BinaryEntryType.TypeID:
+                    this.peekedBinaryEntryType = BinaryEntryType.Invalid;
+                    this.peekedEntryType = EntryType.Invalid;
+                    throw new InvalidOperationException("Invalid binary data stream: BinaryEntryType.TypeName and BinaryEntryType.TypeID must never be peeked by the binary reader.");
 
-                    case BinaryEntryType.TypeName:
-                    case BinaryEntryType.TypeID:
-                        this.peekedBinaryEntryType = BinaryEntryType.Invalid;
-                        this.peekedEntryType = EntryType.Invalid;
-                        throw new InvalidOperationException("Invalid binary data stream: BinaryEntryType.TypeName and BinaryEntryType.TypeID must never be peeked by the binary reader.");
-
-                    case BinaryEntryType.Invalid:
-                    default:
-                        name = null;
-                        this.peekedBinaryEntryType = BinaryEntryType.Invalid;
-                        this.peekedEntryType = EntryType.Invalid;
-                        throw new InvalidOperationException("Invalid binary data stream: could not parse peeked BinaryEntryType byte '" + entryByte + "' into a known entry type.");
-                }
+                case BinaryEntryType.Invalid:
+                default:
+                    name = null;
+                    this.peekedBinaryEntryType = BinaryEntryType.Invalid;
+                    this.peekedEntryType = EntryType.Invalid;
+                    throw new InvalidOperationException("Invalid binary data stream: could not parse peeked BinaryEntryType byte '" + (byte)this.peekedBinaryEntryType + "' into a known entry type.");
             }
 
             this.peekedEntryName = name;
-
-            if (this.peekedEntryType.HasValue == false)
-            {
-                this.peekedEntryType = EntryType.Invalid;
-            }
-
             return this.peekedEntryType.Value;
         }
 
@@ -381,27 +370,28 @@ namespace OdinSerializer
         /// </returns>
         public override bool EnterArray(out long length)
         {
-            this.PeekEntry();
+            if (!this.peekedEntryType.HasValue)
+            {
+                string name;
+                this.PeekEntry(out name);
+            }
 
             if (this.peekedEntryType == EntryType.StartOfArray)
             {
                 this.PushArray();
+                this.MarkEntryContentConsumed();
 
-                this.Stream.Read(this.buffer, 0, 8);
-                length = ProperBitConverter.ToInt64(this.buffer, 0);
-
-                if (length < 0)
+                if (this.UNSAFE_Read_8_Int64(out length))
                 {
-                    length = 0;
-                    this.MarkEntryContentConsumed();
-                    this.Context.Config.DebugContext.LogError("Invalid array length: " + length + ".");
-                    return false;
+                    if (length < 0)
+                    {
+                        length = 0;
+                        this.Context.Config.DebugContext.LogError("Invalid array length: " + length + ".");
+                        return false;
+                    }
+                    else return true;
                 }
-                else
-                {
-                    this.MarkEntryContentConsumed();
-                    return true;
-                }
+                else return false;
             }
             else
             {
@@ -423,21 +413,32 @@ namespace OdinSerializer
         /// </returns>
         public override bool EnterNode(out Type type)
         {
-            this.PeekEntry();
+            if (!this.peekedEntryType.HasValue)
+            {
+                string name;
+                this.PeekEntry(out name);
+            }
 
             if (this.peekedBinaryEntryType == BinaryEntryType.NamedStartOfReferenceNode || this.peekedBinaryEntryType == BinaryEntryType.UnnamedStartOfReferenceNode)
             {
-                type = this.ReadTypeEntry();
-                int id = this.ReadIntValue();
-                this.PushNode(this.peekedEntryName, id, type);
                 this.MarkEntryContentConsumed();
+                type = this.ReadTypeEntry();
+                int id;
+
+                if (!this.UNSAFE_Read_4_Int32(out id))
+                {
+                    type = null;
+                    return false;
+                }
+
+                this.PushNode(this.peekedEntryName, id, type);
                 return true;
             }
             else if (this.peekedBinaryEntryType == BinaryEntryType.NamedStartOfStructNode || this.peekedBinaryEntryType == BinaryEntryType.UnnamedStartOfStructNode)
             {
+                this.MarkEntryContentConsumed();
                 type = this.ReadTypeEntry();
                 this.PushNode(this.peekedEntryName, -1, type);
-                this.MarkEntryContentConsumed();
                 return true;
             }
             else
@@ -460,7 +461,11 @@ namespace OdinSerializer
         /// </returns>
         public override bool ExitArray()
         {
-            this.PeekEntry();
+            if (!this.peekedEntryType.HasValue)
+            {
+                string name;
+                this.PeekEntry(out name);
+            }
 
             while (this.peekedBinaryEntryType != BinaryEntryType.EndOfArray && this.peekedBinaryEntryType != BinaryEntryType.EndOfStream)
             {
@@ -495,7 +500,11 @@ namespace OdinSerializer
         /// </returns>
         public override bool ExitNode()
         {
-            this.PeekEntry();
+            if (!this.peekedEntryType.HasValue)
+            {
+                string name;
+                this.PeekEntry(out name);
+            }
 
             while (this.peekedBinaryEntryType != BinaryEntryType.EndOfNode && this.peekedBinaryEntryType != BinaryEntryType.EndOfStream)
             {
@@ -536,59 +545,80 @@ namespace OdinSerializer
                 throw new ArgumentException("Type " + typeof(T).Name + " is not a valid primitive array type.");
             }
 
-            this.PeekEntry();
+            if (!this.peekedEntryType.HasValue)
+            {
+                string name;
+                this.PeekEntry(out name);
+            }
 
             if (this.peekedEntryType == EntryType.PrimitiveArray)
             {
-                this.Stream.Read(this.buffer, 0, 8);
+                this.MarkEntryContentConsumed();
 
-                // Read array length
-                int elementCount = ProperBitConverter.ToInt32(this.buffer, 0);
+                int elementCount;
+                int bytesPerElement;
 
-                // Read size of an element in bytes
-                int bytesPerElement = ProperBitConverter.ToInt32(this.buffer, 4);
+                if (!this.UNSAFE_Read_4_Int32(out elementCount) || !this.UNSAFE_Read_4_Int32(out bytesPerElement))
+                {
+                    array = null;
+                    return false;
+                }
 
                 int byteCount = elementCount * bytesPerElement;
+
+                if (!this.HasBufferData(byteCount))
+                {
+                    this.bufferIndex = this.bufferEnd; // We're done!
+                    array = null;
+                    return false;
+                }
 
                 // Read the actual array content
                 if (typeof(T) == typeof(byte))
                 {
                     // We can include a special case for byte arrays, as there's no need to copy that to a buffer
                     var byteArray = new byte[byteCount];
-                    this.Stream.Read(byteArray, 0, byteCount);
+
+                    Buffer.BlockCopy(this.buffer, this.bufferIndex, byteArray, 0, byteCount);
+
                     array = (T[])(object)byteArray;
 
-                    this.MarkEntryContentConsumed();
                     return true;
                 }
                 else
                 {
-                    // Otherwise we copy to a buffer
-                    using (var tempBuffer = Buffer<byte>.Claim(byteCount))
+                    array = new T[elementCount];
+
+                    // We always store in little endian, so we can do a direct memory mapping, which is a lot faster
+                    if (BitConverter.IsLittleEndian)
                     {
-                        this.Stream.Read(tempBuffer.Array, 0, byteCount);
-                        array = new T[elementCount];
+                        var toHandle = GCHandle.Alloc(array, GCHandleType.Pinned);
 
-                        // We always store in little endian, so we can do a direct memory mapping, which is a lot faster
-                        if (BitConverter.IsLittleEndian)
+                        try
                         {
-                            UnsafeUtilities.MemoryCopy(tempBuffer.Array, array, byteCount, 0, 0);
-                        }
-                        else
-                        {
-                            // We have to convert each individual element from bytes, since the byte order has to be reversed
-                            Func<byte[], int, T> fromBytes = (Func<byte[], int, T>)PrimitiveFromByteMethods[typeof(T)];
-                            var b = tempBuffer.Array;
-
-                            for (int i = 0; i < elementCount; i++)
+                            fixed (byte* fromBase = this.buffer)
                             {
-                                array[i] = fromBytes(b, i * bytesPerElement);
+                                void* from = (fromBase + this.bufferIndex);
+                                void* to = toHandle.AddrOfPinnedObject().ToPointer();
+                                UnsafeUtilities.MemoryCopy(from, to, byteCount);
                             }
-                        }
 
-                        this.MarkEntryContentConsumed();
-                        return true;
+                        }
+                        finally { toHandle.Free(); }
                     }
+                    else
+                    {
+                        // We have to convert each individual element from bytes, since the byte order has to be reversed
+                        Func<byte[], int, T> fromBytes = (Func<byte[], int, T>)PrimitiveFromByteMethods[typeof(T)];
+
+                        for (int i = 0; i < elementCount; i++)
+                        {
+                            array[i] = fromBytes(this.buffer, this.bufferIndex + i * bytesPerElement);
+                        }
+                    }
+
+                    this.bufferIndex += byteCount;
+                    return true;
                 }
             }
             else
@@ -610,13 +640,26 @@ namespace OdinSerializer
         /// </returns>
         public override bool ReadBoolean(out bool value)
         {
-            this.PeekEntry();
+            if (!this.peekedEntryType.HasValue)
+            {
+                string name;
+                this.PeekEntry(out name);
+            }
 
             if (this.peekedEntryType == EntryType.Boolean)
             {
-                value = this.Stream.ReadByte() == 1;
                 this.MarkEntryContentConsumed();
-                return true;
+
+                if (this.HasBufferData(1))
+                {
+                    value = this.buffer[this.bufferIndex++] == 1;
+                    return true;
+                }
+                else
+                {
+                    value = false;
+                    return false;
+                }
             }
             else
             {
@@ -861,71 +904,130 @@ namespace OdinSerializer
         /// </returns>
         public override bool ReadInt64(out long value)
         {
-            this.PeekEntry();
+            if (!this.peekedEntryType.HasValue)
+            {
+                string name;
+                this.PeekEntry(out name);
+            }
 
             if (this.peekedEntryType == EntryType.Integer)
             {
-                checked
+                try
                 {
-                    try
+                    switch (this.peekedBinaryEntryType)
                     {
-                        switch (this.peekedBinaryEntryType)
-                        {
-                            case BinaryEntryType.NamedSByte:
-                            case BinaryEntryType.UnnamedSByte:
-                            case BinaryEntryType.NamedByte:
-                            case BinaryEntryType.UnnamedByte:
-                                value = this.Stream.ReadByte();
-                                break;
+                        case BinaryEntryType.NamedSByte:
+                        case BinaryEntryType.UnnamedSByte:
+                        case BinaryEntryType.NamedByte:
+                        case BinaryEntryType.UnnamedByte:
+                            byte i8;
+                            if (this.UNSAFE_Read_1_Byte(out i8))
+                            {
+                                value = i8;
+                            }
+                            else
+                            {
+                                value = 0;
+                                return false;
+                            }
+                            break;
 
-                            case BinaryEntryType.NamedShort:
-                            case BinaryEntryType.UnnamedShort:
-                                this.Stream.Read(this.buffer, 0, 2);
-                                value = ProperBitConverter.ToInt16(this.buffer, 0);
-                                break;
+                        case BinaryEntryType.NamedShort:
+                        case BinaryEntryType.UnnamedShort:
+                            short i16;
+                            if (this.UNSAFE_Read_2_Int16(out i16))
+                            {
+                                value = i16;
+                            }
+                            else
+                            {
+                                value = 0;
+                                return false;
+                            }
+                            break;
 
-                            case BinaryEntryType.NamedUShort:
-                            case BinaryEntryType.UnnamedUShort:
-                                this.Stream.Read(this.buffer, 0, 2);
-                                value = ProperBitConverter.ToUInt16(this.buffer, 0);
-                                break;
+                        case BinaryEntryType.NamedUShort:
+                        case BinaryEntryType.UnnamedUShort:
+                            ushort ui16;
+                            if (this.UNSAFE_Read_2_UInt16(out ui16))
+                            {
+                                value = ui16;
+                            }
+                            else
+                            {
+                                value = 0;
+                                return false;
+                            }
+                            break;
 
-                            case BinaryEntryType.NamedInt:
-                            case BinaryEntryType.UnnamedInt:
-                                this.Stream.Read(this.buffer, 0, 4);
-                                value = ProperBitConverter.ToInt32(this.buffer, 0);
-                                break;
+                        case BinaryEntryType.NamedInt:
+                        case BinaryEntryType.UnnamedInt:
+                            int i32;
+                            if (this.UNSAFE_Read_4_Int32(out i32))
+                            {
+                                value = i32;
+                            }
+                            else
+                            {
+                                value = 0;
+                                return false;
+                            }
+                            break;
 
-                            case BinaryEntryType.NamedUInt:
-                            case BinaryEntryType.UnnamedUInt:
-                                this.Stream.Read(this.buffer, 0, 4);
-                                value = ProperBitConverter.ToUInt32(this.buffer, 0);
-                                break;
+                        case BinaryEntryType.NamedUInt:
+                        case BinaryEntryType.UnnamedUInt:
+                            uint ui32;
+                            if (this.UNSAFE_Read_4_UInt32(out ui32))
+                            {
+                                value = ui32;
+                            }
+                            else
+                            {
+                                value = 0;
+                                return false;
+                            }
+                            break;
 
-                            case BinaryEntryType.NamedLong:
-                            case BinaryEntryType.UnnamedLong:
-                                this.Stream.Read(this.buffer, 0, 8);
-                                value = ProperBitConverter.ToInt64(this.buffer, 0);
-                                break;
+                        case BinaryEntryType.NamedLong:
+                        case BinaryEntryType.UnnamedLong:
+                            if (!this.UNSAFE_Read_8_Int64(out value))
+                            {
+                                return false;
+                            }
+                            break;
 
-                            case BinaryEntryType.NamedULong:
-                            case BinaryEntryType.UnnamedULong:
-                                this.Stream.Read(this.buffer, 0, 8);
-                                value = (long)ProperBitConverter.ToUInt64(this.buffer, 0);
-                                break;
+                        case BinaryEntryType.NamedULong:
+                        case BinaryEntryType.UnnamedULong:
+                            ulong uint64;
+                            if (this.UNSAFE_Read_8_UInt64(out uint64))
+                            {
+                                if (uint64 > long.MaxValue)
+                                {
+                                    value = 0;
+                                    return false;
+                                }
+                                else
+                                {
+                                    value = (long)uint64;
+                                }
+                            }
+                            else
+                            {
+                                value = 0;
+                                return false;
+                            }
+                            break;
 
-                            default:
-                                throw new InvalidOperationException();
-                        }
+                        default:
+                            throw new InvalidOperationException();
                     }
-                    catch (OverflowException)
-                    {
-                        value = default(long);
-                    }
+
+                    return true;
                 }
-
-                this.MarkEntryContentConsumed();
-                return true;
+                finally
+                {
+                    this.MarkEntryContentConsumed();
+                }
             }
             else
             {
@@ -948,71 +1050,146 @@ namespace OdinSerializer
         /// </returns>
         public override bool ReadUInt64(out ulong value)
         {
-            this.PeekEntry();
+            if (!this.peekedEntryType.HasValue)
+            {
+                string name;
+                this.PeekEntry(out name);
+            }
 
             if (this.peekedEntryType == EntryType.Integer)
             {
-                checked
+                try
                 {
-                    try
+                    switch (this.peekedBinaryEntryType)
                     {
-                        switch (this.peekedBinaryEntryType)
-                        {
-                            case BinaryEntryType.NamedSByte:
-                            case BinaryEntryType.UnnamedSByte:
-                            case BinaryEntryType.NamedByte:
-                            case BinaryEntryType.UnnamedByte:
-                                value = (ulong)this.Stream.ReadByte();
-                                break;
+                        case BinaryEntryType.NamedSByte:
+                        case BinaryEntryType.UnnamedSByte:
+                        case BinaryEntryType.NamedByte:
+                        case BinaryEntryType.UnnamedByte:
+                            byte i8;
+                            if (this.UNSAFE_Read_1_Byte(out i8))
+                            {
+                                value = i8;
+                            }
+                            else
+                            {
+                                value = 0;
+                                return false;
+                            }
+                            break;
 
-                            case BinaryEntryType.NamedShort:
-                            case BinaryEntryType.UnnamedShort:
-                                this.Stream.Read(this.buffer, 0, 2);
-                                value = (ulong)ProperBitConverter.ToInt16(this.buffer, 0);
-                                break;
+                        case BinaryEntryType.NamedShort:
+                        case BinaryEntryType.UnnamedShort:
+                            short i16;
+                            if (this.UNSAFE_Read_2_Int16(out i16))
+                            {
+                                if (i16 >= 0)
+                                {
+                                    value = (ulong)i16;
+                                }
+                                else
+                                {
+                                    value = 0;
+                                    return false;
+                                }
+                            }
+                            else
+                            {
+                                value = 0;
+                                return false;
+                            }
+                            break;
 
-                            case BinaryEntryType.NamedUShort:
-                            case BinaryEntryType.UnnamedUShort:
-                                this.Stream.Read(this.buffer, 0, 2);
-                                value = ProperBitConverter.ToUInt16(this.buffer, 0);
-                                break;
+                        case BinaryEntryType.NamedUShort:
+                        case BinaryEntryType.UnnamedUShort:
+                            ushort ui16;
+                            if (this.UNSAFE_Read_2_UInt16(out ui16))
+                            {
+                                value = ui16;
+                            }
+                            else
+                            {
+                                value = 0;
+                                return false;
+                            }
+                            break;
 
-                            case BinaryEntryType.NamedInt:
-                            case BinaryEntryType.UnnamedInt:
-                                this.Stream.Read(this.buffer, 0, 4);
-                                value = (ulong)ProperBitConverter.ToInt32(this.buffer, 0);
-                                break;
+                        case BinaryEntryType.NamedInt:
+                        case BinaryEntryType.UnnamedInt:
+                            int i32;
+                            if (this.UNSAFE_Read_4_Int32(out i32))
+                            {
+                                if (i32 >= 0)
+                                {
+                                    value = (ulong)i32;
+                                }
+                                else
+                                {
+                                    value = 0;
+                                    return false;
+                                }
+                            }
+                            else
+                            {
+                                value = 0;
+                                return false;
+                            }
+                            break;
 
-                            case BinaryEntryType.NamedUInt:
-                            case BinaryEntryType.UnnamedUInt:
-                                this.Stream.Read(this.buffer, 0, 4);
-                                value = ProperBitConverter.ToUInt32(this.buffer, 0);
-                                break;
+                        case BinaryEntryType.NamedUInt:
+                        case BinaryEntryType.UnnamedUInt:
+                            uint ui32;
+                            if (this.UNSAFE_Read_4_UInt32(out ui32))
+                            {
+                                value = ui32;
+                            }
+                            else
+                            {
+                                value = 0;
+                                return false;
+                            }
+                            break;
 
-                            case BinaryEntryType.NamedLong:
-                            case BinaryEntryType.UnnamedLong:
-                                this.Stream.Read(this.buffer, 0, 8);
-                                value = (ulong)ProperBitConverter.ToInt64(this.buffer, 0);
-                                break;
+                        case BinaryEntryType.NamedLong:
+                        case BinaryEntryType.UnnamedLong:
+                            long i64;
+                            if (this.UNSAFE_Read_8_Int64(out i64))
+                            {
+                                if (i64 >= 0)
+                                {
+                                    value = (ulong)i64;
+                                }
+                                else
+                                {
+                                    value = 0;
+                                    return false;
+                                }
+                            }
+                            else
+                            {
+                                value = 0;
+                                return false;
+                            }
+                            break;
 
-                            case BinaryEntryType.NamedULong:
-                            case BinaryEntryType.UnnamedULong:
-                                this.Stream.Read(this.buffer, 0, 8);
-                                value = ProperBitConverter.ToUInt64(this.buffer, 0);
-                                break;
+                        case BinaryEntryType.NamedULong:
+                        case BinaryEntryType.UnnamedULong:
+                            if (!this.UNSAFE_Read_8_UInt64(out value))
+                            {
+                                return false;
+                            }
+                            break;
 
-                            default:
-                                throw new InvalidOperationException();
-                        }
+                        default:
+                            throw new InvalidOperationException();
                     }
-                    catch (OverflowException)
-                    {
-                        value = default(ulong);
-                    }
+
+                    return true;
                 }
-
-                this.MarkEntryContentConsumed();
-                return true;
+                finally
+                {
+                    this.MarkEntryContentConsumed();
+                }
             }
             else
             {
@@ -1035,29 +1212,32 @@ namespace OdinSerializer
         /// </returns>
         public override bool ReadChar(out char value)
         {
-            this.PeekEntry();
+            if (!this.peekedEntryType.HasValue)
+            {
+                string name;
+                this.PeekEntry(out name);
+            }
 
             if (this.peekedBinaryEntryType == BinaryEntryType.NamedChar || this.peekedBinaryEntryType == BinaryEntryType.UnnamedChar)
             {
-                this.Stream.Read(this.buffer, 0, 2);
-                value = (char)ProperBitConverter.ToUInt16(this.buffer, 0);
                 this.MarkEntryContentConsumed();
-                return true;
+                return this.UNSAFE_Read_2_Char(out value);
             }
             else if (this.peekedBinaryEntryType == BinaryEntryType.NamedString || this.peekedBinaryEntryType == BinaryEntryType.UnnamedString)
             {
+                this.MarkEntryContentConsumed();
                 var str = this.ReadStringValue();
 
-                if (str.Length > 0)
+                if (str == null || str.Length == 0)
                 {
-                    value = str[0];
+                    value = default(char);
+                    return false;
                 }
                 else
                 {
-                    value = default(char);
+                    value = str[0];
+                    return true;
                 }
-
-                return true;
             }
             else
             {
@@ -1080,68 +1260,88 @@ namespace OdinSerializer
         /// </returns>
         public override bool ReadSingle(out float value)
         {
-            this.PeekEntry();
+            if (!this.peekedEntryType.HasValue)
+            {
+                string name;
+                this.PeekEntry(out name);
+            }
 
             if (this.peekedBinaryEntryType == BinaryEntryType.NamedFloat || this.peekedBinaryEntryType == BinaryEntryType.UnnamedFloat)
             {
-                this.Stream.Read(this.buffer, 0, 4);
-                value = ProperBitConverter.ToSingle(this.buffer, 0);
                 this.MarkEntryContentConsumed();
-                return true;
+                return this.UNSAFE_Read_4_Float32(out value);
             }
             else if (this.peekedBinaryEntryType == BinaryEntryType.NamedDouble || this.peekedBinaryEntryType == BinaryEntryType.UnnamedDouble)
             {
-                this.Stream.Read(this.buffer, 0, 8);
+                this.MarkEntryContentConsumed();
+
+                double d;
+                if (!this.UNSAFE_Read_8_Float64(out d))
+                {
+                    value = 0;
+                    return false;
+                }
 
                 try
                 {
-                    value = (float)ProperBitConverter.ToDouble(this.buffer, 0);
+                    checked
+                    {
+                        value = (float)d;
+                    }
                 }
                 catch (OverflowException)
                 {
                     value = default(float);
                 }
 
-                this.MarkEntryContentConsumed();
                 return true;
             }
             else if (this.peekedBinaryEntryType == BinaryEntryType.NamedDecimal || this.peekedBinaryEntryType == BinaryEntryType.UnnamedDecimal)
             {
-                this.Stream.Read(this.buffer, 0, 16);
+                this.MarkEntryContentConsumed();
 
-                checked
+                decimal d;
+                if (!this.UNSAFE_Read_16_Decimal(out d))
                 {
-                    try
-                    {
-                        value = (float)ProperBitConverter.ToDecimal(this.buffer, 0);
-                    }
-                    catch (OverflowException)
-                    {
-                        value = default(float);
-                    }
+                    value = 0;
+                    return false;
                 }
 
-                this.MarkEntryContentConsumed();
+                try
+                {
+                    checked
+                    {
+                        value = (float)d;
+                    }
+                }
+                catch (OverflowException)
+                {
+                    value = default(float);
+                }
+
                 return true;
             }
             else if (this.peekedEntryType == EntryType.Integer)
             {
                 long val;
-                this.ReadInt64(out val);
-
-                checked
+                if (!this.ReadInt64(out val))
                 {
-                    try
+                    value = 0;
+                    return false;
+                }
+
+                try
+                {
+                    checked
                     {
                         value = val;
                     }
-                    catch (OverflowException)
-                    {
-                        value = default(float);
-                    }
+                }
+                catch (OverflowException)
+                {
+                    value = default(float);
                 }
 
-                this.MarkEntryContentConsumed();
                 return true;
             }
             else
@@ -1165,59 +1365,77 @@ namespace OdinSerializer
         /// </returns>
         public override bool ReadDouble(out double value)
         {
-            this.PeekEntry();
+            if (!this.peekedEntryType.HasValue)
+            {
+                string name;
+                this.PeekEntry(out name);
+            }
 
             if (this.peekedBinaryEntryType == BinaryEntryType.NamedDouble || this.peekedBinaryEntryType == BinaryEntryType.UnnamedDouble)
             {
-                this.Stream.Read(this.buffer, 0, 8);
-                value = ProperBitConverter.ToDouble(this.buffer, 0);
                 this.MarkEntryContentConsumed();
-                return true;
+                return this.UNSAFE_Read_8_Float64(out value);
             }
             else if (this.peekedBinaryEntryType == BinaryEntryType.NamedFloat || this.peekedBinaryEntryType == BinaryEntryType.UnnamedFloat)
             {
-                this.Stream.Read(this.buffer, 0, 4);
-                value = ProperBitConverter.ToSingle(this.buffer, 0);
                 this.MarkEntryContentConsumed();
+
+                float s;
+                if (!this.UNSAFE_Read_4_Float32(out s))
+                {
+                    value = 0;
+                    return false;
+                }
+
+                value = s;
                 return true;
             }
             else if (this.peekedBinaryEntryType == BinaryEntryType.NamedDecimal || this.peekedBinaryEntryType == BinaryEntryType.UnnamedDecimal)
             {
-                this.Stream.Read(this.buffer, 0, 16);
+                this.MarkEntryContentConsumed();
 
-                checked
+                decimal d;
+                if (!this.UNSAFE_Read_16_Decimal(out d))
                 {
-                    try
-                    {
-                        value = (double)ProperBitConverter.ToDecimal(this.buffer, 0);
-                    }
-                    catch (OverflowException)
-                    {
-                        value = default(double);
-                    }
+                    value = 0;
+                    return false;
                 }
 
-                this.MarkEntryContentConsumed();
+                try
+                {
+                    checked
+                    {
+                        value = (double)d;
+                    }
+                }
+                catch (OverflowException)
+                {
+                    value = 0;
+                }
+
                 return true;
             }
             else if (this.peekedEntryType == EntryType.Integer)
             {
                 long val;
-                this.ReadInt64(out val);
-
-                checked
+                if (!this.ReadInt64(out val))
                 {
-                    try
+                    value = 0;
+                    return false;
+                }
+
+                try
+                {
+                    checked
                     {
                         value = val;
                     }
-                    catch (OverflowException)
-                    {
-                        value = default(double);
-                    }
+                }
+                catch (OverflowException)
+                {
+                    value = 0;
                 }
 
-                this.MarkEntryContentConsumed();
                 return true;
             }
             else
@@ -1241,71 +1459,88 @@ namespace OdinSerializer
         /// </returns>
         public override bool ReadDecimal(out decimal value)
         {
-            this.PeekEntry();
+            if (!this.peekedEntryType.HasValue)
+            {
+                string name;
+                this.PeekEntry(out name);
+            }
 
             if (this.peekedBinaryEntryType == BinaryEntryType.NamedDecimal || this.peekedBinaryEntryType == BinaryEntryType.UnnamedDecimal)
             {
-                this.Stream.Read(this.buffer, 0, 16);
-                value = ProperBitConverter.ToDecimal(this.buffer, 0);
                 this.MarkEntryContentConsumed();
-                return true;
+                return this.UNSAFE_Read_16_Decimal(out value);
             }
             else if (this.peekedBinaryEntryType == BinaryEntryType.NamedDouble || this.peekedBinaryEntryType == BinaryEntryType.UnnamedDouble)
             {
-                this.Stream.Read(this.buffer, 0, 8);
+                this.MarkEntryContentConsumed();
 
-                checked
+                double d;
+                if (!this.UNSAFE_Read_8_Float64(out d))
                 {
-                    try
-                    {
-                        value = (decimal)ProperBitConverter.ToDouble(this.buffer, 0);
-                    }
-                    catch (OverflowException)
-                    {
-                        value = default(decimal);
-                    }
+                    value = 0;
+                    return false;
                 }
 
-                this.MarkEntryContentConsumed();
+                try
+                {
+                    checked
+                    {
+                        value = (decimal)d;
+                    }
+                }
+                catch (OverflowException)
+                {
+                    value = default(decimal);
+                }
+
                 return true;
             }
             else if (this.peekedBinaryEntryType == BinaryEntryType.NamedFloat || this.peekedBinaryEntryType == BinaryEntryType.UnnamedFloat)
             {
-                this.Stream.Read(this.buffer, 0, 4);
+                this.MarkEntryContentConsumed();
 
-                checked
+                float f;
+                if (!this.UNSAFE_Read_4_Float32(out f))
                 {
-                    try
-                    {
-                        value = (decimal)ProperBitConverter.ToSingle(this.buffer, 0);
-                    }
-                    catch (OverflowException)
-                    {
-                        value = default(decimal);
-                    }
+                    value = 0;
+                    return false;
                 }
 
-                this.MarkEntryContentConsumed();
+                try
+                {
+                    checked
+                    {
+                        value = (decimal)f;
+                    }
+                }
+                catch (OverflowException)
+                {
+                    value = default(decimal);
+                }
+
                 return true;
             }
             else if (this.peekedEntryType == EntryType.Integer)
             {
                 long val;
-                this.ReadInt64(out val);
-
-                checked
+                if (!this.ReadInt64(out val))
                 {
-                    try
+                    value = 0;
+                    return false;
+                }
+
+                try
+                {
+                    checked
                     {
                         value = val;
                     }
-                    catch (OverflowException)
-                    {
-                        value = default(decimal);
-                    }
+                }
+                catch (OverflowException)
+                {
+                    value = default(decimal);
                 }
 
-                this.MarkEntryContentConsumed();
                 return true;
             }
             else
@@ -1327,14 +1562,16 @@ namespace OdinSerializer
         /// </returns>
         public override bool ReadExternalReference(out Guid guid)
         {
-            this.PeekEntry();
+            if (!this.peekedEntryType.HasValue)
+            {
+                string name;
+                this.PeekEntry(out name);
+            }
 
             if (this.peekedBinaryEntryType == BinaryEntryType.NamedExternalReferenceByGuid || this.peekedBinaryEntryType == BinaryEntryType.UnnamedExternalReferenceByGuid)
             {
-                this.Stream.Read(this.buffer, 0, 16);
-                guid = ProperBitConverter.ToGuid(this.buffer, 0);
                 this.MarkEntryContentConsumed();
-                return true;
+                return this.UNSAFE_Read_16_Guid(out guid);
             }
             else
             {
@@ -1355,14 +1592,16 @@ namespace OdinSerializer
         /// </returns>
         public override bool ReadGuid(out Guid value)
         {
-            this.PeekEntry();
+            if (!this.peekedEntryType.HasValue)
+            {
+                string name;
+                this.PeekEntry(out name);
+            }
 
             if (this.peekedBinaryEntryType == BinaryEntryType.NamedGuid || this.peekedBinaryEntryType == BinaryEntryType.UnnamedGuid)
             {
-                this.Stream.Read(this.buffer, 0, 16);
-                value = ProperBitConverter.ToGuid(this.buffer, 0);
                 this.MarkEntryContentConsumed();
-                return true;
+                return this.UNSAFE_Read_16_Guid(out value);
             }
             else
             {
@@ -1383,14 +1622,16 @@ namespace OdinSerializer
         /// </returns>
         public override bool ReadExternalReference(out int index)
         {
-            this.PeekEntry();
+            if (!this.peekedEntryType.HasValue)
+            {
+                string name;
+                this.PeekEntry(out name);
+            }
 
             if (this.peekedBinaryEntryType == BinaryEntryType.NamedExternalReferenceByIndex || this.peekedBinaryEntryType == BinaryEntryType.UnnamedExternalReferenceByIndex)
             {
-                this.Stream.Read(this.buffer, 0, 4);
-                index = ProperBitConverter.ToInt32(this.buffer, 0);
                 this.MarkEntryContentConsumed();
-                return true;
+                return this.UNSAFE_Read_4_Int32(out index);
             }
             else
             {
@@ -1411,13 +1652,17 @@ namespace OdinSerializer
         /// </returns>
         public override bool ReadExternalReference(out string id)
         {
-            this.PeekEntry();
+            if (!this.peekedEntryType.HasValue)
+            {
+                string name;
+                this.PeekEntry(out name);
+            }
 
             if (this.peekedBinaryEntryType == BinaryEntryType.NamedExternalReferenceByString || this.peekedBinaryEntryType == BinaryEntryType.UnnamedExternalReferenceByString)
             {
                 id = this.ReadStringValue();
                 this.MarkEntryContentConsumed();
-                return true;
+                return id != null;
             }
             else
             {
@@ -1437,7 +1682,11 @@ namespace OdinSerializer
         /// </returns>
         public override bool ReadNull()
         {
-            this.PeekEntry();
+            if (!this.peekedEntryType.HasValue)
+            {
+                string name;
+                this.PeekEntry(out name);
+            }
 
             if (this.peekedBinaryEntryType == BinaryEntryType.NamedNull || this.peekedBinaryEntryType == BinaryEntryType.UnnamedNull)
             {
@@ -1462,14 +1711,16 @@ namespace OdinSerializer
         /// </returns>
         public override bool ReadInternalReference(out int id)
         {
-            this.PeekEntry();
+            if (!this.peekedEntryType.HasValue)
+            {
+                string name;
+                this.PeekEntry(out name);
+            }
 
             if (this.peekedBinaryEntryType == BinaryEntryType.NamedInternalReference || this.peekedBinaryEntryType == BinaryEntryType.UnnamedInternalReference)
             {
-                this.Stream.Read(this.buffer, 0, 4);
-                id = ProperBitConverter.ToInt32(this.buffer, 0);
                 this.MarkEntryContentConsumed();
-                return true;
+                return this.UNSAFE_Read_4_Int32(out id);
             }
             else
             {
@@ -1490,13 +1741,17 @@ namespace OdinSerializer
         /// </returns>
         public override bool ReadString(out string value)
         {
-            this.PeekEntry();
+            if (!this.peekedEntryType.HasValue)
+            {
+                string name;
+                this.PeekEntry(out name);
+            }
 
             if (this.peekedBinaryEntryType == BinaryEntryType.NamedString || this.peekedBinaryEntryType == BinaryEntryType.UnnamedString)
             {
                 value = this.ReadStringValue();
                 this.MarkEntryContentConsumed();
-                return true;
+                return value != null;
             }
             else
             {
@@ -1517,116 +1772,166 @@ namespace OdinSerializer
             this.peekedEntryName = null;
             this.peekedBinaryEntryType = BinaryEntryType.Invalid;
             this.types.Clear();
+            this.bufferIndex = 0;
+            this.bufferEnd = 0;
+            this.buffer = this.internalBufferBackup;
         }
 
         public override string GetDataDump()
         {
-            if (!this.Stream.CanSeek)
+            byte[] bytes;
+
+            if (this.bufferEnd == this.buffer.Length)
             {
-                return "Binary data stream cannot seek; cannot dump data.";
+                bytes = this.buffer;
             }
+            else
+            {
+                bytes = new byte[this.bufferEnd];
 
-            var oldPosition = this.Stream.Position;
-
-            var bytes = new byte[this.Stream.Length];
-
-            this.Stream.Position = 0;
-            this.Stream.Read(bytes, 0, bytes.Length);
-
-            this.Stream.Position = oldPosition;
+                fixed (void* from = this.buffer)
+                fixed (void* to = bytes)
+                {
+                    UnsafeUtilities.MemoryCopy(from, to, bytes.Length);
+                }
+            }
 
             return "Binary hex dump: " + ProperBitConverter.BytesToHexString(bytes);
         }
 
+        private struct Struct256Bit
+        {
+            public decimal d1;
+            public decimal d2;
+        }
+
         private string ReadStringValue()
         {
-            int charSizeFlag = this.Stream.ReadByte();
+            byte charSizeFlag;
 
-            if (charSizeFlag < 0)
+            if (!this.UNSAFE_Read_1_Byte(out charSizeFlag))
             {
-                // End of stream
-                return string.Empty;
+                return null;
             }
-            else if (charSizeFlag == 0)
+
+            int length;
+
+            if (!this.UNSAFE_Read_4_Int32(out length))
+            {
+                return null;
+            }
+
+            string str = new string('\0', length);
+
+            if (charSizeFlag == 0)
             {
                 // 8 bit
-                int length = this.ReadIntValue();
 
-                using (var tempBuffer = Buffer<byte>.Claim(length))
+                fixed (byte* baseFromPtr = this.buffer)
+                fixed (char* baseToPtr = str)
                 {
-                    var array = tempBuffer.Array;
-                    this.Stream.Read(array, 0, length);
-                    var result = UnsafeUtilities.StringFromBytes(array, length, false);
+                    byte* fromPtr = baseFromPtr + this.bufferIndex;
+                    byte* toPtr = (byte*)baseToPtr;
 
-                    return result;
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        for (int i = 0; i < length; i++)
+                        {
+                            *toPtr++ = *fromPtr++;
+                            toPtr++; // Skip every other string byte
+                        }
+                    }
+                    else
+                    {
+                        for (int i = 0; i < length; i++)
+                        {
+                            toPtr++; // Skip every other string byte
+                            *toPtr++ = *fromPtr++;
+                        }
+                    }
                 }
-            }
-            else if (charSizeFlag == 1)
-            {
-                // 16 bit
-                int charLength = this.ReadIntValue();
-                int length = charLength * 2;
 
-                using (var tempBuffer = Buffer<byte>.Claim(length))
-                {
-                    var array = tempBuffer.Array;
-
-                    this.Stream.Read(array, 0, length);
-                    var result = UnsafeUtilities.StringFromBytes(array, charLength, true);
-
-                    return result;
-                }
+                this.bufferIndex += length;
+                return str;
             }
             else
             {
-                this.Context.Config.DebugContext.LogError("Expected string char size flag, but got value " + charSizeFlag + " at position " + this.Stream.Position);
-                return string.Empty;
+                // 16 bit
+                int bytes = length * 2;
+
+                fixed (byte* baseFromPtr = this.buffer)
+                fixed (char* baseToPtr = str)
+                {
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        Struct256Bit* fromLargePtr = (Struct256Bit*)(baseFromPtr + this.bufferIndex);
+                        Struct256Bit* toLargePtr = (Struct256Bit*)baseToPtr;
+
+                        byte* end = (byte*)baseToPtr + bytes;
+
+                        while ((toLargePtr + 1) < end)
+                        {
+                            *toLargePtr++ = *fromLargePtr++;
+                        }
+
+                        byte* fromSmallPtr = (byte*)fromLargePtr;
+                        byte* toSmallPtr = (byte*)toLargePtr;
+
+                        while (toSmallPtr < end)
+                        {
+                            *toSmallPtr++ = *fromSmallPtr++;
+                        }
+                    }
+                    else
+                    {
+                        byte* fromPtr = baseFromPtr + this.bufferIndex;
+                        byte* toPtr = (byte*)baseToPtr;
+
+                        for (int i = 0; i < length; i++)
+                        {
+                            *toPtr = *(fromPtr + 1);
+                            *(toPtr + 1) = *fromPtr;
+
+                            fromPtr += 2;
+                            toPtr += 2;
+                        }
+                    }
+                }
+
+                this.bufferIndex += bytes;
+                return str;
             }
         }
 
         private void SkipStringValue()
         {
-            int charSizeFlag = this.Stream.ReadByte();
-            int skipBytesLength;
+            byte charSizeFlag;
 
-            if (charSizeFlag < 0)
+            if (!this.UNSAFE_Read_1_Byte(out charSizeFlag))
             {
-                // End of stream
-                return;
-            }
-            else if (charSizeFlag == 0)
-            {
-                // 8 bit
-                skipBytesLength = this.ReadIntValue();
-            }
-            else if (charSizeFlag == 1)
-            {
-                // 16 bit
-                skipBytesLength = this.ReadIntValue() * 2;
-            }
-            else
-            {
-                this.Context.Config.DebugContext.LogError("Expect string char size flag, but got value: " + charSizeFlag);
                 return;
             }
 
-            if (this.Stream.CanSeek)
+            int skipBytes;
+
+            if (!this.UNSAFE_Read_4_Int32(out skipBytes))
             {
-                this.Stream.Seek(skipBytesLength, SeekOrigin.Current);
+                return;
+            }
+
+            if (charSizeFlag != 0)
+            {
+                skipBytes *= 2;
+            }
+
+            if (this.HasBufferData(skipBytes))
+            {
+                this.bufferIndex += skipBytes;
             }
             else
             {
-                for (int i = 0; i < skipBytesLength; i++)
-                {
-                    this.Stream.ReadByte();
-                }
+                this.bufferIndex = this.bufferEnd;
             }
-        }
-
-        private int ReadIntValue()
-        {
-            this.Stream.Read(this.buffer, 0, 4);
-            return ProperBitConverter.ToInt32(this.buffer, 0);
         }
 
         private void SkipPeekedEntryContent(bool allowExitArrayAndNode = false)
@@ -1639,208 +1944,172 @@ namespace OdinSerializer
                     return;
                 }
 
-                switch (this.peekedBinaryEntryType)
+                try
                 {
-                    case BinaryEntryType.NamedStartOfReferenceNode:
-                    case BinaryEntryType.UnnamedStartOfReferenceNode:
-                        this.ReadTypeEntry(); // Never actually skip type entries; they might contain type ids that we'll need later
-                        this.ReadIntValue(); // Skip reference id int
-                        break;
 
-                    case BinaryEntryType.NamedStartOfStructNode:
-                    case BinaryEntryType.UnnamedStartOfStructNode:
-                        this.ReadTypeEntry(); // Never actually skip type entries; they might contain type ids that we'll need later
-                        break;
+                    switch (this.peekedBinaryEntryType)
+                    {
+                        case BinaryEntryType.NamedStartOfReferenceNode:
+                        case BinaryEntryType.UnnamedStartOfReferenceNode:
+                            this.ReadTypeEntry(); // Never actually skip type entries; they might contain type ids that we'll need later
+                            if (!this.SkipBuffer(4)) return; // Skip reference id int
+                            break;
 
-                    case BinaryEntryType.StartOfArray:
-                        // Skip length long
-                        if (this.Stream.CanSeek)
-                        {
-                            this.Stream.Seek(8, SeekOrigin.Current);
-                        }
-                        else
-                        {
-                            this.Stream.Read(this.buffer, 0, 8);
-                        }
+                        case BinaryEntryType.NamedStartOfStructNode:
+                        case BinaryEntryType.UnnamedStartOfStructNode:
+                            this.ReadTypeEntry(); // Never actually skip type entries; they might contain type ids that we'll need later
+                            break;
 
-                        break;
+                        case BinaryEntryType.StartOfArray:
+                            // Skip length long
+                            this.SkipBuffer(8);
 
-                    case BinaryEntryType.PrimitiveArray:
-                        // We must skip the whole entry array content
-                        this.Stream.Read(this.buffer, 0, 8);
+                            break;
 
-                        int elements = ProperBitConverter.ToInt32(this.buffer, 0);
-                        int bytesPerElement = ProperBitConverter.ToInt32(this.buffer, 4);
+                        case BinaryEntryType.PrimitiveArray:
+                            // We must skip the whole entry array content
+                            int elements;
+                            int bytesPerElement;
 
-                        int bytesToSkip = elements * bytesPerElement;
-
-                        if (this.Stream.CanSeek)
-                        {
-                            this.Stream.Seek(bytesToSkip, SeekOrigin.Current);
-                        }
-                        else
-                        {
-                            if (bytesPerElement <= this.buffer.Length)
+                            if (!this.UNSAFE_Read_4_Int32(out elements) || !this.UNSAFE_Read_4_Int32(out bytesPerElement))
                             {
-                                // We skip larger chunks
-                                for (int i = 0; i < elements; i++)
-                                {
-                                    this.Stream.Read(this.buffer, 0, bytesPerElement);
-                                }
+                                return;
                             }
-                            else
-                            {
-                                // We skip byte for byte
-                                for (int i = 0; i < bytesToSkip; i++)
-                                {
-                                    this.Stream.ReadByte();
-                                }
-                            }
-                        }
 
-                        break;
+                            this.SkipBuffer(elements * bytesPerElement);
+                            break;
 
-                    case BinaryEntryType.NamedSByte:
-                    case BinaryEntryType.UnnamedSByte:
-                    case BinaryEntryType.NamedByte:
-                    case BinaryEntryType.UnnamedByte:
-                    case BinaryEntryType.NamedBoolean:
-                    case BinaryEntryType.UnnamedBoolean:
-                        this.Stream.ReadByte();
-                        break;
+                        case BinaryEntryType.NamedSByte:
+                        case BinaryEntryType.UnnamedSByte:
+                        case BinaryEntryType.NamedByte:
+                        case BinaryEntryType.UnnamedByte:
+                        case BinaryEntryType.NamedBoolean:
+                        case BinaryEntryType.UnnamedBoolean:
+                            this.SkipBuffer(1);
+                            break;
 
-                    case BinaryEntryType.NamedChar:
-                    case BinaryEntryType.UnnamedChar:
-                    case BinaryEntryType.NamedShort:
-                    case BinaryEntryType.UnnamedShort:
-                    case BinaryEntryType.NamedUShort:
-                    case BinaryEntryType.UnnamedUShort:
-                        if (this.Stream.CanSeek)
-                        {
-                            this.Stream.Seek(2, SeekOrigin.Current);
-                        }
-                        else
-                        {
-                            this.Stream.Read(this.buffer, 0, 2);
-                        }
+                        case BinaryEntryType.NamedChar:
+                        case BinaryEntryType.UnnamedChar:
+                        case BinaryEntryType.NamedShort:
+                        case BinaryEntryType.UnnamedShort:
+                        case BinaryEntryType.NamedUShort:
+                        case BinaryEntryType.UnnamedUShort:
+                            this.SkipBuffer(2);
+                            break;
 
-                        break;
+                        case BinaryEntryType.NamedInternalReference:
+                        case BinaryEntryType.UnnamedInternalReference:
+                        case BinaryEntryType.NamedInt:
+                        case BinaryEntryType.UnnamedInt:
+                        case BinaryEntryType.NamedUInt:
+                        case BinaryEntryType.UnnamedUInt:
+                        case BinaryEntryType.NamedExternalReferenceByIndex:
+                        case BinaryEntryType.UnnamedExternalReferenceByIndex:
+                        case BinaryEntryType.NamedFloat:
+                        case BinaryEntryType.UnnamedFloat:
+                            this.SkipBuffer(4);
+                            break;
 
-                    case BinaryEntryType.NamedInternalReference:
-                    case BinaryEntryType.UnnamedInternalReference:
-                    case BinaryEntryType.NamedInt:
-                    case BinaryEntryType.UnnamedInt:
-                    case BinaryEntryType.NamedUInt:
-                    case BinaryEntryType.UnnamedUInt:
-                    case BinaryEntryType.NamedExternalReferenceByIndex:
-                    case BinaryEntryType.UnnamedExternalReferenceByIndex:
-                    case BinaryEntryType.NamedFloat:
-                    case BinaryEntryType.UnnamedFloat:
-                        if (this.Stream.CanSeek)
-                        {
-                            this.Stream.Seek(4, SeekOrigin.Current);
-                        }
-                        else
-                        {
-                            this.Stream.Read(this.buffer, 0, 4);
-                        }
+                        case BinaryEntryType.NamedLong:
+                        case BinaryEntryType.UnnamedLong:
+                        case BinaryEntryType.NamedULong:
+                        case BinaryEntryType.UnnamedULong:
+                        case BinaryEntryType.NamedDouble:
+                        case BinaryEntryType.UnnamedDouble:
+                            this.SkipBuffer(8);
+                            break;
 
-                        break;
+                        case BinaryEntryType.NamedGuid:
+                        case BinaryEntryType.UnnamedGuid:
+                        case BinaryEntryType.NamedExternalReferenceByGuid:
+                        case BinaryEntryType.UnnamedExternalReferenceByGuid:
+                        case BinaryEntryType.NamedDecimal:
+                        case BinaryEntryType.UnnamedDecimal:
+                            this.SkipBuffer(8);
+                            break;
 
-                    case BinaryEntryType.NamedLong:
-                    case BinaryEntryType.UnnamedLong:
-                    case BinaryEntryType.NamedULong:
-                    case BinaryEntryType.UnnamedULong:
-                    case BinaryEntryType.NamedDouble:
-                    case BinaryEntryType.UnnamedDouble:
-                        if (this.Stream.CanSeek)
-                        {
-                            this.Stream.Seek(8, SeekOrigin.Current);
-                        }
-                        else
-                        {
-                            this.Stream.Read(this.buffer, 0, 8);
-                        }
+                        case BinaryEntryType.NamedString:
+                        case BinaryEntryType.UnnamedString:
+                        case BinaryEntryType.NamedExternalReferenceByString:
+                        case BinaryEntryType.UnnamedExternalReferenceByString:
+                            this.SkipStringValue();
+                            break;
 
-                        break;
+                        case BinaryEntryType.TypeName:
+                            this.Context.Config.DebugContext.LogError("Parsing error in binary data reader: should not be able to peek a TypeName entry.");
+                            this.SkipBuffer(4);
+                            this.ReadStringValue();
+                            break;
 
-                    case BinaryEntryType.NamedGuid:
-                    case BinaryEntryType.UnnamedGuid:
-                    case BinaryEntryType.NamedExternalReferenceByGuid:
-                    case BinaryEntryType.UnnamedExternalReferenceByGuid:
-                    case BinaryEntryType.NamedDecimal:
-                    case BinaryEntryType.UnnamedDecimal:
-                        if (this.Stream.CanSeek)
-                        {
-                            this.Stream.Seek(16, SeekOrigin.Current);
-                        }
-                        else
-                        {
-                            this.Stream.Read(this.buffer, 0, 16);
-                        }
+                        case BinaryEntryType.TypeID:
+                            this.Context.Config.DebugContext.LogError("Parsing error in binary data reader: should not be able to peek a TypeID entry.");
+                            this.SkipBuffer(4);
+                            break;
 
-                        break;
-
-                    case BinaryEntryType.NamedString:
-                    case BinaryEntryType.UnnamedString:
-                    case BinaryEntryType.NamedExternalReferenceByString:
-                    case BinaryEntryType.UnnamedExternalReferenceByString:
-                        this.SkipStringValue();
-                        break;
-
-                    case BinaryEntryType.TypeName:
-                        this.Context.Config.DebugContext.LogError("Parsing error in binary data reader: should not be able to peek a TypeID entry.");
-                        this.ReadIntValue();
-                        this.ReadStringValue();
-                        break;
-
-                    case BinaryEntryType.TypeID:
-                        this.Context.Config.DebugContext.LogError("Parsing error in binary data reader: should not be able to peek a TypeID entry.");
-                        this.ReadIntValue();
-                        break;
-
-                    case BinaryEntryType.EndOfArray:
-                    case BinaryEntryType.EndOfNode:
-                    case BinaryEntryType.NamedNull:
-                    case BinaryEntryType.UnnamedNull:
-                    case BinaryEntryType.EndOfStream:
-                    case BinaryEntryType.Invalid:
-                    default:
-                        // Skip nothing - there is no content to skip
-                        break;
+                        case BinaryEntryType.EndOfArray:
+                        case BinaryEntryType.EndOfNode:
+                        case BinaryEntryType.NamedNull:
+                        case BinaryEntryType.UnnamedNull:
+                        case BinaryEntryType.EndOfStream:
+                        case BinaryEntryType.Invalid:
+                        default:
+                            // Skip nothing - there is no content to skip
+                            break;
+                    }
                 }
-
-                this.MarkEntryContentConsumed();
+                finally
+                {
+                    this.MarkEntryContentConsumed();
+                }
             }
+        }
+
+        private bool SkipBuffer(int amount)
+        {
+            int newIndex = this.bufferIndex + amount;
+
+            if (newIndex > this.bufferEnd)
+            {
+                this.bufferIndex = this.bufferEnd;
+                return false;
+            }
+
+            this.bufferIndex = newIndex;
+            return true;
         }
 
         private Type ReadTypeEntry()
         {
-            var entryByte = this.Stream.ReadByte();
-            BinaryEntryType entryType;
-
-            if (entryByte < 0)
-            {
-                // End of stream
+            if (!this.HasBufferData(1))
                 return null;
-            }
+
+            BinaryEntryType entryType = (BinaryEntryType)this.buffer[this.bufferIndex++];
 
             Type type;
+            int id;
 
-            if ((entryType = (BinaryEntryType)entryByte) == BinaryEntryType.TypeName)
+            if (entryType == BinaryEntryType.TypeID)
             {
-                int id = this.ReadIntValue();
-                string name = this.ReadStringValue();
-                type = this.Context.Binder.BindToType(name, this.Context.Config.DebugContext);
-                this.types.Add(id, type);
-            }
-            else if (entryType == BinaryEntryType.TypeID)
-            {
-                int id = this.ReadIntValue();
+                if (!this.UNSAFE_Read_4_Int32(out id))
+                {
+                    return null;
+                }
+
                 if (this.types.TryGetValue(id, out type) == false)
                 {
                     this.Context.Config.DebugContext.LogError("Missing type ID during deserialization: " + id + " at node " + this.CurrentNodeName + " and depth " + this.CurrentNodeDepth + " and id " + this.CurrentNodeId);
                 }
+            }
+            else if (entryType == BinaryEntryType.TypeName)
+            {
+                if (!this.UNSAFE_Read_4_Int32(out id))
+                {
+                    return null;
+                }
+
+                string name = this.ReadStringValue();
+                type = name == null ? null : this.Context.Binder.BindToType(name, this.Context.Config.DebugContext);
+                this.types.Add(id, type);
             }
             else if (entryType == BinaryEntryType.UnnamedNull)
             {
@@ -1881,6 +2150,511 @@ namespace OdinSerializer
             string name;
             this.SkipPeekedEntryContent();
             return this.PeekEntry(out name);
+        }
+
+        private bool UNSAFE_Read_1_Byte(out byte value)
+        {
+            if (this.HasBufferData(1))
+            {
+                value = this.buffer[this.bufferIndex++];
+                return true;
+            }
+
+            value = 0;
+            return false;
+        }
+
+        private bool UNSAFE_Read_1_SByte(out sbyte value)
+        {
+            if (this.HasBufferData(1))
+            {
+                unchecked
+                {
+                    value = (sbyte)this.buffer[this.bufferIndex++];
+                }
+
+                return true;
+            }
+
+            value = 0;
+            return false;
+        }
+
+        private bool UNSAFE_Read_2_Int16(out short value)
+        {
+            if (this.HasBufferData(2))
+            {
+                fixed (byte* basePtr = this.buffer)
+                {
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        value = *((short*)(basePtr + this.bufferIndex));
+                    }
+                    else
+                    {
+                        short val = 0;
+                        byte* toPtr = (byte*)&val + 1;
+                        byte* fromPtr = basePtr + this.bufferIndex;
+
+                        *toPtr-- = *fromPtr++;
+                        *toPtr = *fromPtr;
+
+                        value = val;
+                    }
+                }
+
+                this.bufferIndex += 2;
+                return true;
+            }
+
+            this.bufferIndex = this.bufferEnd;
+            value = 0;
+            return false;
+        }
+
+        private bool UNSAFE_Read_2_UInt16(out ushort value)
+        {
+            if (this.HasBufferData(2))
+            {
+                fixed (byte* basePtr = this.buffer)
+                {
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        value = *((ushort*)(basePtr + this.bufferIndex));
+                    }
+                    else
+                    {
+                        ushort val = 0;
+                        byte* toPtr = (byte*)&val + 1;
+                        byte* fromPtr = basePtr + this.bufferIndex;
+
+                        *toPtr-- = *fromPtr++;
+                        *toPtr = *fromPtr;
+
+                        value = val;
+                    }
+                }
+
+                this.bufferIndex += 2;
+                return true;
+            }
+
+            this.bufferIndex = this.bufferEnd;
+            value = 0;
+            return false;
+        }
+
+        private bool UNSAFE_Read_2_Char(out char value)
+        {
+            if (this.HasBufferData(2))
+            {
+                fixed (byte* basePtr = this.buffer)
+                {
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        value = *((char*)(basePtr + this.bufferIndex));
+                    }
+                    else
+                    {
+                        char val = default(char);
+                        byte* toPtr = (byte*)&val + 1;
+                        byte* fromPtr = basePtr + this.bufferIndex;
+
+                        *toPtr-- = *fromPtr++;
+                        *toPtr = *fromPtr;
+
+                        value = val;
+                    }
+                }
+
+                this.bufferIndex += 2;
+                return true;
+            }
+
+            this.bufferIndex = this.bufferEnd;
+            value = default(char);
+            return false;
+        }
+
+        private bool UNSAFE_Read_4_Int32(out int value)
+        {
+            if (this.HasBufferData(4))
+            {
+                fixed (byte* basePtr = this.buffer)
+                {
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        value = *((int*)(basePtr + this.bufferIndex));
+                    }
+                    else
+                    {
+                        int val = 0;
+                        byte* toPtr = (byte*)&val + 3;
+                        byte* fromPtr = basePtr + this.bufferIndex;
+
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr = *fromPtr;
+
+                        value = val;
+                    }
+                }
+
+                this.bufferIndex += 4;
+                return true;
+            }
+
+            this.bufferIndex = this.bufferEnd;
+            value = 0;
+            return false;
+        }
+
+        private bool UNSAFE_Read_4_UInt32(out uint value)
+        {
+            if (this.HasBufferData(4))
+            {
+                fixed (byte* basePtr = this.buffer)
+                {
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        value = *((uint*)(basePtr + this.bufferIndex));
+                    }
+                    else
+                    {
+                        uint val = 0;
+                        byte* toPtr = (byte*)&val + 3;
+                        byte* fromPtr = basePtr + this.bufferIndex;
+
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr = *fromPtr;
+
+                        value = val;
+                    }
+                }
+
+                this.bufferIndex += 4;
+                return true;
+            }
+
+            this.bufferIndex = this.bufferEnd;
+            value = 0;
+            return false;
+        }
+
+        private bool UNSAFE_Read_4_Float32(out float value)
+        {
+            if (this.HasBufferData(4))
+            {
+                fixed (byte* basePtr = this.buffer)
+                {
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        value = *((float*)(basePtr + this.bufferIndex));
+                    }
+                    else
+                    {
+                        float val = 0;
+                        byte* toPtr = (byte*)&val + 3;
+                        byte* fromPtr = basePtr + this.bufferIndex;
+
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr = *fromPtr;
+
+                        value = val;
+                    }
+                }
+
+                this.bufferIndex += 4;
+                return true;
+            }
+
+            this.bufferIndex = this.bufferEnd;
+            value = 0;
+            return false;
+        }
+
+        private bool UNSAFE_Read_8_Int64(out long value)
+        {
+            if (this.HasBufferData(8))
+            {
+                fixed (byte* basePtr = this.buffer)
+                {
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        value = *((long*)(basePtr + this.bufferIndex));
+                    }
+                    else
+                    {
+                        long val = 0;
+                        byte* toPtr = (byte*)&val + 7;
+                        byte* fromPtr = basePtr + this.bufferIndex;
+
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr = *fromPtr;
+
+                        value = val;
+                    }
+                }
+
+                this.bufferIndex += 8;
+                return true;
+            }
+
+            this.bufferIndex = this.bufferEnd;
+            value = 0;
+            return false;
+        }
+
+        private bool UNSAFE_Read_8_UInt64(out ulong value)
+        {
+            if (this.HasBufferData(8))
+            {
+                fixed (byte* basePtr = this.buffer)
+                {
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        value = *((ulong*)(basePtr + this.bufferIndex));
+                    }
+                    else
+                    {
+                        ulong val = 0;
+                        byte* toPtr = (byte*)&val + 7;
+                        byte* fromPtr = basePtr + this.bufferIndex;
+
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr = *fromPtr;
+
+                        value = val;
+                    }
+                }
+
+                this.bufferIndex += 8;
+                return true;
+            }
+
+            this.bufferIndex = this.bufferEnd;
+            value = 0;
+            return false;
+        }
+
+        private bool UNSAFE_Read_8_Float64(out double value)
+        {
+            if (this.HasBufferData(8))
+            {
+                fixed (byte* basePtr = this.buffer)
+                {
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        value = *((double*)(basePtr + this.bufferIndex));
+                    }
+                    else
+                    {
+                        double val = 0;
+                        byte* toPtr = (byte*)&val + 7;
+                        byte* fromPtr = basePtr + this.bufferIndex;
+
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr = *fromPtr;
+
+                        value = val;
+                    }
+                }
+
+                this.bufferIndex += 8;
+                return true;
+            }
+
+            this.bufferIndex = this.bufferEnd;
+            value = 0;
+            return false;
+        }
+
+        private bool UNSAFE_Read_16_Decimal(out decimal value)
+        {
+            if (this.HasBufferData(16))
+            {
+                fixed (byte* basePtr = this.buffer)
+                {
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        value = *((decimal*)(basePtr + this.bufferIndex));
+                    }
+                    else
+                    {
+                        decimal val = 0;
+                        byte* toPtr = (byte*)&val + 15;
+                        byte* fromPtr = basePtr + this.bufferIndex;
+
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr = *fromPtr;
+
+                        value = val;
+                    }
+                }
+
+                this.bufferIndex += 16;
+                return true;
+            }
+
+            this.bufferIndex = this.bufferEnd;
+            value = 0;
+            return false;
+        }
+
+        private bool UNSAFE_Read_16_Guid(out Guid value)
+        {
+            if (this.HasBufferData(16))
+            {
+                // First 10 bytes of a guid are always little endian
+                // Last 6 bytes depend on architecture endianness
+                // See http://stackoverflow.com/questions/10190817/guid-byte-order-in-net
+
+                // TODO: Test if this actually works on big-endian architecture. Where the hell do we find that?
+
+
+                fixed (byte* basePtr = this.buffer)
+                {
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        value = *((Guid*)(basePtr + this.bufferIndex));
+                    }
+                    else
+                    {
+                        Guid val = default(Guid);
+                        byte* toPtr = (byte*)&val;
+                        byte* fromPtr = basePtr + this.bufferIndex;
+
+                        *toPtr++ = *fromPtr++;
+                        *toPtr++ = *fromPtr++;
+                        *toPtr++ = *fromPtr++;
+                        *toPtr++ = *fromPtr++;
+                        *toPtr++ = *fromPtr++;
+                        *toPtr++ = *fromPtr++;
+                        *toPtr++ = *fromPtr++;
+                        *toPtr++ = *fromPtr++;
+                        *toPtr++ = *fromPtr++;
+                        *toPtr = *fromPtr++;
+
+                        toPtr += 6;
+
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr-- = *fromPtr++;
+                        *toPtr = *fromPtr;
+
+                        value = val;
+                    }
+                }
+
+                this.bufferIndex += 16;
+                return true;
+            }
+
+            this.bufferIndex = this.bufferEnd;
+            value = default(Guid);
+            return false;
+        }
+
+
+        private bool HasBufferData(int amount)
+        {
+            if (this.bufferEnd == 0)
+            {
+                this.ReadEntireStreamToBuffer();
+            }
+
+            return this.bufferIndex + amount < this.bufferEnd;
+        }
+
+        private void ReadEntireStreamToBuffer()
+        {
+            this.bufferIndex = 0;
+
+            if (this.Stream is MemoryStream)
+            {
+                // We can do a small trick and just steal the memory stream's internal buffer
+                // and totally avoid copying from the stream's internal buffer that way.
+                //
+                // This is pretty great, since most of the time we will be deserializing from
+                // a memory stream.
+
+                try
+                {
+                    this.buffer = (this.Stream as MemoryStream).GetBuffer();
+                    this.bufferEnd = (int)this.Stream.Length;
+                    this.bufferIndex = (int)this.Stream.Position;
+                    return;
+                }
+                catch (UnauthorizedAccessException)
+                {
+                    // Sometimes we're not actually allowed to get the internal buffer
+                    // in that case, we can just copy from the stream as we normally do.
+                }
+            }
+
+            this.buffer = this.internalBufferBackup;
+
+            int remainder = (int)(this.Stream.Length - this.Stream.Position);
+
+            if (this.buffer.Length >= remainder)
+            {
+                this.Stream.Read(this.buffer, 0, remainder);
+            }
+            else
+            {
+                this.buffer = new byte[remainder];
+                this.Stream.Read(this.buffer, 0, remainder);
+
+                if (remainder <= 1024 * 1024 * 10)
+                {
+                    // We've made a larger buffer - might as well keep that, so long as it's not too ridiculously big (>10 MB)
+                    // We don't want to be too much of a memory hog - at least there will usually only be one reader instance
+                    // instantiated, ever.
+                    this.internalBufferBackup = this.buffer;
+                }
+            }
+
+            this.bufferIndex = 0;
+            this.bufferEnd = remainder;
         }
     }
 }

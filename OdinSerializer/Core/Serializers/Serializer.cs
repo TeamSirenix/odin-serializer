@@ -58,7 +58,7 @@ namespace OdinSerializer
 
         private static readonly object LOCK = new object();
 
-        private static readonly Dictionary<Type, Serializer> ReaderWriterCache = new Dictionary<Type, Serializer>();
+        private static readonly Dictionary<Type, Serializer> ReaderWriterCache = new Dictionary<Type, Serializer>(FastTypeComparer.Instance);
 
 #if UNITY_EDITOR
 

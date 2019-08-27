@@ -36,8 +36,8 @@ namespace OdinSerializer
     {
         private static readonly object LOCK = new object();
 
-        private static readonly Dictionary<Type, IFormatter> FormatterInstances = new Dictionary<Type, IFormatter>();
-        private static readonly DoubleLookupDictionary<Type, ISerializationPolicy, IFormatter> TypeFormatterMap = new DoubleLookupDictionary<Type, ISerializationPolicy, IFormatter>();
+        private static readonly Dictionary<Type, IFormatter> FormatterInstances = new Dictionary<Type, IFormatter>(FastTypeComparer.Instance);
+        private static readonly DoubleLookupDictionary<Type, ISerializationPolicy, IFormatter> TypeFormatterMap = new DoubleLookupDictionary<Type, ISerializationPolicy, IFormatter>(FastTypeComparer.Instance, ReferenceEqualityComparer<ISerializationPolicy>.Default);
 
         private struct FormatterInfo
         {

@@ -80,7 +80,7 @@ namespace OdinSerializer
         private static readonly Dictionary<string, Type> customTypeNameToTypeBindings = new Dictionary<string, Type>();
 
         private static readonly object TYPETONAME_LOCK = new object();
-        private static readonly Dictionary<Type, string> nameMap = new Dictionary<Type, string>();
+        private static readonly Dictionary<Type, string> nameMap = new Dictionary<Type, string>(FastTypeComparer.Instance);
 
         private static readonly object NAMETOTYPE_LOCK = new object();
         private static readonly Dictionary<string, Type> typeMap = new Dictionary<string, Type>();

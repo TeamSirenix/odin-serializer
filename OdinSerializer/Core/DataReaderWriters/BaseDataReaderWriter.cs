@@ -144,12 +144,13 @@ namespace OdinSerializer
                 throw new InvalidOperationException("There are no nodes to pop.");
             }
 
-            var current = this.CurrentNode;
+            // @Speedup - this safety isn't worth the performance hit, and never happens with properly written writers
+            //var current = this.CurrentNode;
 
-            if (current.Name != name)
-            {
-                throw new InvalidOperationException("Tried to pop node with name " + name + " but current node's name is " + current.Name);
-            }
+            //if (current.Name != name)
+            //{
+            //    throw new InvalidOperationException("Tried to pop node with name " + name + " but current node's name is " + current.Name);
+            //}
 
             this.nodes.Pop();
         }

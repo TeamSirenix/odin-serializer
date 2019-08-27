@@ -41,7 +41,7 @@ namespace OdinSerializer
         private static readonly DoubleLookupDictionary<ISerializationPolicy, Type, Dictionary<string, MemberInfo>> MemberMapCache = new DoubleLookupDictionary<ISerializationPolicy, Type, Dictionary<string, MemberInfo>>();
         private static readonly object LOCK = new object();
 
-        private static readonly HashSet<Type> PrimitiveArrayTypes = new HashSet<Type>()
+        private static readonly HashSet<Type> PrimitiveArrayTypes = new HashSet<Type>(FastTypeComparer.Instance)
         {
             typeof(char),
             typeof(sbyte),

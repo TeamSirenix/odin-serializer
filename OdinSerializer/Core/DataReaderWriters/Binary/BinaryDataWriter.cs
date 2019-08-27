@@ -18,18 +18,20 @@
 
 namespace OdinSerializer
 {
+    using OdinSerializer.Utilities;
     using OdinSerializer.Utilities.Unsafe;
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Runtime.InteropServices;
 
     /// <summary>
     /// Writes data to a stream that can be read by a <see cref="BinaryDataReader"/>.
     /// </summary>
     /// <seealso cref="BaseDataWriter" />
-    public class BinaryDataWriter : BaseDataWriter
+    public unsafe class BinaryDataWriter : BaseDataWriter
     {
-        private static readonly Dictionary<Type, Delegate> PrimitiveGetBytesMethods = new Dictionary<Type, Delegate>()
+        private static readonly Dictionary<Type, Delegate> PrimitiveGetBytesMethods = new Dictionary<Type, Delegate>(FastTypeComparer.Instance)
         {
             { typeof(char),     (Action<byte[], int, char>)     ((byte[] b, int i, char v) => { ProperBitConverter.GetBytes(b, i, (ushort)v); }) },
             { typeof(byte),     (Action<byte[], int, byte>)     ((b, i, v) => { b[i] = v; }) },
@@ -47,7 +49,7 @@ namespace OdinSerializer
             { typeof(Guid),     (Action<byte[], int, Guid>)     ProperBitConverter.GetBytes }
         };
 
-        private static readonly Dictionary<Type, int> PrimitiveSizes = new Dictionary<Type, int>()
+        private static readonly Dictionary<Type, int> PrimitiveSizes = new Dictionary<Type, int>(FastTypeComparer.Instance)
         {
             { typeof(char),    2  },
             { typeof(byte),    1  },
@@ -65,11 +67,16 @@ namespace OdinSerializer
             { typeof(Guid),    16 }
         };
 
-        // For byte caching while writing values up to sizeof(decimal), and to provide a permanent buffer to read into
-        private readonly byte[] buffer = new byte[16];
+        // For byte caching while writing values up to sizeof(decimal) using the old ProperBitConverter method
+        // (still occasionally used) and to provide a permanent buffer to read into.
+        private readonly byte[] small_buffer = new byte[16];
+        private readonly byte[] buffer = new byte[1024 * 100]; // 100 Kb buffer should be enough for most things, and enough to prevent flushing to stream too often
+        private int bufferIndex = 0;
 
         // A dictionary over all seen types, so short type ids can be written after a type's full name has already been written to the stream once
-        private readonly Dictionary<Type, int> types = new Dictionary<Type, int>(16);
+        private readonly Dictionary<Type, int> types = new Dictionary<Type, int>(16, FastTypeComparer.Instance);
+
+        public bool CompressStringsTo8BitWhenPossible = false;
 
         public BinaryDataWriter() : base(null, null)
         {
@@ -90,9 +97,9 @@ namespace OdinSerializer
         /// <param name="length">The length of the array to come.</param>
         public override void BeginArrayNode(long length)
         {
-            this.Stream.WriteByte((byte)BinaryEntryType.StartOfArray);
-            ProperBitConverter.GetBytes(this.buffer, 0, length);
-            this.Stream.Write(this.buffer, 0, 8);
+            this.EnsureBufferSpace(9);
+            this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.StartOfArray;
+            this.UNSAFE_WriteToBuffer_8_Int64(length);
             this.PushArray();
         }
 
@@ -108,16 +115,19 @@ namespace OdinSerializer
         {
             if (name != null)
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.NamedStartOfReferenceNode);
-                this.WriteStringValue(name);
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.NamedStartOfReferenceNode;
+                this.WriteStringFast(name);
             }
             else
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.UnnamedStartOfReferenceNode);
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.UnnamedStartOfReferenceNode;
             }
 
             this.WriteType(type);
-            this.WriteIntValue(id);
+            this.EnsureBufferSpace(4);
+            this.UNSAFE_WriteToBuffer_4_Int32(id);
             this.PushNode(name, id, type);
         }
 
@@ -132,12 +142,14 @@ namespace OdinSerializer
         {
             if (name != null)
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.NamedStartOfStructNode);
-                this.WriteStringValue(name);
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.NamedStartOfStructNode;
+                this.WriteStringFast(name);
             }
             else
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.UnnamedStartOfStructNode);
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.UnnamedStartOfStructNode;
             }
 
             this.WriteType(type);
@@ -150,6 +162,7 @@ namespace OdinSerializer
         public override void Dispose()
         {
             //this.Stream.Dispose();
+            this.FlushToStream();
         }
 
         /// <summary>
@@ -158,7 +171,9 @@ namespace OdinSerializer
         public override void EndArrayNode()
         {
             this.PopArray();
-            this.Stream.WriteByte((byte)BinaryEntryType.EndOfArray);
+
+            this.EnsureBufferSpace(1);
+            this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.EndOfArray;
         }
 
         /// <summary>
@@ -168,46 +183,175 @@ namespace OdinSerializer
         public override void EndNode(string name)
         {
             this.PopNode(name);
-            this.Stream.WriteByte((byte)BinaryEntryType.EndOfNode);
+
+            this.EnsureBufferSpace(1);
+            this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.EndOfNode;
         }
 
-        /// <summary>
-        /// Writes a primitive array to the stream.
-        /// </summary>
-        /// <typeparam name="T">The element type of the primitive array. Valid element types can be determined using <see cref="FormatterUtilities.IsPrimitiveArrayType(Type)" />.</typeparam>
-        /// <param name="array">The primitive array to write.</param>
-        /// <exception cref="System.ArgumentException">Type  + typeof(T).Name +  is not a valid primitive array type.</exception>
-        public override void WritePrimitiveArray<T>(T[] array)
+        private static readonly Dictionary<Type, Action<BinaryDataWriter, object>> PrimitiveArrayWriters = new Dictionary<Type, Action<BinaryDataWriter, object>>(FastTypeComparer.Instance)
         {
-            if (FormatterUtilities.IsPrimitiveArrayType(typeof(T)) == false)
-            {
-                throw new ArgumentException("Type " + typeof(T).Name + " is not a valid primitive array type.");
-            }
+            { typeof(char),    WritePrimitiveArray_char     },
+            { typeof(sbyte),   WritePrimitiveArray_sbyte    },
+            { typeof(short),   WritePrimitiveArray_short    },
+            { typeof(int),     WritePrimitiveArray_int      },
+            { typeof(long),    WritePrimitiveArray_long     },
+            { typeof(byte),    WritePrimitiveArray_byte     },
+            { typeof(ushort),  WritePrimitiveArray_ushort   },
+            { typeof(uint),    WritePrimitiveArray_uint     },
+            { typeof(ulong),   WritePrimitiveArray_ulong    },
+            { typeof(decimal), WritePrimitiveArray_decimal  },
+            { typeof(bool),    WritePrimitiveArray_bool     },
+            { typeof(float),   WritePrimitiveArray_float    },
+            { typeof(double),  WritePrimitiveArray_double   },
+            { typeof(Guid),    WritePrimitiveArray_Guid     },
+        };
 
-            int bytesPerElement = PrimitiveSizes[typeof(T)];
-            int byteCount = array.Length * bytesPerElement;
+        private static void WritePrimitiveArray_byte(BinaryDataWriter writer, object o)
+        {
+            byte[] array = o as byte[];
+
+            writer.EnsureBufferSpace(9);
 
             // Write entry flag
-            this.Stream.WriteByte((byte)BinaryEntryType.PrimitiveArray);
+            writer.buffer[writer.bufferIndex++] = (byte)BinaryEntryType.PrimitiveArray;
 
-            // Write array length
-            ProperBitConverter.GetBytes(this.buffer, 0, array.Length);
-            this.Stream.Write(this.buffer, 0, 4);
+            writer.UNSAFE_WriteToBuffer_4_Int32(array.Length);
+            writer.UNSAFE_WriteToBuffer_4_Int32(1);
 
-            // Write size of an element in bytes
-            ProperBitConverter.GetBytes(this.buffer, 0, bytesPerElement);
-            this.Stream.Write(this.buffer, 0, 4);
+            // We can include a special case for byte arrays, as there's no need to copy that to a buffer
+            // First we ensure that the stream is up to date with the buffer, then we write directly to
+            // the stream.
+            writer.FlushToStream();
+            writer.Stream.Write(array, 0, array.Length);
+        }
 
-            // Write the actual array content
-            if (typeof(T) == typeof(byte))
+        private static void WritePrimitiveArray_sbyte(BinaryDataWriter writer, object o)
+        {
+            sbyte[] array = o as sbyte[];
+            int bytesPerElement = sizeof(sbyte);
+            int byteCount = array.Length * bytesPerElement;
+
+            writer.EnsureBufferSpace(9);
+
+            // Write entry flag
+            writer.buffer[writer.bufferIndex++] = (byte)BinaryEntryType.PrimitiveArray;
+
+            writer.UNSAFE_WriteToBuffer_4_Int32(array.Length);
+            writer.UNSAFE_WriteToBuffer_4_Int32(bytesPerElement);
+
+            // We copy to a buffer in order to write the entire array into the stream with one call
+            // We use our internal buffer if there's space in it, otherwise we claim a buffer from a cache.
+            if (writer.TryEnsureBufferSpace(byteCount))
             {
-                // We can include a special case for byte arrays, as there's no need to copy that to a buffer
-                var byteArray = (byte[])(object)array;
-                this.Stream.Write(byteArray, 0, byteCount);
+                fixed (byte* toBase = writer.buffer)
+                fixed (void* from = array)
+                {
+                    void* to = toBase + writer.bufferIndex;
+
+                    UnsafeUtilities.MemoryCopy(from, to, byteCount);
+                }
+
+                writer.bufferIndex += byteCount;
             }
             else
             {
-                // Otherwise we copy to a buffer in order to write the entire array into the stream with one call
+                // Ensure stream is up to date with the buffer before we write directly to it
+                writer.FlushToStream();
+
+                using (var tempBuffer = Buffer<byte>.Claim(byteCount))
+                {
+                    // No need to check endianness, since sbyte has a size of 1
+                    UnsafeUtilities.MemoryCopy(array, tempBuffer.Array, byteCount, 0, 0);
+                    writer.Stream.Write(tempBuffer.Array, 0, byteCount);
+                }
+            }
+        }
+
+        private static void WritePrimitiveArray_bool(BinaryDataWriter writer, object o)
+        {
+            bool[] array = o as bool[];
+            int bytesPerElement = sizeof(bool);
+            int byteCount = array.Length * bytesPerElement;
+
+            writer.EnsureBufferSpace(9);
+
+            // Write entry flag
+            writer.buffer[writer.bufferIndex++] = (byte)BinaryEntryType.PrimitiveArray;
+
+            writer.UNSAFE_WriteToBuffer_4_Int32(array.Length);
+            writer.UNSAFE_WriteToBuffer_4_Int32(bytesPerElement);
+
+            // We copy to a buffer in order to write the entire array into the stream with one call
+            // We use our internal buffer if there's space in it, otherwise we claim a buffer from a cache.
+            if (writer.TryEnsureBufferSpace(byteCount))
+            {
+                fixed (byte* toBase = writer.buffer)
+                fixed (void* from = array)
+                {
+                    void* to = toBase + writer.bufferIndex;
+
+                    UnsafeUtilities.MemoryCopy(from, to, byteCount);
+                }
+
+                writer.bufferIndex += byteCount;
+            }
+            else
+            {
+                // Ensure stream is up to date with the buffer before we write directly to it
+                writer.FlushToStream();
+
+                using (var tempBuffer = Buffer<byte>.Claim(byteCount))
+                {
+                    // No need to check endianness, since bool has a size of 1
+                    UnsafeUtilities.MemoryCopy(array, tempBuffer.Array, byteCount, 0, 0);
+                    writer.Stream.Write(tempBuffer.Array, 0, byteCount);
+                }
+            }
+        }
+
+        private static void WritePrimitiveArray_char(BinaryDataWriter writer, object o)
+        {
+            char[] array = o as char[];
+            int bytesPerElement = sizeof(char);
+            int byteCount = array.Length * bytesPerElement;
+
+            writer.EnsureBufferSpace(9);
+
+            // Write entry flag
+            writer.buffer[writer.bufferIndex++] = (byte)BinaryEntryType.PrimitiveArray;
+
+            writer.UNSAFE_WriteToBuffer_4_Int32(array.Length);
+            writer.UNSAFE_WriteToBuffer_4_Int32(bytesPerElement);
+
+            // We copy to a buffer in order to write the entire array into the stream with one call
+            // We use our internal buffer if there's space in it, otherwise we claim a buffer from a cache.
+            if (writer.TryEnsureBufferSpace(byteCount))
+            {
+                if (BitConverter.IsLittleEndian)
+                {
+                    fixed (byte* toBase = writer.buffer)
+                    fixed (void* from = array)
+                    {
+                        void* to = toBase + writer.bufferIndex;
+
+                        UnsafeUtilities.MemoryCopy(from, to, byteCount);
+                    }
+
+                    writer.bufferIndex += byteCount;
+                }
+                else
+                {
+                    for (int i = 0; i < array.Length; i++)
+                    {
+                        writer.UNSAFE_WriteToBuffer_2_Char(array[i]);
+                    }
+                }
+            }
+            else
+            {
+                // Ensure stream is up to date with the buffer before we write directly to it
+                writer.FlushToStream();
+
                 using (var tempBuffer = Buffer<byte>.Claim(byteCount))
                 {
                     if (BitConverter.IsLittleEndian)
@@ -218,18 +362,695 @@ namespace OdinSerializer
                     else
                     {
                         // We have to convert each individual element to bytes, since the byte order has to be reversed
-                        Action<byte[], int, T> toBytes = (Action<byte[], int, T>)PrimitiveGetBytesMethods[typeof(T)];
                         var b = tempBuffer.Array;
 
                         for (int i = 0; i < array.Length; i++)
                         {
-                            toBytes(b, i * bytesPerElement, array[i]);
+                            ProperBitConverter.GetBytes(b, i * bytesPerElement, array[i]);
                         }
                     }
 
-                    this.Stream.Write(tempBuffer.Array, 0, byteCount);
+                    writer.Stream.Write(tempBuffer.Array, 0, byteCount);
                 }
             }
+        }
+
+        private static void WritePrimitiveArray_short(BinaryDataWriter writer, object o)
+        {
+            short[] array = o as short[];
+            int bytesPerElement = sizeof(short);
+            int byteCount = array.Length * bytesPerElement;
+
+            writer.EnsureBufferSpace(9);
+
+            // Write entry flag
+            writer.buffer[writer.bufferIndex++] = (byte)BinaryEntryType.PrimitiveArray;
+
+            writer.UNSAFE_WriteToBuffer_4_Int32(array.Length);
+            writer.UNSAFE_WriteToBuffer_4_Int32(bytesPerElement);
+
+            // We copy to a buffer in order to write the entire array into the stream with one call
+            // We use our internal buffer if there's space in it, otherwise we claim a buffer from a cache.
+            if (writer.TryEnsureBufferSpace(byteCount))
+            {
+                if (BitConverter.IsLittleEndian)
+                {
+                    fixed (byte* toBase = writer.buffer)
+                    fixed (void* from = array)
+                    {
+                        void* to = toBase + writer.bufferIndex;
+
+                        UnsafeUtilities.MemoryCopy(from, to, byteCount);
+                    }
+
+                    writer.bufferIndex += byteCount;
+                }
+                else
+                {
+                    for (int i = 0; i < array.Length; i++)
+                    {
+                        writer.UNSAFE_WriteToBuffer_2_Int16(array[i]);
+                    }
+                }
+            }
+            else
+            {
+                // Ensure stream is up to date with the buffer before we write directly to it
+                writer.FlushToStream();
+
+                using (var tempBuffer = Buffer<byte>.Claim(byteCount))
+                {
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        // We always store in little endian, so we can do a direct memory mapping, which is a lot faster
+                        UnsafeUtilities.MemoryCopy(array, tempBuffer.Array, byteCount, 0, 0);
+                    }
+                    else
+                    {
+                        // We have to convert each individual element to bytes, since the byte order has to be reversed
+                        var b = tempBuffer.Array;
+
+                        for (int i = 0; i < array.Length; i++)
+                        {
+                            ProperBitConverter.GetBytes(b, i * bytesPerElement, array[i]);
+                        }
+                    }
+
+                    writer.Stream.Write(tempBuffer.Array, 0, byteCount);
+                }
+            }
+        }
+
+        private static void WritePrimitiveArray_int(BinaryDataWriter writer, object o)
+        {
+            int[] array = o as int[];
+            int bytesPerElement = sizeof(int);
+            int byteCount = array.Length * bytesPerElement;
+
+            writer.EnsureBufferSpace(9);
+
+            // Write entry flag
+            writer.buffer[writer.bufferIndex++] = (byte)BinaryEntryType.PrimitiveArray;
+
+            writer.UNSAFE_WriteToBuffer_4_Int32(array.Length);
+            writer.UNSAFE_WriteToBuffer_4_Int32(bytesPerElement);
+
+            // We copy to a buffer in order to write the entire array into the stream with one call
+            // We use our internal buffer if there's space in it, otherwise we claim a buffer from a cache.
+            if (writer.TryEnsureBufferSpace(byteCount))
+            {
+                if (BitConverter.IsLittleEndian)
+                {
+                    fixed (byte* toBase = writer.buffer)
+                    fixed (void* from = array)
+                    {
+                        void* to = toBase + writer.bufferIndex;
+
+                        UnsafeUtilities.MemoryCopy(from, to, byteCount);
+                    }
+
+                    writer.bufferIndex += byteCount;
+                }
+                else
+                {
+                    for (int i = 0; i < array.Length; i++)
+                    {
+                        writer.UNSAFE_WriteToBuffer_4_Int32(array[i]);
+                    }
+                }
+            }
+            else
+            {
+                // Ensure stream is up to date with the buffer before we write directly to it
+                writer.FlushToStream();
+
+                using (var tempBuffer = Buffer<byte>.Claim(byteCount))
+                {
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        // We always store in little endian, so we can do a direct memory mapping, which is a lot faster
+                        UnsafeUtilities.MemoryCopy(array, tempBuffer.Array, byteCount, 0, 0);
+                    }
+                    else
+                    {
+                        // We have to convert each individual element to bytes, since the byte order has to be reversed
+                        var b = tempBuffer.Array;
+
+                        for (int i = 0; i < array.Length; i++)
+                        {
+                            ProperBitConverter.GetBytes(b, i * bytesPerElement, array[i]);
+                        }
+                    }
+
+                    writer.Stream.Write(tempBuffer.Array, 0, byteCount);
+                }
+            }
+        }
+
+        private static void WritePrimitiveArray_long(BinaryDataWriter writer, object o)
+        {
+            long[] array = o as long[];
+            int bytesPerElement = sizeof(long);
+            int byteCount = array.Length * bytesPerElement;
+
+            writer.EnsureBufferSpace(9);
+
+            // Write entry flag
+            writer.buffer[writer.bufferIndex++] = (byte)BinaryEntryType.PrimitiveArray;
+
+            writer.UNSAFE_WriteToBuffer_4_Int32(array.Length);
+            writer.UNSAFE_WriteToBuffer_4_Int32(bytesPerElement);
+
+            // We copy to a buffer in order to write the entire array into the stream with one call
+            // We use our internal buffer if there's space in it, otherwise we claim a buffer from a cache.
+            if (writer.TryEnsureBufferSpace(byteCount))
+            {
+                if (BitConverter.IsLittleEndian)
+                {
+                    fixed (byte* toBase = writer.buffer)
+                    fixed (void* from = array)
+                    {
+                        void* to = toBase + writer.bufferIndex;
+
+                        UnsafeUtilities.MemoryCopy(from, to, byteCount);
+                    }
+
+                    writer.bufferIndex += byteCount;
+                }
+                else
+                {
+                    for (int i = 0; i < array.Length; i++)
+                    {
+                        writer.UNSAFE_WriteToBuffer_8_Int64(array[i]);
+                    }
+                }
+            }
+            else
+            {
+                // Ensure stream is up to date with the buffer before we write directly to it
+                writer.FlushToStream();
+
+                using (var tempBuffer = Buffer<byte>.Claim(byteCount))
+                {
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        // We always store in little endian, so we can do a direct memory mapping, which is a lot faster
+                        UnsafeUtilities.MemoryCopy(array, tempBuffer.Array, byteCount, 0, 0);
+                    }
+                    else
+                    {
+                        // We have to convert each individual element to bytes, since the byte order has to be reversed
+                        var b = tempBuffer.Array;
+
+                        for (int i = 0; i < array.Length; i++)
+                        {
+                            ProperBitConverter.GetBytes(b, i * bytesPerElement, array[i]);
+                        }
+                    }
+
+                    writer.Stream.Write(tempBuffer.Array, 0, byteCount);
+                }
+            }
+        }
+
+        private static void WritePrimitiveArray_ushort(BinaryDataWriter writer, object o)
+        {
+            ushort[] array = o as ushort[];
+            int bytesPerElement = sizeof(ushort);
+            int byteCount = array.Length * bytesPerElement;
+
+            writer.EnsureBufferSpace(9);
+
+            // Write entry flag
+            writer.buffer[writer.bufferIndex++] = (byte)BinaryEntryType.PrimitiveArray;
+
+            writer.UNSAFE_WriteToBuffer_4_Int32(array.Length);
+            writer.UNSAFE_WriteToBuffer_4_Int32(bytesPerElement);
+
+            // We copy to a buffer in order to write the entire array into the stream with one call
+            // We use our internal buffer if there's space in it, otherwise we claim a buffer from a cache.
+            if (writer.TryEnsureBufferSpace(byteCount))
+            {
+                if (BitConverter.IsLittleEndian)
+                {
+                    fixed (byte* toBase = writer.buffer)
+                    fixed (void* from = array)
+                    {
+                        void* to = toBase + writer.bufferIndex;
+
+                        UnsafeUtilities.MemoryCopy(from, to, byteCount);
+                    }
+
+                    writer.bufferIndex += byteCount;
+                }
+                else
+                {
+                    for (int i = 0; i < array.Length; i++)
+                    {
+                        writer.UNSAFE_WriteToBuffer_2_UInt16(array[i]);
+                    }
+                }
+            }
+            else
+            {
+                // Ensure stream is up to date with the buffer before we write directly to it
+                writer.FlushToStream();
+
+                using (var tempBuffer = Buffer<byte>.Claim(byteCount))
+                {
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        // We always store in little endian, so we can do a direct memory mapping, which is a lot faster
+                        UnsafeUtilities.MemoryCopy(array, tempBuffer.Array, byteCount, 0, 0);
+                    }
+                    else
+                    {
+                        // We have to convert each individual element to bytes, since the byte order has to be reversed
+                        var b = tempBuffer.Array;
+
+                        for (int i = 0; i < array.Length; i++)
+                        {
+                            ProperBitConverter.GetBytes(b, i * bytesPerElement, array[i]);
+                        }
+                    }
+
+                    writer.Stream.Write(tempBuffer.Array, 0, byteCount);
+                }
+            }
+        }
+
+        private static void WritePrimitiveArray_uint(BinaryDataWriter writer, object o)
+        {
+            uint[] array = o as uint[];
+            int bytesPerElement = sizeof(uint);
+            int byteCount = array.Length * bytesPerElement;
+
+            writer.EnsureBufferSpace(9);
+
+            // Write entry flag
+            writer.buffer[writer.bufferIndex++] = (byte)BinaryEntryType.PrimitiveArray;
+
+            writer.UNSAFE_WriteToBuffer_4_Int32(array.Length);
+            writer.UNSAFE_WriteToBuffer_4_Int32(bytesPerElement);
+
+            // We copy to a buffer in order to write the entire array into the stream with one call
+            // We use our internal buffer if there's space in it, otherwise we claim a buffer from a cache.
+            if (writer.TryEnsureBufferSpace(byteCount))
+            {
+                if (BitConverter.IsLittleEndian)
+                {
+                    fixed (byte* toBase = writer.buffer)
+                    fixed (void* from = array)
+                    {
+                        void* to = toBase + writer.bufferIndex;
+
+                        UnsafeUtilities.MemoryCopy(from, to, byteCount);
+                    }
+
+                    writer.bufferIndex += byteCount;
+                }
+                else
+                {
+                    for (int i = 0; i < array.Length; i++)
+                    {
+                        writer.UNSAFE_WriteToBuffer_4_UInt32(array[i]);
+                    }
+                }
+            }
+            else
+            {
+                // Ensure stream is up to date with the buffer before we write directly to it
+                writer.FlushToStream();
+
+                using (var tempBuffer = Buffer<byte>.Claim(byteCount))
+                {
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        // We always store in little endian, so we can do a direct memory mapping, which is a lot faster
+                        UnsafeUtilities.MemoryCopy(array, tempBuffer.Array, byteCount, 0, 0);
+                    }
+                    else
+                    {
+                        // We have to convert each individual element to bytes, since the byte order has to be reversed
+                        var b = tempBuffer.Array;
+
+                        for (int i = 0; i < array.Length; i++)
+                        {
+                            ProperBitConverter.GetBytes(b, i * bytesPerElement, array[i]);
+                        }
+                    }
+
+                    writer.Stream.Write(tempBuffer.Array, 0, byteCount);
+                }
+            }
+        }
+
+        private static void WritePrimitiveArray_ulong(BinaryDataWriter writer, object o)
+        {
+            ulong[] array = o as ulong[];
+            int bytesPerElement = sizeof(ulong);
+            int byteCount = array.Length * bytesPerElement;
+
+            writer.EnsureBufferSpace(9);
+
+            // Write entry flag
+            writer.buffer[writer.bufferIndex++] = (byte)BinaryEntryType.PrimitiveArray;
+
+            writer.UNSAFE_WriteToBuffer_4_Int32(array.Length);
+            writer.UNSAFE_WriteToBuffer_4_Int32(bytesPerElement);
+
+            // We copy to a buffer in order to write the entire array into the stream with one call
+            // We use our internal buffer if there's space in it, otherwise we claim a buffer from a cache.
+            if (writer.TryEnsureBufferSpace(byteCount))
+            {
+                if (BitConverter.IsLittleEndian)
+                {
+                    fixed (byte* toBase = writer.buffer)
+                    fixed (void* from = array)
+                    {
+                        void* to = toBase + writer.bufferIndex;
+
+                        UnsafeUtilities.MemoryCopy(from, to, byteCount);
+                    }
+
+                    writer.bufferIndex += byteCount;
+                }
+                else
+                {
+                    for (int i = 0; i < array.Length; i++)
+                    {
+                        writer.UNSAFE_WriteToBuffer_8_UInt64(array[i]);
+                    }
+                }
+            }
+            else
+            {
+                // Ensure stream is up to date with the buffer before we write directly to it
+                writer.FlushToStream();
+
+                using (var tempBuffer = Buffer<byte>.Claim(byteCount))
+                {
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        // We always store in little endian, so we can do a direct memory mapping, which is a lot faster
+                        UnsafeUtilities.MemoryCopy(array, tempBuffer.Array, byteCount, 0, 0);
+                    }
+                    else
+                    {
+                        // We have to convert each individual element to bytes, since the byte order has to be reversed
+                        var b = tempBuffer.Array;
+
+                        for (int i = 0; i < array.Length; i++)
+                        {
+                            ProperBitConverter.GetBytes(b, i * bytesPerElement, array[i]);
+                        }
+                    }
+
+                    writer.Stream.Write(tempBuffer.Array, 0, byteCount);
+                }
+            }
+        }
+
+        private static void WritePrimitiveArray_decimal(BinaryDataWriter writer, object o)
+        {
+            decimal[] array = o as decimal[];
+            int bytesPerElement = sizeof(decimal);
+            int byteCount = array.Length * bytesPerElement;
+
+            writer.EnsureBufferSpace(9);
+
+            // Write entry flag
+            writer.buffer[writer.bufferIndex++] = (byte)BinaryEntryType.PrimitiveArray;
+
+            writer.UNSAFE_WriteToBuffer_4_Int32(array.Length);
+            writer.UNSAFE_WriteToBuffer_4_Int32(bytesPerElement);
+
+            // We copy to a buffer in order to write the entire array into the stream with one call
+            // We use our internal buffer if there's space in it, otherwise we claim a buffer from a cache.
+            if (writer.TryEnsureBufferSpace(byteCount))
+            {
+                if (BitConverter.IsLittleEndian)
+                {
+                    fixed (byte* toBase = writer.buffer)
+                    fixed (void* from = array)
+                    {
+                        void* to = toBase + writer.bufferIndex;
+
+                        UnsafeUtilities.MemoryCopy(from, to, byteCount);
+                    }
+
+                    writer.bufferIndex += byteCount;
+                }
+                else
+                {
+                    for (int i = 0; i < array.Length; i++)
+                    {
+                        writer.UNSAFE_WriteToBuffer_16_Decimal(array[i]);
+                    }
+                }
+            }
+            else
+            {
+                // Ensure stream is up to date with the buffer before we write directly to it
+                writer.FlushToStream();
+
+                using (var tempBuffer = Buffer<byte>.Claim(byteCount))
+                {
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        // We always store in little endian, so we can do a direct memory mapping, which is a lot faster
+                        UnsafeUtilities.MemoryCopy(array, tempBuffer.Array, byteCount, 0, 0);
+                    }
+                    else
+                    {
+                        // We have to convert each individual element to bytes, since the byte order has to be reversed
+                        var b = tempBuffer.Array;
+
+                        for (int i = 0; i < array.Length; i++)
+                        {
+                            ProperBitConverter.GetBytes(b, i * bytesPerElement, array[i]);
+                        }
+                    }
+
+                    writer.Stream.Write(tempBuffer.Array, 0, byteCount);
+                }
+            }
+        }
+
+        private static void WritePrimitiveArray_float(BinaryDataWriter writer, object o)
+        {
+            float[] array = o as float[];
+            int bytesPerElement = sizeof(float);
+            int byteCount = array.Length * bytesPerElement;
+
+            writer.EnsureBufferSpace(9);
+
+            // Write entry flag
+            writer.buffer[writer.bufferIndex++] = (byte)BinaryEntryType.PrimitiveArray;
+
+            writer.UNSAFE_WriteToBuffer_4_Int32(array.Length);
+            writer.UNSAFE_WriteToBuffer_4_Int32(bytesPerElement);
+
+            // We copy to a buffer in order to write the entire array into the stream with one call
+            // We use our internal buffer if there's space in it, otherwise we claim a buffer from a cache.
+            if (writer.TryEnsureBufferSpace(byteCount))
+            {
+                if (BitConverter.IsLittleEndian)
+                {
+                    fixed (byte* toBase = writer.buffer)
+                    fixed (void* from = array)
+                    {
+                        void* to = toBase + writer.bufferIndex;
+
+                        UnsafeUtilities.MemoryCopy(from, to, byteCount);
+                    }
+
+                    writer.bufferIndex += byteCount;
+                }
+                else
+                {
+                    for (int i = 0; i < array.Length; i++)
+                    {
+                        writer.UNSAFE_WriteToBuffer_4_Float32(array[i]);
+                    }
+                }
+            }
+            else
+            {
+                // Ensure stream is up to date with the buffer before we write directly to it
+                writer.FlushToStream();
+
+                using (var tempBuffer = Buffer<byte>.Claim(byteCount))
+                {
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        // We always store in little endian, so we can do a direct memory mapping, which is a lot faster
+                        UnsafeUtilities.MemoryCopy(array, tempBuffer.Array, byteCount, 0, 0);
+                    }
+                    else
+                    {
+                        // We have to convert each individual element to bytes, since the byte order has to be reversed
+                        var b = tempBuffer.Array;
+
+                        for (int i = 0; i < array.Length; i++)
+                        {
+                            ProperBitConverter.GetBytes(b, i * bytesPerElement, array[i]);
+                        }
+                    }
+
+                    writer.Stream.Write(tempBuffer.Array, 0, byteCount);
+                }
+            }
+        }
+
+        private static void WritePrimitiveArray_double(BinaryDataWriter writer, object o)
+        {
+            double[] array = o as double[];
+            int bytesPerElement = sizeof(double);
+            int byteCount = array.Length * bytesPerElement;
+
+            writer.EnsureBufferSpace(9);
+
+            // Write entry flag
+            writer.buffer[writer.bufferIndex++] = (byte)BinaryEntryType.PrimitiveArray;
+
+            writer.UNSAFE_WriteToBuffer_4_Int32(array.Length);
+            writer.UNSAFE_WriteToBuffer_4_Int32(bytesPerElement);
+
+            // We copy to a buffer in order to write the entire array into the stream with one call
+            // We use our internal buffer if there's space in it, otherwise we claim a buffer from a cache.
+            if (writer.TryEnsureBufferSpace(byteCount))
+            {
+                if (BitConverter.IsLittleEndian)
+                {
+                    fixed (byte* toBase = writer.buffer)
+                    fixed (void* from = array)
+                    {
+                        void* to = toBase + writer.bufferIndex;
+
+                        UnsafeUtilities.MemoryCopy(from, to, byteCount);
+                    }
+
+                    writer.bufferIndex += byteCount;
+                }
+                else
+                {
+                    for (int i = 0; i < array.Length; i++)
+                    {
+                        writer.UNSAFE_WriteToBuffer_8_Float64(array[i]);
+                    }
+                }
+            }
+            else
+            {
+                // Ensure stream is up to date with the buffer before we write directly to it
+                writer.FlushToStream();
+
+                using (var tempBuffer = Buffer<byte>.Claim(byteCount))
+                {
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        // We always store in little endian, so we can do a direct memory mapping, which is a lot faster
+                        UnsafeUtilities.MemoryCopy(array, tempBuffer.Array, byteCount, 0, 0);
+                    }
+                    else
+                    {
+                        // We have to convert each individual element to bytes, since the byte order has to be reversed
+                        var b = tempBuffer.Array;
+
+                        for (int i = 0; i < array.Length; i++)
+                        {
+                            ProperBitConverter.GetBytes(b, i * bytesPerElement, array[i]);
+                        }
+                    }
+
+                    writer.Stream.Write(tempBuffer.Array, 0, byteCount);
+                }
+            }
+        }
+
+        private static void WritePrimitiveArray_Guid(BinaryDataWriter writer, object o)
+        {
+            Guid[] array = o as Guid[];
+            int bytesPerElement = sizeof(Guid);
+            int byteCount = array.Length * bytesPerElement;
+
+            writer.EnsureBufferSpace(9);
+
+            // Write entry flag
+            writer.buffer[writer.bufferIndex++] = (byte)BinaryEntryType.PrimitiveArray;
+
+            writer.UNSAFE_WriteToBuffer_4_Int32(array.Length);
+            writer.UNSAFE_WriteToBuffer_4_Int32(bytesPerElement);
+
+            // We copy to a buffer in order to write the entire array into the stream with one call
+            // We use our internal buffer if there's space in it, otherwise we claim a buffer from a cache.
+            if (writer.TryEnsureBufferSpace(byteCount))
+            {
+                if (BitConverter.IsLittleEndian)
+                {
+                    fixed (byte* toBase = writer.buffer)
+                    fixed (void* from = array)
+                    {
+                        void* to = toBase + writer.bufferIndex;
+
+                        UnsafeUtilities.MemoryCopy(from, to, byteCount);
+                    }
+
+                    writer.bufferIndex += byteCount;
+                }
+                else
+                {
+                    for (int i = 0; i < array.Length; i++)
+                    {
+                        writer.UNSAFE_WriteToBuffer_16_Guid(array[i]);
+                    }
+                }
+            }
+            else
+            {
+                // Ensure stream is up to date with the buffer before we write directly to it
+                writer.FlushToStream();
+
+                using (var tempBuffer = Buffer<byte>.Claim(byteCount))
+                {
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        // We always store in little endian, so we can do a direct memory mapping, which is a lot faster
+                        UnsafeUtilities.MemoryCopy(array, tempBuffer.Array, byteCount, 0, 0);
+                    }
+                    else
+                    {
+                        // We have to convert each individual element to bytes, since the byte order has to be reversed
+                        var b = tempBuffer.Array;
+
+                        for (int i = 0; i < array.Length; i++)
+                        {
+                            ProperBitConverter.GetBytes(b, i * bytesPerElement, array[i]);
+                        }
+                    }
+
+                    writer.Stream.Write(tempBuffer.Array, 0, byteCount);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Writes a primitive array to the stream.
+        /// </summary>
+        /// <typeparam name="T">The element type of the primitive array. Valid element types can be determined using <see cref="FormatterUtilities.IsPrimitiveArrayType(Type)" />.</typeparam>
+        /// <param name="array">The primitive array to write.</param>
+        /// <exception cref="System.ArgumentException">Type  + typeof(T).Name +  is not a valid primitive array type.</exception>
+        public override void WritePrimitiveArray<T>(T[] array)
+        {
+            Action<BinaryDataWriter, object> writer;
+
+            if (!PrimitiveArrayWriters.TryGetValue(typeof(T), out writer))
+            {
+                throw new ArgumentException("Type " + typeof(T).Name + " is not a valid primitive array type.");
+            }
+
+            writer(this, array);
         }
 
         /// <summary>
@@ -241,15 +1062,21 @@ namespace OdinSerializer
         {
             if (name != null)
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.NamedBoolean);
-                this.WriteStringValue(name);
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.NamedBoolean;
+
+                this.WriteStringFast(name);
+
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = value ? (byte)1 : (byte)0;
             }
             else
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.UnnamedBoolean);
+                this.EnsureBufferSpace(2);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.UnnamedBoolean;
+                this.buffer[this.bufferIndex++] = value ? (byte)1 : (byte)0;
             }
 
-            this.Stream.WriteByte(value ? (byte)1 : (byte)0);
         }
 
         /// <summary>
@@ -261,15 +1088,20 @@ namespace OdinSerializer
         {
             if (name != null)
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.NamedByte);
-                this.WriteStringValue(name);
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.NamedByte;
+
+                this.WriteStringFast(name);
+
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = value;
             }
             else
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.UnnamedByte);
+                this.EnsureBufferSpace(2);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.UnnamedByte;
+                this.buffer[this.bufferIndex++] = value;
             }
-
-            this.Stream.WriteByte(value);
         }
 
         /// <summary>
@@ -281,16 +1113,21 @@ namespace OdinSerializer
         {
             if (name != null)
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.NamedChar);
-                this.WriteStringValue(name);
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.NamedChar;
+
+                this.WriteStringFast(name);
+
+                this.EnsureBufferSpace(2);
+                this.UNSAFE_WriteToBuffer_2_Char(value);
             }
             else
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.UnnamedChar);
+                this.EnsureBufferSpace(3);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.UnnamedChar;
+                this.UNSAFE_WriteToBuffer_2_Char(value);
             }
 
-            ProperBitConverter.GetBytes(this.buffer, 0, value);
-            this.Stream.Write(this.buffer, 0, 2);
         }
 
         /// <summary>
@@ -302,16 +1139,20 @@ namespace OdinSerializer
         {
             if (name != null)
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.NamedDecimal);
-                this.WriteStringValue(name);
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.NamedDecimal;
+
+                this.WriteStringFast(name);
+
+                this.EnsureBufferSpace(16);
+                this.UNSAFE_WriteToBuffer_16_Decimal(value);
             }
             else
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.UnnamedDecimal);
+                this.EnsureBufferSpace(17);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.UnnamedDecimal;
+                this.UNSAFE_WriteToBuffer_16_Decimal(value);
             }
-
-            ProperBitConverter.GetBytes(this.buffer, 0, value);
-            this.Stream.Write(this.buffer, 0, 16);
         }
 
         /// <summary>
@@ -323,16 +1164,21 @@ namespace OdinSerializer
         {
             if (name != null)
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.NamedDouble);
-                this.WriteStringValue(name);
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.NamedDouble;
+
+                this.WriteStringFast(name);
+
+                this.EnsureBufferSpace(8);
+                this.UNSAFE_WriteToBuffer_8_Float64(value);
             }
             else
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.UnnamedDouble);
+                this.EnsureBufferSpace(9);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.UnnamedDouble;
+                this.UNSAFE_WriteToBuffer_8_Float64(value);
             }
 
-            ProperBitConverter.GetBytes(this.buffer, 0, value);
-            this.Stream.Write(this.buffer, 0, 8);
         }
 
         /// <summary>
@@ -344,16 +1190,21 @@ namespace OdinSerializer
         {
             if (name != null)
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.NamedGuid);
-                this.WriteStringValue(name);
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.NamedGuid;
+
+                this.WriteStringFast(name);
+
+                this.EnsureBufferSpace(16);
+                this.UNSAFE_WriteToBuffer_16_Guid(value);
             }
             else
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.UnnamedGuid);
+                this.EnsureBufferSpace(17);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.UnnamedGuid;
+                this.UNSAFE_WriteToBuffer_16_Guid(value);
             }
 
-            ProperBitConverter.GetBytes(this.buffer, 0, value);
-            this.Stream.Write(this.buffer, 0, 16);
         }
 
         /// <summary>
@@ -365,16 +1216,20 @@ namespace OdinSerializer
         {
             if (name != null)
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.NamedExternalReferenceByGuid);
-                this.WriteStringValue(name);
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.NamedExternalReferenceByGuid;
+
+                this.WriteStringFast(name);
+
+                this.EnsureBufferSpace(16);
+                this.UNSAFE_WriteToBuffer_16_Guid(guid);
             }
             else
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.UnnamedExternalReferenceByGuid);
+                this.EnsureBufferSpace(17);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.UnnamedExternalReferenceByGuid;
+                this.UNSAFE_WriteToBuffer_16_Guid(guid);
             }
-
-            ProperBitConverter.GetBytes(this.buffer, 0, guid);
-            this.Stream.Write(this.buffer, 0, 16);
         }
 
         /// <summary>
@@ -386,15 +1241,20 @@ namespace OdinSerializer
         {
             if (name != null)
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.NamedExternalReferenceByIndex);
-                this.WriteStringValue(name);
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.NamedExternalReferenceByIndex;
+
+                this.WriteStringFast(name);
+
+                this.EnsureBufferSpace(4);
+                this.UNSAFE_WriteToBuffer_4_Int32(index);
             }
             else
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.UnnamedExternalReferenceByIndex);
+                this.EnsureBufferSpace(5);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.UnnamedExternalReferenceByIndex;
+                this.UNSAFE_WriteToBuffer_4_Int32(index);
             }
-
-            this.WriteIntValue(index);
         }
 
         /// <summary>
@@ -411,15 +1271,17 @@ namespace OdinSerializer
 
             if (name != null)
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.NamedExternalReferenceByString);
-                this.WriteStringValue(name);
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.NamedExternalReferenceByString;
+                this.WriteStringFast(name);
             }
             else
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.UnnamedExternalReferenceByString);
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.UnnamedExternalReferenceByString;
             }
 
-            this.WriteStringValue(id);
+            this.WriteStringFast(id);
         }
 
         /// <summary>
@@ -431,15 +1293,20 @@ namespace OdinSerializer
         {
             if (name != null)
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.NamedInt);
-                this.WriteStringValue(name);
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.NamedInt;
+
+                this.WriteStringFast(name);
+
+                this.EnsureBufferSpace(4);
+                this.UNSAFE_WriteToBuffer_4_Int32(value);
             }
             else
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.UnnamedInt);
+                this.EnsureBufferSpace(5);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.UnnamedInt;
+                this.UNSAFE_WriteToBuffer_4_Int32(value);
             }
-
-            this.WriteIntValue(value);
         }
 
         /// <summary>
@@ -451,16 +1318,20 @@ namespace OdinSerializer
         {
             if (name != null)
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.NamedLong);
-                this.WriteStringValue(name);
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.NamedLong;
+
+                this.WriteStringFast(name);
+
+                this.EnsureBufferSpace(8);
+                this.UNSAFE_WriteToBuffer_8_Int64(value);
             }
             else
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.UnnamedLong);
+                this.EnsureBufferSpace(9);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.UnnamedLong;
+                this.UNSAFE_WriteToBuffer_8_Int64(value);
             }
-
-            ProperBitConverter.GetBytes(this.buffer, 0, value);
-            this.Stream.Write(this.buffer, 0, 8);
         }
 
         /// <summary>
@@ -471,12 +1342,14 @@ namespace OdinSerializer
         {
             if (name != null)
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.NamedNull);
-                this.WriteStringValue(name);
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.NamedNull;
+                this.WriteStringFast(name);
             }
             else
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.UnnamedNull);
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.UnnamedNull;
             }
         }
 
@@ -489,16 +1362,20 @@ namespace OdinSerializer
         {
             if (name != null)
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.NamedInternalReference);
-                this.WriteStringValue(name);
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.NamedInternalReference;
+
+                this.WriteStringFast(name);
+
+                this.EnsureBufferSpace(4);
+                this.UNSAFE_WriteToBuffer_4_Int32(id);
             }
             else
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.UnnamedInternalReference);
+                this.EnsureBufferSpace(5);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.UnnamedInternalReference;
+                this.UNSAFE_WriteToBuffer_4_Int32(id);
             }
-
-            ProperBitConverter.GetBytes(this.buffer, 0, id);
-            this.Stream.Write(this.buffer, 0, 4);
         }
 
         /// <summary>
@@ -510,17 +1387,27 @@ namespace OdinSerializer
         {
             if (name != null)
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.NamedSByte);
-                this.WriteStringValue(name);
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.NamedSByte;
+
+                this.WriteStringFast(name);
+
+                this.EnsureBufferSpace(1);
+
+                unchecked
+                {
+                    this.buffer[this.bufferIndex++] = (byte)value;
+                }
             }
             else
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.UnnamedSByte);
-            }
+                this.EnsureBufferSpace(2);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.UnnamedSByte;
 
-            unchecked
-            {
-                this.Stream.WriteByte((byte)value);
+                unchecked
+                {
+                    this.buffer[this.bufferIndex++] = (byte)value;
+                }
             }
         }
 
@@ -533,16 +1420,20 @@ namespace OdinSerializer
         {
             if (name != null)
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.NamedShort);
-                this.WriteStringValue(name);
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.NamedShort;
+
+                this.WriteStringFast(name);
+
+                this.EnsureBufferSpace(2);
+                this.UNSAFE_WriteToBuffer_2_Int16(value);
             }
             else
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.UnnamedShort);
+                this.EnsureBufferSpace(3);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.UnnamedShort;
+                this.UNSAFE_WriteToBuffer_2_Int16(value);
             }
-
-            ProperBitConverter.GetBytes(this.buffer, 0, value);
-            this.Stream.Write(this.buffer, 0, 2);
         }
 
         /// <summary>
@@ -554,16 +1445,20 @@ namespace OdinSerializer
         {
             if (name != null)
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.NamedFloat);
-                this.WriteStringValue(name);
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.NamedFloat;
+
+                this.WriteStringFast(name);
+
+                this.EnsureBufferSpace(4);
+                this.UNSAFE_WriteToBuffer_4_Float32(value);
             }
             else
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.UnnamedFloat);
+                this.EnsureBufferSpace(5);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.UnnamedFloat;
+                this.UNSAFE_WriteToBuffer_4_Float32(value);
             }
-
-            ProperBitConverter.GetBytes(this.buffer, 0, value);
-            this.Stream.Write(this.buffer, 0, 4);
         }
 
         /// <summary>
@@ -575,15 +1470,18 @@ namespace OdinSerializer
         {
             if (name != null)
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.NamedString);
-                this.WriteStringValue(name);
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.NamedString;
+
+                this.WriteStringFast(name);
             }
             else
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.UnnamedString);
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.UnnamedString;
             }
 
-            this.WriteStringValue(value);
+            this.WriteStringFast(value);
         }
 
         /// <summary>
@@ -595,16 +1493,20 @@ namespace OdinSerializer
         {
             if (name != null)
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.NamedUInt);
-                this.WriteStringValue(name);
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.NamedUInt;
+
+                this.WriteStringFast(name);
+
+                this.EnsureBufferSpace(4);
+                this.UNSAFE_WriteToBuffer_4_UInt32(value);
             }
             else
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.UnnamedUInt);
+                this.EnsureBufferSpace(5);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.UnnamedUInt;
+                this.UNSAFE_WriteToBuffer_4_UInt32(value);
             }
-
-            ProperBitConverter.GetBytes(this.buffer, 0, value);
-            this.Stream.Write(this.buffer, 0, 4);
         }
 
         /// <summary>
@@ -616,16 +1518,20 @@ namespace OdinSerializer
         {
             if (name != null)
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.NamedULong);
-                this.WriteStringValue(name);
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.NamedULong;
+
+                this.WriteStringFast(name);
+
+                this.EnsureBufferSpace(8);
+                this.UNSAFE_WriteToBuffer_8_UInt64(value);
             }
             else
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.UnnamedULong);
+                this.EnsureBufferSpace(9);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.UnnamedULong;
+                this.UNSAFE_WriteToBuffer_8_UInt64(value);
             }
-
-            ProperBitConverter.GetBytes(this.buffer, 0, value);
-            this.Stream.Write(this.buffer, 0, 8);
         }
 
         /// <summary>
@@ -637,16 +1543,20 @@ namespace OdinSerializer
         {
             if (name != null)
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.NamedUShort);
-                this.WriteStringValue(name);
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.NamedUShort;
+
+                this.WriteStringFast(name);
+
+                this.EnsureBufferSpace(2);
+                this.UNSAFE_WriteToBuffer_2_UInt16(value);
             }
             else
             {
-                this.Stream.WriteByte((byte)BinaryEntryType.UnnamedUShort);
+                this.EnsureBufferSpace(3);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.UnnamedUShort;
+                this.UNSAFE_WriteToBuffer_2_UInt16(value);
             }
-
-            ProperBitConverter.GetBytes(this.buffer, 0, value);
-            this.Stream.Write(this.buffer, 0, 2);
         }
 
         /// <summary>
@@ -657,6 +1567,7 @@ namespace OdinSerializer
         {
             base.PrepareNewSerializationSession();
             this.types.Clear();
+            this.bufferIndex = 0;
         }
 
         public override string GetDataDump()
@@ -670,6 +1581,8 @@ namespace OdinSerializer
             {
                 return "Binary data stream cannot seek; cannot dump data.";
             }
+
+            this.FlushToStream();
 
             var oldPosition = this.Stream.Position;
 
@@ -687,7 +1600,8 @@ namespace OdinSerializer
         {
             if (type == null)
             {
-                this.WriteNull(null);
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.UnnamedNull;
             }
             else
             {
@@ -695,76 +1609,502 @@ namespace OdinSerializer
 
                 if (this.types.TryGetValue(type, out id))
                 {
-                    this.Stream.WriteByte((byte)BinaryEntryType.TypeID);
-                    this.WriteIntValue(id);
+                    this.EnsureBufferSpace(5);
+                    this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.TypeID;
+                    this.UNSAFE_WriteToBuffer_4_Int32(id);
                 }
                 else
                 {
                     id = this.types.Count;
                     this.types.Add(type, id);
-                    this.Stream.WriteByte((byte)BinaryEntryType.TypeName);
-                    this.WriteIntValue(id);
-                    this.WriteStringValue(this.Context.Binder.BindToName(type, this.Context.Config.DebugContext));
+
+                    this.EnsureBufferSpace(5);
+                    this.buffer[this.bufferIndex++] = (byte)BinaryEntryType.TypeName;
+                    this.UNSAFE_WriteToBuffer_4_Int32(id);
+                    this.WriteStringFast(this.Context.Binder.BindToName(type, this.Context.Config.DebugContext));
                 }
             }
         }
 
-        private void WriteStringValue(string value)
+        private struct Struct256Bit
         {
-            bool twoByteString = this.StringRequires16BitSupport(value);
+            public decimal d1;
+            public decimal d2;
+        }
 
-            if (twoByteString)
+        private void WriteStringFast(string value)
+        {
+            bool needs16BitsPerChar = true;
+            int byteCount;
+
+            if (this.CompressStringsTo8BitWhenPossible)
             {
-                this.Stream.WriteByte(1); // Write 16 bit flag
+                needs16BitsPerChar = false;
 
-                ProperBitConverter.GetBytes(this.buffer, 0, value.Length);
-                this.Stream.Write(this.buffer, 0, 4);
-
-                using (var tempBuffer = Buffer<byte>.Claim(value.Length * 2))
+                // Check if the string requires 16 bit support
+                for (int i = 0; i < value.Length; i++)
                 {
-                    var array = tempBuffer.Array;
-                    UnsafeUtilities.StringToBytes(array, value, true);
-                    this.Stream.Write(array, 0, value.Length * 2);
+                    if (value[i] > 255)
+                    {
+                        needs16BitsPerChar = true;
+                        break;
+                    }
+                }
+            }
+
+            if (needs16BitsPerChar)
+            {
+                byteCount = value.Length * 2;
+
+                if (this.TryEnsureBufferSpace(byteCount + 5))
+                {
+                    this.buffer[this.bufferIndex++] = 1; // Write 16 bit flag
+                    this.UNSAFE_WriteToBuffer_4_Int32(value.Length);
+
+                    if (BitConverter.IsLittleEndian)
+                    {
+                        fixed (byte* baseToPtr = this.buffer)
+                        fixed (char* baseFromPtr = value)
+                        {
+                            Struct256Bit* toPtr = (Struct256Bit*)(baseToPtr + this.bufferIndex);
+                            Struct256Bit* fromPtr = (Struct256Bit*)baseFromPtr;
+
+                            byte* toEnd = (byte*)toPtr + byteCount;
+
+                            while ((toPtr + 1) <= toEnd)
+                            {
+                                *toPtr++ = *fromPtr++;
+                            }
+
+                            char* toPtrRest = (char*)toPtr;
+                            char* fromPtrRest = (char*)fromPtr;
+
+                            while (toPtrRest < toEnd)
+                            {
+                                *toPtrRest++ = *fromPtrRest++;
+                            }
+                        }
+                    }
+                    else
+                    {
+                        fixed (byte* baseToPtr = this.buffer)
+                        fixed (char* baseFromPtr = value)
+                        {
+                            byte* toPtr = baseToPtr + this.bufferIndex;
+                            byte* fromPtr = (byte*)baseFromPtr;
+
+                            for (int i = 0; i < byteCount; i += 2)
+                            {
+                                *toPtr = *(fromPtr + 1);
+                                *(toPtr + 1) = *fromPtr;
+
+                                fromPtr += 2;
+                                toPtr += 2;
+                            }
+                        }
+                    }
+
+                    this.bufferIndex += byteCount;
+                }
+                else
+                {
+                    // Our internal buffer doesn't have space for this string - use the stream directly
+                    this.FlushToStream(); // Ensure stream is up to date with buffer before we write directly to it
+                    this.Stream.WriteByte(1); // Write 16 bit flag
+
+                    ProperBitConverter.GetBytes(this.small_buffer, 0, value.Length);
+                    this.Stream.Write(this.small_buffer, 0, 4);
+
+                    using (var tempBuffer = Buffer<byte>.Claim(byteCount))
+                    {
+                        var array = tempBuffer.Array;
+                        UnsafeUtilities.StringToBytes(array, value, true);
+                        this.Stream.Write(array, 0, byteCount);
+                    }
                 }
             }
             else
             {
-                this.Stream.WriteByte(0); // Write 8 bit flag
+                byteCount = value.Length;
 
-                ProperBitConverter.GetBytes(this.buffer, 0, value.Length);
-                this.Stream.Write(this.buffer, 0, 4);
-
-                using (var tempBuffer = Buffer<byte>.Claim(value.Length))
+                if (this.TryEnsureBufferSpace(byteCount + 5))
                 {
-                    var array = tempBuffer.Array;
+                    this.buffer[this.bufferIndex++] = 0; // Write 8 bit flag
+                    this.UNSAFE_WriteToBuffer_4_Int32(value.Length);
 
-                    for (int i = 0; i < value.Length; i++)
+                    for (int i = 0; i < byteCount; i++)
                     {
-                        array[i] = (byte)value[i];
+                        this.buffer[this.bufferIndex++] = (byte)value[i];
                     }
-
-                    this.Stream.Write(array, 0, value.Length);
                 }
-            }
-        }
-
-        private void WriteIntValue(int value)
-        {
-            ProperBitConverter.GetBytes(this.buffer, 0, value);
-            this.Stream.Write(this.buffer, 0, 4);
-        }
-
-        private bool StringRequires16BitSupport(string value)
-        {
-            for (int i = 0; i < value.Length; i++)
-            {
-                if (value[i] > 255)
+                else
                 {
-                    return true;
+                    // Our internal buffer doesn't have space for this string - use the stream directly
+                    this.FlushToStream(); // Ensure stream is up to date with buffer before we write directly to it
+                    this.Stream.WriteByte(0); // Write 8 bit flag
+
+                    ProperBitConverter.GetBytes(this.small_buffer, 0, value.Length);
+                    this.Stream.Write(this.small_buffer, 0, 4);
+
+                    using (var tempBuffer = Buffer<byte>.Claim(value.Length))
+                    {
+                        var array = tempBuffer.Array;
+
+                        for (int i = 0; i < value.Length; i++)
+                        {
+                            array[i] = (byte)value[i];
+                        }
+
+                        this.Stream.Write(array, 0, value.Length);
+                    }
+                }
+            }
+        }
+
+        public override void FlushToStream()
+        {
+            if (this.bufferIndex > 0)
+            {
+                this.Stream.Write(this.buffer, 0, this.bufferIndex);
+                this.bufferIndex = 0;
+            }
+
+            base.FlushToStream();
+        }
+
+        private void UNSAFE_WriteToBuffer_2_Char(char value)
+        {
+            fixed (byte* basePtr = this.buffer)
+            {
+                if (BitConverter.IsLittleEndian)
+                {
+                    char* ptr = (char*)(basePtr + this.bufferIndex);
+                    *ptr = value;
+                }
+                else
+                {
+                    byte* ptrTo = basePtr + this.bufferIndex;
+                    byte* ptrFrom = (byte*)&value + 1;
+
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo = *ptrFrom;
                 }
             }
 
-            return false;
+            this.bufferIndex += 2;
+        }
+
+        private void UNSAFE_WriteToBuffer_2_Int16(short value)
+        {
+            fixed (byte* basePtr = this.buffer)
+            {
+                if (BitConverter.IsLittleEndian)
+                {
+                    short* ptr = (short*)(basePtr + this.bufferIndex);
+                    *ptr = value;
+                }
+                else
+                {
+                    byte* ptrTo = basePtr + this.bufferIndex;
+                    byte* ptrFrom = (byte*)&value + 1;
+
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo = *ptrFrom;
+                }
+            }
+
+            this.bufferIndex += 2;
+        }
+
+        private void UNSAFE_WriteToBuffer_2_UInt16(ushort value)
+        {
+            fixed (byte* basePtr = this.buffer)
+            {
+                if (BitConverter.IsLittleEndian)
+                {
+                    ushort* ptr = (ushort*)(basePtr + this.bufferIndex);
+                    *ptr = value;
+                }
+                else
+                {
+                    byte* ptrTo = basePtr + this.bufferIndex;
+                    byte* ptrFrom = (byte*)&value + 1;
+
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo = *ptrFrom;
+                }
+            }
+
+            this.bufferIndex += 2;
+        }
+
+        private void UNSAFE_WriteToBuffer_4_Int32(int value)
+        {
+            fixed (byte* basePtr = this.buffer)
+            {
+                if (BitConverter.IsLittleEndian)
+                {
+                    int* ptr = (int*)(basePtr + this.bufferIndex);
+                    *ptr = value;
+                }
+                else
+                {
+                    byte* ptrTo = basePtr + this.bufferIndex;
+                    byte* ptrFrom = (byte*)&value + 3;
+
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo = *ptrFrom;
+                }
+            }
+
+            this.bufferIndex += 4;
+        }
+
+        private void UNSAFE_WriteToBuffer_4_UInt32(uint value)
+        {
+            fixed (byte* basePtr = this.buffer)
+            {
+                if (BitConverter.IsLittleEndian)
+                {
+                    uint* ptr = (uint*)(basePtr + this.bufferIndex);
+                    *ptr = value;
+                }
+                else
+                {
+                    byte* ptrTo = basePtr + this.bufferIndex;
+                    byte* ptrFrom = (byte*)&value + 3;
+
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo = *ptrFrom;
+                }
+            }
+
+            this.bufferIndex += 4;
+        }
+
+        private void UNSAFE_WriteToBuffer_4_Float32(float value)
+        {
+            fixed (byte* basePtr = this.buffer)
+            {
+                if (BitConverter.IsLittleEndian)
+                {
+                    float* ptr = (float*)(basePtr + this.bufferIndex);
+                    *ptr = value;
+                }
+                else
+                {
+                    byte* ptrTo = basePtr + this.bufferIndex;
+                    byte* ptrFrom = (byte*)&value + 3;
+
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo = *ptrFrom;
+                }
+            }
+
+            this.bufferIndex += 4;
+        }
+
+        private void UNSAFE_WriteToBuffer_8_Int64(long value)
+        {
+            fixed (byte* basePtr = this.buffer)
+            {
+                if (BitConverter.IsLittleEndian)
+                {
+                    long* ptr = (long*)(basePtr + this.bufferIndex);
+                    *ptr = value;
+                }
+                else
+                {
+                    byte* ptrTo = basePtr + this.bufferIndex;
+                    byte* ptrFrom = (byte*)&value + 7;
+
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo = *ptrFrom;
+                }
+            }
+
+            this.bufferIndex += 8;
+        }
+
+        private void UNSAFE_WriteToBuffer_8_UInt64(ulong value)
+        {
+            fixed (byte* basePtr = this.buffer)
+            {
+                if (BitConverter.IsLittleEndian)
+                {
+                    ulong* ptr = (ulong*)(basePtr + this.bufferIndex);
+                    *ptr = value;
+                }
+                else
+                {
+                    byte* ptrTo = basePtr + this.bufferIndex;
+                    byte* ptrFrom = (byte*)&value + 7;
+
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo = *ptrFrom;
+                }
+            }
+
+            this.bufferIndex += 8;
+        }
+
+        private void UNSAFE_WriteToBuffer_8_Float64(double value)
+        {
+            fixed (byte* basePtr = this.buffer)
+            {
+                if (BitConverter.IsLittleEndian)
+                {
+                    double* ptr = (double*)(basePtr + this.bufferIndex);
+                    *ptr = value;
+                }
+                else
+                {
+                    byte* ptrTo = basePtr + this.bufferIndex;
+                    byte* ptrFrom = (byte*)&value + 7;
+
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo = *ptrFrom;
+                }
+            }
+
+            this.bufferIndex += 8;
+        }
+
+        private void UNSAFE_WriteToBuffer_16_Decimal(decimal value)
+        {
+            fixed (byte* basePtr = this.buffer)
+            {
+                if (BitConverter.IsLittleEndian)
+                {
+                    decimal* ptr = (decimal*)(basePtr + this.bufferIndex);
+                    *ptr = value;
+                }
+                else
+                {
+                    byte* ptrTo = basePtr + this.bufferIndex;
+                    byte* ptrFrom = (byte*)&value + 15;
+
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo = *ptrFrom;
+                }
+            }
+
+            this.bufferIndex += 16;
+        }
+
+        private void UNSAFE_WriteToBuffer_16_Guid(Guid value)
+        {
+            // First 10 bytes of a guid are always little endian
+            // Last 6 bytes depend on architecture endianness
+            // See http://stackoverflow.com/questions/10190817/guid-byte-order-in-net
+
+            // TODO: Test if this actually works on big-endian architecture. Where the hell do we find that?
+
+            fixed (byte* basePtr = this.buffer)
+            {
+                if (BitConverter.IsLittleEndian)
+                {
+                    Guid* ptr = (Guid*)(basePtr + this.bufferIndex);
+                    *ptr = value;
+                }
+                else
+                {
+                    byte* ptrTo = basePtr + this.bufferIndex;
+                    byte* ptrFrom = (byte*)&value;
+
+                    *ptrTo++ = *ptrFrom++;
+                    *ptrTo++ = *ptrFrom++;
+                    *ptrTo++ = *ptrFrom++;
+                    *ptrTo++ = *ptrFrom++;
+                    *ptrTo++ = *ptrFrom++;
+                    *ptrTo++ = *ptrFrom++;
+                    *ptrTo++ = *ptrFrom++;
+                    *ptrTo++ = *ptrFrom++;
+                    *ptrTo++ = *ptrFrom++;
+                    *ptrTo++ = *ptrFrom;
+
+                    ptrFrom += 6;
+
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo++ = *ptrFrom--;
+                    *ptrTo = *ptrFrom;
+                }
+            }
+
+            this.bufferIndex += 16;
+        }
+
+        private void EnsureBufferSpace(int space)
+        {
+            var length = this.buffer.Length;
+
+            if (space > length)
+            {
+                throw new Exception("Insufficient buffer capacity");
+            }
+
+            if (this.bufferIndex + space > length)
+            {
+                this.FlushToStream();
+            }
+        }
+
+        private bool TryEnsureBufferSpace(int space)
+        {
+            var length = this.buffer.Length;
+
+            if (space > length)
+            {
+                return false;
+            }
+
+            if (this.bufferIndex + space > length)
+            {
+                this.FlushToStream();
+            }
+
+            return true;
         }
     }
 }

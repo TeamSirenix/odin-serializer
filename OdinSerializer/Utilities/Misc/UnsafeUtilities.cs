@@ -310,6 +310,33 @@ namespace OdinSerializer.Utilities.Unsafe
             return byteCount;
         }
 
+        private struct Struct256Bit
+        {
+            public decimal d1;
+            public decimal d2;
+        }
+
+        public static unsafe void MemoryCopy(void* from, void* to, int bytes)
+        {
+            byte* end = (byte*)to + bytes;
+
+            Struct256Bit* fromBigPtr = (Struct256Bit*)from;
+            Struct256Bit* toBigPtr = (Struct256Bit*)to;
+
+            while ((toBigPtr + 1) <= end)
+            {
+                *toBigPtr++ = *fromBigPtr++;
+            }
+
+            byte* fromSmallPtr = (byte*)fromBigPtr;
+            byte* toSmallPtr = (byte*)toBigPtr;
+
+            while (toSmallPtr < end)
+            {
+                *toSmallPtr++ = *fromSmallPtr++;
+            }
+        }
+
         /// <summary>
         /// Blindly mem-copies a given number of bytes from the memory location of one object to another. WARNING: This method is ridiculously dangerous. Only use if you know what you're doing.
         /// </summary>

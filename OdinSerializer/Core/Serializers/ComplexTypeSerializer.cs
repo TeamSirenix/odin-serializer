@@ -19,6 +19,7 @@
 namespace OdinSerializer
 {
     using System;
+    using System.Collections.Generic;
     using Utilities;
 
     /// <summary>
@@ -34,6 +35,9 @@ namespace OdinSerializer
         private static readonly bool ComplexTypeIsValueType = typeof(T).IsValueType;
 
         private static readonly bool AllowDeserializeInvalidDataForT = typeof(T).IsDefined(typeof(AllowDeserializeInvalidDataAttribute), true);
+
+        private static readonly Dictionary<ISerializationPolicy, IFormatter<T>> FormattersByPolicy = new Dictionary<ISerializationPolicy, IFormatter<T>>(ReferenceEqualityComparer<ISerializationPolicy>.Default);
+        private static readonly object FormattersByPolicy_LOCK = new object();
 
         /// <summary>
         /// Reads a value of type <see cref="T" />.
@@ -106,7 +110,7 @@ namespace OdinSerializer
                                 else if (AllowDeserializeInvalidDataForT || reader.Context.Config.AllowDeserializeInvalidData)
                                 {
                                     context.Config.DebugContext.LogWarning("Can't cast serialized type " + serializedType.Name + " into expected type " + expectedType.Name + ". Attempting to deserialize with possibly invalid data. Value may be lost or corrupted for node '" + name + "'.");
-                                    return FormatterLocator.GetFormatter<T>(context.Config.SerializationPolicy).Deserialize(reader);
+                                    return GetBaseFormatter(context.Config.SerializationPolicy).Deserialize(reader);
                                 }
                                 else
                                 {
@@ -117,7 +121,7 @@ namespace OdinSerializer
                             else if (AllowDeserializeInvalidDataForT || reader.Context.Config.AllowDeserializeInvalidData)
                             {
                                 context.Config.DebugContext.LogWarning("Expected complex struct value " + expectedType.Name + " but the serialized type could not be resolved. Attempting to deserialize with possibly invalid data. Value may be lost or corrupted for node '" + name + "'.");
-                                return FormatterLocator.GetFormatter<T>(context.Config.SerializationPolicy).Deserialize(reader);
+                                return GetBaseFormatter(context.Config.SerializationPolicy).Deserialize(reader);
                             }
                             else
                             {
@@ -127,7 +131,7 @@ namespace OdinSerializer
                         }
                         else
                         {
-                            return FormatterLocator.GetFormatter<T>(context.Config.SerializationPolicy).Deserialize(reader);
+                            return GetBaseFormatter(context.Config.SerializationPolicy).Deserialize(reader);
                         }
                     }
                     else
@@ -317,7 +321,7 @@ namespace OdinSerializer
                                         {
                                             // We will try to deserialize an instance of T with the invalid data.
                                             context.Config.DebugContext.LogWarning("Can't cast serialized type " + serializedType.Name + " into expected type " + expectedType.Name + ". Attempting to deserialize with invalid data. Value may be lost or corrupted for node '" + name + "'.");
-                                            result = FormatterLocator.GetFormatter<T>(context.Config.SerializationPolicy).Deserialize(reader);
+                                            result = GetBaseFormatter(context.Config.SerializationPolicy).Deserialize(reader);
                                             success = true;
                                         }
                                         else
@@ -350,7 +354,7 @@ namespace OdinSerializer
                                     }
                                     else
                                     {
-                                        result = FormatterLocator.GetFormatter<T>(context.Config.SerializationPolicy).Deserialize(reader);
+                                        result = GetBaseFormatter(context.Config.SerializationPolicy).Deserialize(reader);
                                     }
 
                                     if (id >= 0)
@@ -467,6 +471,22 @@ namespace OdinSerializer
             }
         }
 
+        private IFormatter<T> GetBaseFormatter(ISerializationPolicy serializationPolicy)
+        {
+            IFormatter<T> formatter;
+
+            lock (FormattersByPolicy_LOCK)
+            {
+                if (!FormattersByPolicy.TryGetValue(serializationPolicy, out formatter))
+                {
+                    formatter = FormatterLocator.GetFormatter<T>(serializationPolicy);
+                    FormattersByPolicy.Add(serializationPolicy, formatter);
+                }
+            }
+
+            return formatter;
+        }
+
         /// <summary>
         /// Writes a value of type <see cref="T" />.
         /// </summary>
@@ -492,7 +512,7 @@ namespace OdinSerializer
                 try
                 {
                     writer.BeginStructNode(name, typeof(T));
-                    FormatterLocator.GetFormatter<T>(context.Config.SerializationPolicy).Serialize(value, writer);
+                    GetBaseFormatter(context.Config.SerializationPolicy).Serialize(value, writer);
                 }
                 catch (SerializationAbortException ex)
                 {
