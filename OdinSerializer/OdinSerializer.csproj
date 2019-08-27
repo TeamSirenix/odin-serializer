@@ -114,6 +114,7 @@
     <Compile Include="Utilities\Misc\Cache.cs" />
     <Compile Include="Utilities\Misc\DoubleLookupDictionary.cs" />
     <Compile Include="Utilities\Misc\EmitUtilities.cs" />
+    <Compile Include="Utilities\Misc\FastTypeComparer.cs" />
     <Compile Include="Utilities\Misc\Flags.cs" />
     <Compile Include="Utilities\Misc\ICacheNotificationReceiver.cs" />
     <Compile Include="Utilities\Misc\ImmutableList.cs" />
