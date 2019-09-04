@@ -1620,7 +1620,7 @@ namespace OdinSerializer.Utilities
 
                     for (int i = 0; i < constructedParameters.Length; i++)
                     {
-                        if (!constructedParameters[i].IsGenericParameter)
+                        if (!constructedParameters[i].IsGenericParameter && (!constructedParameters[i].IsGenericType || constructedParameters[i].IsFullyConstructedGenericType()))
                         {
                             matches[definitions[i]] = constructedParameters[i];
                         }
