@@ -33,11 +33,20 @@ namespace OdinSerializer
         private static readonly bool ComplexTypeIsAbstract = typeof(T).IsAbstract || typeof(T).IsInterface;
         private static readonly bool ComplexTypeIsNullable = typeof(T).IsGenericType && typeof(T).GetGenericTypeDefinition() == typeof(Nullable<>);
         private static readonly bool ComplexTypeIsValueType = typeof(T).IsValueType;
+        private static readonly Type TypeOf_T = typeof(T);
 
         private static readonly bool AllowDeserializeInvalidDataForT = typeof(T).IsDefined(typeof(AllowDeserializeInvalidDataAttribute), true);
 
         private static readonly Dictionary<ISerializationPolicy, IFormatter<T>> FormattersByPolicy = new Dictionary<ISerializationPolicy, IFormatter<T>>(ReferenceEqualityComparer<ISerializationPolicy>.Default);
         private static readonly object FormattersByPolicy_LOCK = new object();
+
+        private static readonly ISerializationPolicy UnityPolicy = SerializationPolicies.Unity;
+        private static readonly ISerializationPolicy StrictPolicy = SerializationPolicies.Strict;
+        private static readonly ISerializationPolicy EverythingPolicy = SerializationPolicies.Everything;
+
+        private static IFormatter<T> UnityPolicyFormatter;
+        private static IFormatter<T> StrictPolicyFormatter;
+        private static IFormatter<T> EverythingPolicyFormatter;
 
         /// <summary>
         /// Reads a value of type <see cref="T" />.
@@ -50,9 +59,9 @@ namespace OdinSerializer
         {
             var context = reader.Context;
 
-            if (context.Config.SerializationPolicy.AllowNonSerializableTypes == false && typeof(T).IsSerializable == false)
+            if (context.Config.SerializationPolicy.AllowNonSerializableTypes == false && TypeOf_T.IsSerializable == false)
             {
-                context.Config.DebugContext.LogError("The type " + typeof(T).Name + " is not marked as serializable.");
+                context.Config.DebugContext.LogError("The type " + TypeOf_T.Name + " is not marked as serializable.");
                 return default(T);
             }
 
@@ -65,7 +74,7 @@ namespace OdinSerializer
             {
                 if (entry == EntryType.Null)
                 {
-                    context.Config.DebugContext.LogWarning("Expecting complex struct of type " + typeof(T).GetNiceFullName() + " but got null value.");
+                    context.Config.DebugContext.LogWarning("Expecting complex struct of type " + TypeOf_T.GetNiceFullName() + " but got null value.");
                     reader.ReadNull();
                     return default(T);
                 }
@@ -78,7 +87,7 @@ namespace OdinSerializer
 
                 try
                 {
-                    Type expectedType = typeof(T);
+                    Type expectedType = TypeOf_T;
                     Type serializedType;
 
                     if (reader.EnterNode(out serializedType))
@@ -181,7 +190,7 @@ namespace OdinSerializer
                             }
                             catch (InvalidCastException)
                             {
-                                context.Config.DebugContext.LogWarning("Can't cast external reference type " + value.GetType().Name + " into expected type " + typeof(T).Name + ". Value lost for node '" + name + "'.");
+                                context.Config.DebugContext.LogWarning("Can't cast external reference type " + value.GetType().Name + " into expected type " + TypeOf_T.Name + ". Value lost for node '" + name + "'.");
                                 return default(T);
                             }
                         }
@@ -199,7 +208,7 @@ namespace OdinSerializer
                             }
                             catch (InvalidCastException)
                             {
-                                context.Config.DebugContext.LogWarning("Can't cast external reference type " + value.GetType().Name + " into expected type " + typeof(T).Name + ". Value lost for node '" + name + "'.");
+                                context.Config.DebugContext.LogWarning("Can't cast external reference type " + value.GetType().Name + " into expected type " + TypeOf_T.Name + ". Value lost for node '" + name + "'.");
                                 return default(T);
                             }
                         }
@@ -217,7 +226,7 @@ namespace OdinSerializer
                             }
                             catch (InvalidCastException)
                             {
-                                context.Config.DebugContext.LogWarning("Can't cast external reference type " + value.GetType().Name + " into expected type " + typeof(T).Name + ". Value lost for node '" + name + "'.");
+                                context.Config.DebugContext.LogWarning("Can't cast external reference type " + value.GetType().Name + " into expected type " + TypeOf_T.Name + ". Value lost for node '" + name + "'.");
                                 return default(T);
                             }
                         }
@@ -235,7 +244,7 @@ namespace OdinSerializer
                             }
                             catch (InvalidCastException)
                             {
-                                context.Config.DebugContext.LogWarning("Can't cast internal reference type " + value.GetType().Name + " into expected type " + typeof(T).Name + ". Value lost for node '" + name + "'.");
+                                context.Config.DebugContext.LogWarning("Can't cast internal reference type " + value.GetType().Name + " into expected type " + TypeOf_T.Name + ". Value lost for node '" + name + "'.");
                                 return default(T);
                             }
                         }
@@ -244,7 +253,7 @@ namespace OdinSerializer
                         {
                             try
                             {
-                                Type expectedType = typeof(T);
+                                Type expectedType = TypeOf_T;
                                 Type serializedType;
                                 int id;
 
@@ -471,8 +480,40 @@ namespace OdinSerializer
             }
         }
 
-        private IFormatter<T> GetBaseFormatter(ISerializationPolicy serializationPolicy)
+        private static IFormatter<T> GetBaseFormatter(ISerializationPolicy serializationPolicy)
         {
+            // This is an optimization - it's a lot cheaper to compare three references and do a null check,
+            //  than it is to look something up in a dictionary. By far most of the time, we will be using
+            //  one of these three policies.
+
+            if (object.ReferenceEquals(serializationPolicy, UnityPolicy))
+            {
+                if (UnityPolicyFormatter == null)
+                {
+                    UnityPolicyFormatter = FormatterLocator.GetFormatter<T>(UnityPolicy);
+                }
+
+                return UnityPolicyFormatter;
+            }
+            else if (object.ReferenceEquals(serializationPolicy, EverythingPolicy))
+            {
+                if (EverythingPolicyFormatter == null)
+                {
+                    EverythingPolicyFormatter = FormatterLocator.GetFormatter<T>(EverythingPolicy);
+                }
+
+                return EverythingPolicyFormatter;
+            }
+            else if (object.ReferenceEquals(serializationPolicy, StrictPolicy))
+            {
+                if (StrictPolicyFormatter == null)
+                {
+                    StrictPolicyFormatter = FormatterLocator.GetFormatter<T>(StrictPolicy);
+                }
+
+                return StrictPolicyFormatter;
+            }
+
             IFormatter<T> formatter;
 
             lock (FormattersByPolicy_LOCK)
@@ -496,10 +537,11 @@ namespace OdinSerializer
         public override void WriteValue(string name, T value, IDataWriter writer)
         {
             var context = writer.Context;
+            var policy = context.Config.SerializationPolicy;
 
-            if (context.Config.SerializationPolicy.AllowNonSerializableTypes == false && typeof(T).IsSerializable == false)
+            if (policy.AllowNonSerializableTypes == false && TypeOf_T.IsSerializable == false)
             {
-                context.Config.DebugContext.LogError("The type " + typeof(T).Name + " is not marked as serializable.");
+                context.Config.DebugContext.LogError("The type " + TypeOf_T.Name + " is not marked as serializable.");
                 return;
             }
 
@@ -511,8 +553,8 @@ namespace OdinSerializer
 
                 try
                 {
-                    writer.BeginStructNode(name, typeof(T));
-                    GetBaseFormatter(context.Config.SerializationPolicy).Serialize(value, writer);
+                    writer.BeginStructNode(name, TypeOf_T);
+                    GetBaseFormatter(policy).Serialize(value, writer);
                 }
                 catch (SerializationAbortException ex)
                 {
@@ -556,7 +598,8 @@ namespace OdinSerializer
                 {
                     Type type = value.GetType(); // Get type of actual stored object
 
-                    if (ComplexTypeMayBeBoxedValueType && FormatterUtilities.IsPrimitiveType(type)) // It's a boxed primitive type
+                    if (ComplexTypeMayBeBoxedValueType && FormatterUtilities.IsPrimitiveType(type)) 
+                    // It's a boxed primitive type
                     {
                         try
                         {
@@ -580,7 +623,16 @@ namespace OdinSerializer
                     }
                     else
                     {
-                        var formatter = FormatterLocator.GetFormatter(type, context.Config.SerializationPolicy);
+                        IFormatter formatter;
+                        
+                        if (object.ReferenceEquals(type, TypeOf_T))
+                        {
+                            formatter = GetBaseFormatter(policy);
+                        }
+                        else
+                        {
+                            formatter = FormatterLocator.GetFormatter(type, policy);
+                        }
 
                         try
                         {

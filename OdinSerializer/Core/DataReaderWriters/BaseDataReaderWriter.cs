@@ -19,14 +19,16 @@
 namespace OdinSerializer
 {
     using System;
-    using System.Collections.Generic;
 
     /// <summary>
     /// Implements functionality that is shared by both data readers and data writers.
     /// </summary>
     public abstract class BaseDataReaderWriter
     {
-        private Stack<NodeInfo> nodes = new Stack<NodeInfo>(32);
+        // Once, there was a stack here. But stacks are slow, so now there's no longer
+        //  a stack here and we just do it ourselves.
+        private NodeInfo[] nodes = new NodeInfo[32];
+        private int nodesLength = 0;
 
         /// <summary>
         /// Gets or sets the context's or writer's serialization binder.
@@ -70,7 +72,7 @@ namespace OdinSerializer
         /// <value>
         /// <c>true</c> if the reader or writer is in an array node; otherwise, <c>false</c>.
         /// </value>
-        public bool IsInArrayNode { get { return this.CurrentNode.IsArray; } }
+        public bool IsInArrayNode { get { return this.nodesLength == 0 ? false : this.nodes[this.nodesLength - 1].IsArray; } }
 
         /// <summary>
         /// Gets the current node depth. In other words, the current count of the node stack.
@@ -78,7 +80,7 @@ namespace OdinSerializer
         /// <value>
         /// The current node depth.
         /// </value>
-        protected int NodeDepth { get { return this.nodes.Count; } }
+        protected int NodeDepth { get { return this.nodesLength; } }
 
         /// <summary>
         /// Gets the current node, or <see cref="NodeInfo.Empty"/> if there is no current node.
@@ -86,7 +88,7 @@ namespace OdinSerializer
         /// <value>
         /// The current node.
         /// </value>
-        protected NodeInfo CurrentNode { get { return this.nodes.Count == 0 ? NodeInfo.Empty : this.nodes.Peek(); } }
+        protected NodeInfo CurrentNode { get { return this.nodesLength == 0 ? NodeInfo.Empty : this.nodes[this.nodesLength - 1]; } }
 
         /// <summary>
         /// Pushes a node onto the node stack.
@@ -94,7 +96,13 @@ namespace OdinSerializer
         /// <param name="node">The node to push.</param>
         protected void PushNode(NodeInfo node)
         {
-            this.nodes.Push(node);
+            if (this.nodesLength == this.nodes.Length)
+            {
+                this.ExpandNodes();
+            }
+
+            this.nodes[this.nodesLength] = node;
+            this.nodesLength++;
         }
 
         /// <summary>
@@ -105,7 +113,13 @@ namespace OdinSerializer
         /// <param name="type">The type of the node.</param>
         protected void PushNode(string name, int id, Type type)
         {
-            this.nodes.Push(new NodeInfo(name, id, type, false));
+            if (this.nodesLength == this.nodes.Length)
+            {
+                this.ExpandNodes();
+            }
+
+            this.nodes[this.nodesLength] = new NodeInfo(name, id, type, false);
+            this.nodesLength++;
         }
 
         /// <summary>
@@ -113,19 +127,36 @@ namespace OdinSerializer
         /// </summary>
         protected void PushArray()
         {
-            NodeInfo node;
-
-            if (this.NodeDepth == 0 || this.CurrentNode.IsArray)
+            if (this.nodesLength == this.nodes.Length)
             {
-                node = new NodeInfo(null, -1, null, true);
+                this.ExpandNodes();
+            }
+
+            if (this.nodesLength == 0 || this.nodes[this.nodesLength - 1].IsArray)
+            {
+                this.nodes[this.nodesLength] = new NodeInfo(null, -1, null, true);
             }
             else
             {
-                var current = this.CurrentNode;
-                node = new NodeInfo(current.Name, current.Id, current.Type, true);
+                var current = this.nodes[this.nodesLength - 1];
+                this.nodes[this.nodesLength] = new NodeInfo(current.Name, current.Id, current.Type, true);
+            }
+            
+            this.nodesLength++;
+        }
+
+        private void ExpandNodes()
+        {
+            var newArr = new NodeInfo[this.nodes.Length * 2];
+
+            var oldNodes = this.nodes;
+
+            for (int i = 0; i < oldNodes.Length; i++)
+            {
+                newArr[i] = oldNodes[i];
             }
 
-            this.nodes.Push(node);
+            this.nodes = newArr;
         }
 
         /// <summary>
@@ -139,7 +170,7 @@ namespace OdinSerializer
         /// </exception>
         protected void PopNode(string name)
         {
-            if (this.nodes.Count == 0)
+            if (this.nodesLength == 0)
             {
                 throw new InvalidOperationException("There are no nodes to pop.");
             }
@@ -152,7 +183,7 @@ namespace OdinSerializer
             //    throw new InvalidOperationException("Tried to pop node with name " + name + " but current node's name is " + current.Name);
             //}
 
-            this.nodes.Pop();
+            this.nodesLength--;
         }
 
         /// <summary>
@@ -160,17 +191,22 @@ namespace OdinSerializer
         /// </summary>
         protected void PopArray()
         {
-            if (this.CurrentNode.IsArray == false)
+            if (this.nodesLength == 0)
+            {
+                throw new InvalidOperationException("There are no nodes to pop.");
+            }
+
+            if (this.nodes[this.nodesLength - 1].IsArray == false)
             {
                 throw new InvalidOperationException("Was not in array when exiting array.");
             }
 
-            this.nodes.Pop();
+            this.nodesLength--;
         }
 
         protected void ClearNodes()
         {
-            this.nodes.Clear();
+            this.nodesLength = 0;
         }
     }
 }

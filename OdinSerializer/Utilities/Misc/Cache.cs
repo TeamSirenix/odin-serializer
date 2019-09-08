@@ -19,45 +19,27 @@
 namespace OdinSerializer.Utilities
 {
     using System;
-    using System.Collections.Generic;
-
-    /// <summary>
-    /// The ICache interface used by <see cref="Cache{T}"/>.
-    /// </summary>
-    /// <seealso cref="Cache{T}" />
-    public interface ICache<T> : IDisposable where T : class, new()
-    {
-        /// <summary>
-        /// Not yet documented.
-        /// </summary>
-        T Value { get; }
-
-        /// <summary>
-        /// Not yet documented.
-        /// </summary>
-        bool IsFree { get; }
-
-        /// <summary>
-        /// Not yet documented.
-        /// </summary>
-        void Release();
-    }
+    using System.Threading;
 
     /// <summary>
     /// Provides an easy way of claiming and freeing cached values of any non-abstract reference type with a public parameterless constructor.
     /// <para />
     /// Cached types which implement the <see cref="ICacheNotificationReceiver"/> interface will receive notifications when they are claimed and freed.
+    /// <para />
+    /// Only one thread should be holding a given cache instance at a time if <see cref="ICacheNotificationReceiver"/> is implemented, since the invocation of 
+    /// <see cref="ICacheNotificationReceiver.OnFreed()"/> is not thread safe, IE, weird stuff might happen if multiple different threads are trying to free
+    /// the same cache instance at the same time. This will practically never happen unless you're doing really strange stuff, but the case is documented here.
     /// </summary>
     /// <typeparam name="T">The type which is cached.</typeparam>
     /// <seealso cref="System.IDisposable" />
-    public sealed class Cache<T> : ICache<T> where T : class, new()
+    public sealed class Cache<T> : IDisposable where T : class, new()
     {
-        private static readonly object LOCK = new object();
         private static readonly bool IsNotificationReceiver = typeof(ICacheNotificationReceiver).IsAssignableFrom(typeof(T));
-        private static readonly List<object> FreeValues = new List<object>();
+        private static object[] FreeValues = new object[4];
 
-        private T value;
         private bool isFree;
+
+        private static volatile int THREAD_LOCK_TOKEN = 0;
 
         private static int maxCacheSize = 5;
 
@@ -82,29 +64,14 @@ namespace OdinSerializer.Utilities
 
         private Cache()
         {
-            this.value = new T();
+            this.Value = new T();
             this.isFree = false;
         }
 
         /// <summary>
-        /// Gets the cached value.
-        /// </summary>
-        /// <value>
         /// The cached value.
-        /// </value>
-        /// <exception cref="System.InvalidOperationException">Cannot access a cache while it is freed.</exception>
-        public T Value
-        {
-            get
-            {
-                if (this.isFree)
-                {
-                    throw new InvalidOperationException("Cannot access a cache while it is freed.");
-                }
-
-                return this.value;
-            }
-        }
+        /// </summary>
+        public T Value;
 
         /// <summary>
         /// Gets a value indicating whether this cached value is free.
@@ -112,7 +79,7 @@ namespace OdinSerializer.Utilities
         /// <value>
         ///   <c>true</c> if this cached value is free; otherwise, <c>false</c>.
         /// </value>
-        bool ICache<T>.IsFree { get { return this.isFree; } }
+        public bool IsFree { get { return this.isFree; } }
 
         /// <summary>
         /// Claims a cached value of type <see cref="T"/>.
@@ -122,16 +89,38 @@ namespace OdinSerializer.Utilities
         {
             Cache<T> result = null;
 
-            lock (LOCK)
+            // Very, very simple spinlock implementation
+            //  this lock will almost never be contested
+            //  and it will never be held for more than
+            //  an instant; therefore, we want to avoid paying
+            //  the lock(object) statement's semaphore
+            //  overhead.
+            while (true)
             {
-                if (FreeValues.Count > 0)
+                if (Interlocked.CompareExchange(ref THREAD_LOCK_TOKEN, 1, 0) == 0)
                 {
-                    result = (Cache<T>)FreeValues[FreeValues.Count - 1];
-                    FreeValues.RemoveAt(FreeValues.Count - 1);
-                    result.isFree = false;
+                    break;
                 }
             }
 
+            // We now hold the lock
+            var freeValues = FreeValues;
+            var length = freeValues.Length;
+
+            for (int i = 0; i < length; i++)
+            {
+                result = (Cache<T>)freeValues[i];
+                if (!object.ReferenceEquals(result, null))
+                {
+                    freeValues[i] = null;
+                    result.isFree = false;
+                    break;
+                }
+            }
+
+            // Release the lock
+            THREAD_LOCK_TOKEN = 0; 
+            
             if (result == null)
             {
                 result = new Cache<T>();
@@ -139,7 +128,7 @@ namespace OdinSerializer.Utilities
 
             if (IsNotificationReceiver)
             {
-                (result.value as ICacheNotificationReceiver).OnClaimed();
+                (result.Value as ICacheNotificationReceiver).OnClaimed();
             }
 
             return result;
@@ -157,30 +146,69 @@ namespace OdinSerializer.Utilities
                 throw new ArgumentNullException("cache");
             }
 
-            if (cache.isFree == false)
+            if (cache.isFree) return;
+
+            // No need to call this method inside the lock, which might do heavy work
+            //  there is a thread safety hole here, actually - if several different threads
+            //  are trying to free the same cache instance, OnFreed might be called several
+            //  times concurrently for the same cached value.
+            if (IsNotificationReceiver)
             {
-                bool wasFreed = false;
+                (cache.Value as ICacheNotificationReceiver).OnFreed();
+            }
 
-                lock (LOCK)
+            while (true)
+            {
+                if (Interlocked.CompareExchange(ref THREAD_LOCK_TOKEN, 1, 0) == 0)
                 {
-                    if (cache.isFree == false)
-                    {
-                        wasFreed = true;
-                        cache.isFree = true;
-
-                        if (Cache<T>.FreeValues.Count < Cache<T>.MaxCacheSize)
-                        {
-                            Cache<T>.FreeValues.Add(cache);
-                        }
-                    }
-                }
-
-                // No need to call this method inside the lock, which might do heavy work
-                if (wasFreed && IsNotificationReceiver)
-                {
-                    (cache.value as ICacheNotificationReceiver).OnFreed();
+                    break;
                 }
             }
+
+            // We now hold the lock
+
+            if (cache.isFree)
+            {
+                // Release the lock and leave - job's done already
+                THREAD_LOCK_TOKEN = 0;
+                return;
+            }
+
+
+            cache.isFree = true;
+
+            var freeValues = FreeValues;
+            var length = freeValues.Length;
+
+            bool added = false;
+
+            for (int i = 0; i < length; i++)
+            {
+                if (object.ReferenceEquals(freeValues[i], null))
+                {
+                    freeValues[i] = cache;
+                    added = true;
+                    break;
+                }
+            }
+
+            if (!added && length < MaxCacheSize)
+            {
+                var newArr = new object[length * 2];
+
+                for (int i = 0; i < length; i++)
+                {
+                    newArr[i] = freeValues[i];
+                }
+
+                newArr[length] = cache;
+
+                FreeValues = newArr;
+            }
+
+            // Release the lock
+            THREAD_LOCK_TOKEN = 0;
+
         }
 
         /// <summary>
@@ -203,9 +231,9 @@ namespace OdinSerializer.Utilities
         /// <summary>
         /// Releases this cached value.
         /// </summary>
-        void ICache<T>.Release()
+        public void Release()
         {
-            Cache<T>.Release(this);
+            Release(this);
         }
 
         /// <summary>

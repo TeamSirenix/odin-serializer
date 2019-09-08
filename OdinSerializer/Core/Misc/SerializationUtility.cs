@@ -29,10 +29,6 @@ namespace OdinSerializer
     /// </summary>
     public static class SerializationUtility
     {
-        private static readonly object CACHE_LOCK = new object();
-
-        private static readonly Dictionary<object, object> CacheMappings = new Dictionary<object, object>(ReferenceEqualityComparer<object>.Default);
-
         /// <summary>
         /// Creates an <see cref="IDataWriter" /> for a given format.
         /// </summary>
@@ -91,134 +87,84 @@ namespace OdinSerializer
             }
         }
 
-        private static IDataWriter GetCachedWriter(Stream stream, SerializationContext context, DataFormat format)
+        private static IDataWriter GetCachedWriter(out IDisposable cache, DataFormat format, Stream stream, SerializationContext context)
         {
-            lock (CACHE_LOCK)
+            IDataWriter writer;
+
+            if (format == DataFormat.Binary)
             {
-                switch (format)
-                {
-                    case DataFormat.Binary:
-                        {
-                            var cache = Cache<BinaryDataWriter>.Claim();
-                            var value = cache.Value;
-                            CacheMappings[value] = cache;
+                var binaryCache = Cache<BinaryDataWriter>.Claim();
+                var binaryWriter = binaryCache.Value;
 
-                            value.Stream = stream;
-                            value.Context = context;
-                            value.PrepareNewSerializationSession();
+                binaryWriter.Stream = stream;
+                binaryWriter.Context = context;
+                binaryWriter.PrepareNewSerializationSession();
 
-                            return value;
-                        }
-
-                    case DataFormat.JSON:
-                        {
-                            var cache = Cache<JsonDataWriter>.Claim();
-                            var value = cache.Value;
-                            CacheMappings[value] = cache;
-
-                            value.Stream = stream;
-                            value.Context = context;
-                            value.PrepareNewSerializationSession();
-
-                            return value;
-                        }
-
-                    case DataFormat.Nodes:
-                        Debug.LogError("Cannot automatically create a writer for the format '" + DataFormat.Nodes + "', because it does not use a stream.");
-                        return null;
-
-                    default:
-                        throw new NotImplementedException(format.ToString());
-                }
+                writer = binaryWriter;
+                cache = binaryCache;
             }
+            else if (format == DataFormat.JSON)
+            {
+                var jsonCache = Cache<JsonDataWriter>.Claim();
+                var jsonWriter = jsonCache.Value;
+
+                jsonWriter.Stream = stream;
+                jsonWriter.Context = context;
+                jsonWriter.PrepareNewSerializationSession();
+
+                writer = jsonWriter;
+                cache = jsonCache;
+            }
+            else if (format == DataFormat.Nodes)
+            {
+                throw new InvalidOperationException("Cannot automatically create a writer for the format '" + DataFormat.Nodes + "', because it does not use a stream.");
+            }
+            else
+            {
+                throw new NotImplementedException(format.ToString());
+            }
+
+            return writer;
         }
 
-        private static IDataReader GetCachedReader(Stream stream, DeserializationContext context, DataFormat format)
+        private static IDataReader GetCachedReader(out IDisposable cache, DataFormat format, Stream stream, DeserializationContext context)
         {
-            lock (CACHE_LOCK)
+            IDataReader reader;
+
+            if (format == DataFormat.Binary)
             {
-                switch (format)
-                {
-                    case DataFormat.Binary:
-                        {
-                            var cache = Cache<BinaryDataReader>.Claim();
-                            var value = cache.Value;
-                            CacheMappings[value] = cache;
+                var binaryCache = Cache<BinaryDataReader>.Claim();
+                var binaryReader = binaryCache.Value;
 
-                            value.Stream = stream;
-                            value.Context = context;
-                            value.PrepareNewSerializationSession();
+                binaryReader.Stream = stream;
+                binaryReader.Context = context;
+                binaryReader.PrepareNewSerializationSession();
 
-                            return value;
-                        }
-
-                    case DataFormat.JSON:
-                        {
-                            var cache = Cache<JsonDataReader>.Claim();
-                            var value = cache.Value;
-                            CacheMappings[value] = cache;
-
-                            value.Stream = stream;
-                            value.Context = context;
-                            value.PrepareNewSerializationSession();
-
-                            return value;
-                        }
-
-                    case DataFormat.Nodes:
-                        Debug.LogError("Cannot automatically create a writer for the format '" + DataFormat.Nodes + "', because it does not use a stream.");
-                        return null;
-
-                    default:
-                        throw new NotImplementedException(format.ToString());
-                }
+                reader = binaryReader;
+                cache = binaryCache;
             }
-        }
-
-        private static void FreeCachedReader(IDataReader reader)
-        {
-            lock (CACHE_LOCK)
+            else if (format == DataFormat.JSON)
             {
-                object cache;
+                var jsonCache = Cache<JsonDataReader>.Claim();
+                var jsonReader = jsonCache.Value;
 
-                if (CacheMappings.TryGetValue(reader, out cache))
-                {
-                    CacheMappings.Remove(reader);
+                jsonReader.Stream = stream;
+                jsonReader.Context = context;
+                jsonReader.PrepareNewSerializationSession();
 
-                    if (reader.GetType() == typeof(BinaryDataReader))
-                    {
-                        Cache<BinaryDataReader>.Release((Cache<BinaryDataReader>)cache);
-                    }
-                    else if (reader.GetType() == typeof(JsonDataReader))
-                    {
-                        Cache<JsonDataReader>.Release((Cache<JsonDataReader>)cache);
-                    }
-                    else throw new NotImplementedException(reader.GetType().FullName);
-                }
+                reader = jsonReader;
+                cache = jsonCache;
             }
-        }
-
-        private static void FreeCachedWriter(IDataWriter writer)
-        {
-            lock (CACHE_LOCK)
+            else if (format == DataFormat.Nodes)
             {
-                object cache;
-
-                if (CacheMappings.TryGetValue(writer, out cache))
-                {
-                    CacheMappings.Remove(writer);
-
-                    if (writer.GetType() == typeof(BinaryDataWriter))
-                    {
-                        Cache<BinaryDataWriter>.Release((Cache<BinaryDataWriter>)cache);
-                    }
-                    else if (writer.GetType() == typeof(JsonDataWriter))
-                    {
-                        Cache<JsonDataWriter>.Release((Cache<JsonDataWriter>)cache);
-                    }
-                    else throw new NotImplementedException(writer.GetType().FullName);
-                }
+                throw new InvalidOperationException("Cannot automatically create a reader for the format '" + DataFormat.Nodes + "', because it does not use a stream.");
             }
+            else
+            {
+                throw new NotImplementedException(format.ToString());
+            }
+
+            return reader;
         }
 
         /// <summary>
@@ -279,6 +225,8 @@ namespace OdinSerializer
             }
         }
 
+
+
         /// <summary>
         /// Serializes the given value to a given stream in the specified format.
         /// </summary>
@@ -288,7 +236,8 @@ namespace OdinSerializer
         /// <param name="context">The context.</param>
         public static void SerializeValueWeak(object value, Stream stream, DataFormat format, SerializationContext context = null)
         {
-            var writer = GetCachedWriter(stream, context, format);
+            IDisposable cache;
+            var writer = GetCachedWriter(out cache, format, stream, context);
 
             try
             {
@@ -307,7 +256,7 @@ namespace OdinSerializer
             }
             finally
             {
-                FreeCachedWriter(writer);
+                cache.Dispose();
             }
         }
 
@@ -321,7 +270,8 @@ namespace OdinSerializer
         /// <param name="context">The context.</param>
         public static void SerializeValueWeak(object value, Stream stream, DataFormat format, out List<UnityEngine.Object> unityObjects, SerializationContext context = null)
         {
-            var writer = GetCachedWriter(stream, context, format);
+            IDisposable cache;
+            var writer = GetCachedWriter(out cache, format, stream, context);
 
             try
             {
@@ -340,7 +290,7 @@ namespace OdinSerializer
             }
             finally
             {
-                FreeCachedWriter(writer);
+                cache.Dispose();
             }
         }
 
@@ -354,7 +304,8 @@ namespace OdinSerializer
         /// <param name="context">The context.</param>
         public static void SerializeValue<T>(T value, Stream stream, DataFormat format, SerializationContext context = null)
         {
-            var writer = GetCachedWriter(stream, context, format);
+            IDisposable cache;
+            var writer = GetCachedWriter(out cache, format, stream, context);
 
             try
             {
@@ -373,7 +324,7 @@ namespace OdinSerializer
             }
             finally
             {
-                FreeCachedWriter(writer);
+                cache.Dispose();
             }
         }
 
@@ -388,7 +339,8 @@ namespace OdinSerializer
         /// <param name="context">The context.</param>
         public static void SerializeValue<T>(T value, Stream stream, DataFormat format, out List<UnityEngine.Object> unityObjects, SerializationContext context = null)
         {
-            var writer = GetCachedWriter(stream, context, format);
+            IDisposable cache;
+            var writer = GetCachedWriter(out cache, format, stream, context);
 
             try
             {
@@ -407,7 +359,7 @@ namespace OdinSerializer
             }
             finally
             {
-                FreeCachedWriter(writer);
+                cache.Dispose();
             }
         }
 
@@ -547,7 +499,8 @@ namespace OdinSerializer
         /// </returns>
         public static object DeserializeValueWeak(Stream stream, DataFormat format, DeserializationContext context = null)
         {
-            var reader = GetCachedReader(stream, context, format);
+            IDisposable cache;
+            var reader = GetCachedReader(out cache, format, stream, context);
 
             try
             {
@@ -566,7 +519,7 @@ namespace OdinSerializer
             }
             finally
             {
-                FreeCachedReader(reader);
+                cache.Dispose();
             }
         }
 
@@ -582,7 +535,8 @@ namespace OdinSerializer
         /// </returns>
         public static object DeserializeValueWeak(Stream stream, DataFormat format, List<UnityEngine.Object> referencedUnityObjects, DeserializationContext context = null)
         {
-            var reader = GetCachedReader(stream, context, format);
+            IDisposable cache;
+            var reader = GetCachedReader(out cache, format, stream, context);
 
             try
             {
@@ -601,7 +555,7 @@ namespace OdinSerializer
             }
             finally
             {
-                FreeCachedReader(reader);
+                cache.Dispose();
             }
         }
 
@@ -617,7 +571,8 @@ namespace OdinSerializer
         /// </returns>
         public static T DeserializeValue<T>(Stream stream, DataFormat format, DeserializationContext context = null)
         {
-            var reader = GetCachedReader(stream, context, format);
+            IDisposable cache;
+            var reader = GetCachedReader(out cache, format, stream, context);
 
             try
             {
@@ -636,7 +591,7 @@ namespace OdinSerializer
             }
             finally
             {
-                FreeCachedReader(reader);
+                cache.Dispose();
             }
         }
 
@@ -653,7 +608,8 @@ namespace OdinSerializer
         /// </returns>
         public static T DeserializeValue<T>(Stream stream, DataFormat format, List<UnityEngine.Object> referencedUnityObjects, DeserializationContext context = null)
         {
-            var reader = GetCachedReader(stream, context, format);
+            IDisposable cache;
+            var reader = GetCachedReader(out cache, format, stream, context);
 
             try
             {
@@ -672,7 +628,7 @@ namespace OdinSerializer
             }
             finally
             {
-                FreeCachedReader(reader);
+                cache.Dispose();
             }
         }
 

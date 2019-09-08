@@ -48,19 +48,19 @@ namespace OdinSerializer
 
         public void OnFreed()
         {
-            this.MemoryStream.SetLength(0);
-            this.MemoryStream.Position = 0;
+            this.memoryStream.SetLength(0);
+            this.memoryStream.Position = 0;
 
-            if (this.MemoryStream.Capacity > MaxCapacity)
+            if (this.memoryStream.Capacity > MaxCapacity)
             {
-                this.MemoryStream.Capacity = MaxCapacity;
+                this.memoryStream.Capacity = MaxCapacity;
             }
         }
 
         public void OnClaimed()
         {
-            this.MemoryStream.SetLength(0);
-            this.MemoryStream.Position = 0;
+            this.memoryStream.SetLength(0);
+            this.memoryStream.Position = 0;
         }
 
         public static Cache<CachedMemoryStream> Claim(int minCapacity)
