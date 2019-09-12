@@ -30,12 +30,20 @@ namespace OdinSerializer
     /// <seealso cref="BaseDataWriter" />
     public class JsonDataWriter : BaseDataWriter
     {
+        private static readonly uint[] ByteToHexCharLookup = CreateByteToHexLookup();
+        private static readonly string NEW_LINE = Environment.NewLine;
+
         private bool justStarted;
         private bool forceNoSeparatorNextLine;
-        private StringBuilder escapeStringBuilder;
-        private StreamWriter writer;
+
+        //private StringBuilder escapeStringBuilder;
+        //private StreamWriter writer;
+
         private Dictionary<Type, Delegate> primitiveTypeWriters;
         private Dictionary<Type, int> seenTypes = new Dictionary<Type, int>(16);
+
+        private byte[] buffer = new byte[1024 * 100];
+        private int bufferIndex = 0;
 
         public JsonDataWriter() : this(null, null, true)
         {
@@ -78,32 +86,12 @@ namespace OdinSerializer
         /// <value>
         ///   <c>true</c> if the json should be formatted as human-readable; otherwise, <c>false</c>.
         /// </value>
-        public bool FormatAsReadable { get; set; }
+        public bool FormatAsReadable;
 
         /// <summary>
         /// Whether to enable an optimization that ensures any given type name is only written once into the json stream, and thereafter kept track of by ID.
         /// </summary>
-        public bool EnableTypeOptimization { get; set; }
-
-        /// <summary>
-        /// Gets or sets the base stream of the writer.
-        /// </summary>
-        /// <value>
-        /// The base stream of the writer.
-        /// </value>
-        public override Stream Stream
-        {
-            get
-            {
-                return base.Stream;
-            }
-
-            set
-            {
-                base.Stream = value;
-                this.writer = new StreamWriter(base.Stream);
-            }
-        }
+        public bool EnableTypeOptimization;
 
         /// <summary>
         /// Enable the "just started" flag, causing the writer to start a new "base" json object container.
@@ -118,7 +106,13 @@ namespace OdinSerializer
         /// </summary>
         public override void FlushToStream()
         {
-            this.writer.Flush();
+            if (this.bufferIndex > 0)
+            {
+                this.Stream.Write(this.buffer, 0, this.bufferIndex);
+                this.bufferIndex = 0;
+            }
+
+            base.FlushToStream();
         }
 
         /// <summary>
@@ -169,7 +163,9 @@ namespace OdinSerializer
         {
             this.PopNode(name);
             this.StartNewLine(true);
-            this.writer.Write("}");
+
+            this.EnsureBufferSpace(1);
+            this.buffer[this.bufferIndex++] = (byte)'}';
         }
 
         /// <summary>
@@ -191,7 +187,9 @@ namespace OdinSerializer
         {
             this.PopArray();
             this.StartNewLine(true);
-            this.writer.Write("]");
+
+            this.EnsureBufferSpace(1);
+            this.buffer[this.bufferIndex++] = (byte)']';
         }
 
         /// <summary>
@@ -227,7 +225,9 @@ namespace OdinSerializer
 
             this.PopArray();
             this.StartNewLine(true);
-            this.writer.Write("]");
+
+            this.EnsureBufferSpace(1);
+            this.buffer[this.bufferIndex++] = (byte)']';
         }
 
         /// <summary>
@@ -356,7 +356,34 @@ namespace OdinSerializer
         /// <param name="value">The value to write.</param>
         public override void WriteString(string name, string value)
         {
-            this.WriteEntry(name, this.EscapeString(value), '"');
+            this.StartNewLine();
+
+            if (name != null)
+            {
+                this.EnsureBufferSpace(name.Length + value.Length + 6);
+
+                this.buffer[this.bufferIndex++] = (byte)'"';
+
+                for (int i = 0; i < name.Length; i++)
+                {
+                    this.buffer[this.bufferIndex++] = (byte)name[i];
+                }
+
+                this.buffer[this.bufferIndex++] = (byte)'"';
+                this.buffer[this.bufferIndex++] = (byte)':';
+
+                if (this.FormatAsReadable)
+                {
+                    this.buffer[this.bufferIndex++] = (byte)' ';
+                }
+            }
+            else this.EnsureBufferSpace(value.Length + 2);
+
+            this.buffer[this.bufferIndex++] = (byte)'"';
+
+            this.Buffer_WriteString_WithEscape(value);
+
+            this.buffer[this.bufferIndex++] = (byte)'"';
         }
 
         /// <summary>
@@ -477,153 +504,70 @@ namespace OdinSerializer
             return "Json: " + Encoding.UTF8.GetString(bytes, 0, bytes.Length);
         }
 
-        private string EscapeString(string str)
-        {
-            // Escaping a string is pretty allocation heavy, so we try hard to not do it.
-            bool needsEscape = false;
-
-            for (int i = 0; i < str.Length; ++i)
-            {
-                char c = str[i];
-
-                // Get UniCode value
-                int intChar = Convert.ToInt32(c);
-
-                if (intChar < 0 || intChar > 127)
-                {
-                    // Anything outside the "standard" character range needs to be escaped
-                    needsEscape = true;
-                    break;
-                }
-
-                // Check for characters that need to be escaped
-                switch (c)
-                {
-                    case '"':
-                    case '\\':
-                    case '\a':
-                    case '\b':
-                    case '\f':
-                    case '\n':
-                    case '\r':
-                    case '\t':
-                    case '\0':
-                        needsEscape = true;
-                        break;
-                }
-
-                if (needsEscape)
-                {
-                    break;
-                }
-            }
-
-            if (needsEscape == false)
-            {
-                return str;
-            }
-
-            if (this.escapeStringBuilder == null)
-            {
-                this.escapeStringBuilder = new StringBuilder(str.Length * 2);
-            }
-            else
-            {
-                this.escapeStringBuilder.Length = 0;
-            }
-
-            StringBuilder result = this.escapeStringBuilder;
-
-            for (int i = 0; i < str.Length; ++i)
-            {
-                char c = str[i];
-
-                // Get UniCode value
-                int intChar = Convert.ToInt32(c);
-
-                if (intChar < 0 || intChar > 127)
-                {
-                    // We're outside the "standard" character range - so we write the character as a hexadecimal value instead
-                    // This ensures that we don't break the Json formatting.
-                    result.Append(string.Format(CultureInfo.InvariantCulture, "\\u{0:x4} ", intChar).Trim());
-                    continue;
-                }
-
-                // Escape any characters that need to be escaped, default to no escape
-                switch (c)
-                {
-                    case '"':
-                        result.Append("\\\"");
-                        break;
-
-                    case '\\':
-                        result.Append(@"\\");
-                        break;
-
-                    case '\a':
-                        result.Append(@"\a");
-                        break;
-
-                    case '\b':
-                        result.Append(@"\b");
-                        break;
-
-                    case '\f':
-                        result.Append(@"\f");
-                        break;
-
-                    case '\n':
-                        result.Append(@"\n");
-                        break;
-
-                    case '\r':
-                        result.Append(@"\r");
-                        break;
-
-                    case '\t':
-                        result.Append(@"\t");
-                        break;
-
-                    case '\0':
-                        result.Append(@"\0");
-                        break;
-
-                    default:
-                        result.Append(c);
-                        break;
-                }
-            }
-
-            return result.ToString();
-        }
-
-        private void WriteEntry(string name, string contents, char? surroundContentsWith = null)
+        private void WriteEntry(string name, string contents)
         {
             this.StartNewLine();
 
             if (name != null)
             {
-                this.writer.Write('"');
-                this.writer.Write(name);
-                this.writer.Write("\":");
+                this.EnsureBufferSpace(name.Length + contents.Length + 4);
+
+                this.buffer[this.bufferIndex++] = (byte)'"';
+
+                for (int i = 0; i < name.Length; i++)
+                {
+                    this.buffer[this.bufferIndex++] = (byte)name[i];
+                }
+
+                this.buffer[this.bufferIndex++] = (byte)'"';
+                this.buffer[this.bufferIndex++] = (byte)':';
 
                 if (this.FormatAsReadable)
                 {
-                    this.writer.Write(' ');
+                    this.buffer[this.bufferIndex++] = (byte)' ';
                 }
             }
+            else this.EnsureBufferSpace(contents.Length);
 
-            if (surroundContentsWith != null)
+            for (int i = 0; i < contents.Length; i++)
             {
-                this.writer.Write(surroundContentsWith.Value);
+                this.buffer[this.bufferIndex++] = (byte)contents[i];
+            }
+        }
+
+        private void WriteEntry(string name, string contents, char surroundContentsWith)
+        {
+            this.StartNewLine();
+
+            if (name != null)
+            {
+                this.EnsureBufferSpace(name.Length + contents.Length + 6);
+
+                this.buffer[this.bufferIndex++] = (byte)'"';
+
+                for (int i = 0; i < name.Length; i++)
+                {
+                    this.buffer[this.bufferIndex++] = (byte)name[i];
+                }
+
+                this.buffer[this.bufferIndex++] = (byte)'"';
+                this.buffer[this.bufferIndex++] = (byte)':';
+
+                if (this.FormatAsReadable)
+                {
+                    this.buffer[this.bufferIndex++] = (byte)' ';
+                }
+            }
+            else this.EnsureBufferSpace(contents.Length + 2);
+
+            this.buffer[this.bufferIndex++] = (byte)surroundContentsWith;
+
+            for (int i = 0; i < contents.Length; i++)
+            {
+                this.buffer[this.bufferIndex++] = (byte)contents[i];
             }
 
-            this.writer.Write(contents);
-
-            if (surroundContentsWith != null)
-            {
-                this.writer.Write(surroundContentsWith.Value);
-            }
+            this.buffer[this.bufferIndex++] = (byte)surroundContentsWith;
         }
 
         private void WriteTypeEntry(Type type)
@@ -659,22 +603,145 @@ namespace OdinSerializer
 
             if (noSeparator == false && this.forceNoSeparatorNextLine == false)
             {
-                this.writer.Write(',');
+                this.EnsureBufferSpace(1);
+                this.buffer[this.bufferIndex++] = (byte)',';
             }
 
             this.forceNoSeparatorNextLine = false;
 
             if (this.FormatAsReadable)
             {
-                this.writer.Write(Environment.NewLine);
-
                 int count = this.NodeDepth * 4;
+
+                this.EnsureBufferSpace(NEW_LINE.Length + count);
+
+                for (int i = 0; i < NEW_LINE.Length; i++)
+                {
+                    this.buffer[this.bufferIndex++] = (byte)NEW_LINE[i];
+                }
 
                 for (int i = 0; i < count; i++)
                 {
-                    this.writer.Write(' ');
+                    this.buffer[this.bufferIndex++] = (byte)' ';
                 }
             }
+        }
+
+
+        private void EnsureBufferSpace(int space)
+        {
+            var length = this.buffer.Length;
+
+            if (space > length)
+            {
+                throw new Exception("Insufficient buffer capacity");
+            }
+
+            if (this.bufferIndex + space > length)
+            {
+                this.FlushToStream();
+            }
+        }
+
+        private void Buffer_WriteString_WithEscape(string str)
+        {
+            this.EnsureBufferSpace(str.Length);
+
+            for (int i = 0; i < str.Length; i++)
+            {
+                char c = str[i];
+
+                if (c < 0 || c > 127)
+                {
+                    // We're outside the "standard" character range - so we write the character as a hexadecimal value instead
+                    // This ensures that we don't break the Json formatting.
+
+                    this.EnsureBufferSpace((str.Length - i) + 6);
+
+                    this.buffer[this.bufferIndex++] = (byte)'\\';
+                    this.buffer[this.bufferIndex++] = (byte)'u';
+
+                    var byte1 = c >> 8;
+                    var byte2 = (byte)c;
+
+                    var lookup = ByteToHexCharLookup[byte1];
+
+                    this.buffer[this.bufferIndex++] = (byte)lookup;
+                    this.buffer[this.bufferIndex++] = (byte)(lookup >> 16);
+
+                    lookup = ByteToHexCharLookup[byte2];
+
+                    this.buffer[this.bufferIndex++] = (byte)lookup;
+                    this.buffer[this.bufferIndex++] = (byte)(lookup >> 16);
+                    continue;
+                }
+
+                // Escape any characters that need to be escaped, default to no escape
+                switch (c)
+                {
+                    case '"':
+                        this.buffer[this.bufferIndex++] = (byte)'\\';
+                        this.buffer[this.bufferIndex++] = (byte)'"';
+                        break;
+
+                    case '\\':
+                        this.buffer[this.bufferIndex++] = (byte)'\\';
+                        this.buffer[this.bufferIndex++] = (byte)'\\';
+                        break;
+
+                    case '\a':
+                        this.buffer[this.bufferIndex++] = (byte)'\\';
+                        this.buffer[this.bufferIndex++] = (byte)'a';
+                        break;
+
+                    case '\b':
+                        this.buffer[this.bufferIndex++] = (byte)'\\';
+                        this.buffer[this.bufferIndex++] = (byte)'b';
+                        break;
+
+                    case '\f':
+                        this.buffer[this.bufferIndex++] = (byte)'\\';
+                        this.buffer[this.bufferIndex++] = (byte)'f';
+                        break;
+
+                    case '\n':
+                        this.buffer[this.bufferIndex++] = (byte)'\\';
+                        this.buffer[this.bufferIndex++] = (byte)'n';
+                        break;
+
+                    case '\r':
+                        this.buffer[this.bufferIndex++] = (byte)'\\';
+                        this.buffer[this.bufferIndex++] = (byte)'r';
+                        break;
+
+                    case '\t':
+                        this.buffer[this.bufferIndex++] = (byte)'\\';
+                        this.buffer[this.bufferIndex++] = (byte)'t';
+                        break;
+
+                    case '\0':
+                        this.buffer[this.bufferIndex++] = (byte)'\\';
+                        this.buffer[this.bufferIndex++] = (byte)'0';
+                        break;
+
+                    default:
+                        this.buffer[this.bufferIndex++] = (byte)c;
+                        break;
+                }
+            }
+        }
+
+        private static uint[] CreateByteToHexLookup()
+        {
+            var result = new uint[256];
+
+            for (int i = 0; i < 256; i++)
+            {
+                string s = i.ToString("x2", CultureInfo.InvariantCulture);
+                result[i] = ((uint)s[0]) + ((uint)s[1] << 16);
+            }
+
+            return result;
         }
     }
 }
