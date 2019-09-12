@@ -298,12 +298,17 @@ namespace OdinSerializer
 
             if (typeof(UnityEventBase).IsAssignableFrom(type))
             {
-                return !type.IsGenericType && (type == typeof(UnityEvent) || type.IsDefined<SerializableAttribute>(false));
+                if (type.IsGenericType && !UnityVersion.IsVersionOrGreater(2020, 1))
+                {
+                    return false;
+                }
+
+                return (type == typeof(UnityEvent) || type.IsDefined<SerializableAttribute>(false));
             }
 
             if (type.IsArray)
             {
-                // Unity does not support multidim arrays.
+                // Unity does not support multidim arrays, or arrays of lists or arrays.
                 var elementType = type.GetElementType();
 
                 return type.GetArrayRank() == 1
@@ -314,7 +319,7 @@ namespace OdinSerializer
 
             if (type.IsGenericType && !type.IsGenericTypeDefinition && type.GetGenericTypeDefinition() == typeof(List<>))
             {
-                // Unity does not support lists in lists.
+                // Unity does not support lists or arrays in lists.
                 var elementType = type.GetArgumentsOfInheritedOpenGenericClass(typeof(List<>))[0];
                 if (elementType.IsArray || elementType.ImplementsOpenGenericClass(typeof(List<>)))
                 {
@@ -330,7 +335,8 @@ namespace OdinSerializer
                 return true;
             }
 
-            if (type.IsGenericType)
+            // Unity 2020.1 added support for serializing arbitrary generic types directly
+            if (type.IsGenericType && !UnityVersion.IsVersionOrGreater(2020, 1))
             {
                 return false;
             }
@@ -354,7 +360,9 @@ namespace OdinSerializer
                 }
             }
 
-            // Check for synclists
+            // Check for synclists if legacy networking is present
+            // it was removed in 2018.2
+            if (!UnityVersion.IsVersionOrGreater(2018, 2)) 
             {
                 Type current = type.BaseType;
 
