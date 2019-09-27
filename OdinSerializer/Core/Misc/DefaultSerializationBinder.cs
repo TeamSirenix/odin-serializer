@@ -118,28 +118,32 @@ namespace OdinSerializer
 
             if (wasAdded)
             {
-                var customAttributes = assembly.GetCustomAttributes(typeof(BindTypeNameToTypeAttribute), false);
-                if (customAttributes != null)
+                try
                 {
-                    for (int i = 0; i < customAttributes.Length; i++)
+                    var customAttributes = assembly.GetCustomAttributes(typeof(BindTypeNameToTypeAttribute), false);
+                    if (customAttributes != null)
                     {
-                        var attr = customAttributes[i] as BindTypeNameToTypeAttribute;
-                        if (attr != null && attr.NewType != null)
+                        for (int i = 0; i < customAttributes.Length; i++)
                         {
-                            lock (ASSEMBLY_LOOKUP_LOCK)
+                            var attr = customAttributes[i] as BindTypeNameToTypeAttribute;
+                            if (attr != null && attr.NewType != null)
                             {
-                                //if (attr.OldTypeName.Contains(","))
-                                //{
+                                lock (ASSEMBLY_LOOKUP_LOCK)
+                                {
+                                    //if (attr.OldTypeName.Contains(","))
+                                    //{
                                     customTypeNameToTypeBindings[attr.OldTypeName] = attr.NewType;
-                                //}
-                                //else
-                                //{
-                                //    customTypeNameToTypeBindings[attr.OldTypeName + ", " + assembly.GetName().Name] = attr.NewType;
-                                //}
+                                    //}
+                                    //else
+                                    //{
+                                    //    customTypeNameToTypeBindings[attr.OldTypeName + ", " + assembly.GetName().Name] = attr.NewType;
+                                    //}
+                                }
                             }
                         }
                     }
                 }
+                catch { } // Assembly is invalid somehow
             }
         }
 
@@ -312,7 +316,12 @@ namespace OdinSerializer
 
                     if (assembly != null)
                     {
-                        type = assembly.GetType(typeStr);
+                        try
+                        {
+                            type = assembly.GetType(typeStr);
+                        }
+                        catch { } // Assembly is invalid
+
                         if (type != null) return type;
                     }
                 }
@@ -324,7 +333,12 @@ namespace OdinSerializer
                 {
                     assembly = assemblies[i];
 
-                    type = assembly.GetType(typeStr, false);
+                    try
+                    {
+                        type = assembly.GetType(typeStr, false);
+                    }
+                    catch { } // Assembly is invalid
+
                     if (type != null) return type;
                 }
             }
