@@ -583,6 +583,8 @@ namespace OdinSerializer
 
                     array = (T[])(object)byteArray;
 
+                    this.bufferIndex += byteCount;
+
                     return true;
                 }
                 else
