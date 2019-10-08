@@ -137,6 +137,20 @@ namespace OdinSerializer.Editor
 
             HashSet<Type> seenTypes = new HashSet<Type>();
 
+            if (UnityVersion.Major == 2019 && UnityVersion.Minor == 2)
+            {
+                // This here is a hack that fixes Unity's assembly updater triggering faultily in Unity 2019.2
+                // (and in early 2019.3 alphas/betas, but we're not handling those). When it triggers, it edits
+                // the generated AOT assembly such that it immediately causes Unity to hard crash. Having this 
+                // type reference present in the assembly prevents that from happening. (Any concrete type in
+                // the serialization assembly would work, this one is just a random pick.)
+                // 
+                // Unity should have fixed this in 2019.3, but said that a backport to 2019.2 is not guaranteed
+                // to occur, though it might.
+
+                supportSerializedTypes.Add(typeof(DateTimeFormatter));
+            }
+
             //var endPoint = il.DefineLabel();
             //il.Emit(OpCodes.Br, endPoint);
 
