@@ -244,6 +244,17 @@ namespace OdinSerializer.Editor
                             return false;
                         }
 
+                        try
+                        {
+                            if (!EditorSceneManager.GetSceneByPath(scenePath).IsValid())
+                                continue;
+                        }
+                        catch
+                        {
+                            // Scene doesn't exist or loading is otherwise bugged
+                            continue;
+                        }
+
                         var openScene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
 
                         var sceneGOs = Resources.FindObjectsOfTypeAll<GameObject>();
