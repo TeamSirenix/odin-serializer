@@ -106,14 +106,7 @@ namespace OdinSerializer
                 Type type;
                 var memberValue = FormatterUtilities.GetMemberValue(member, value);
 
-                if (object.ReferenceEquals(memberValue, null))
-                {
-                    type = FormatterUtilities.GetContainedType(member);
-                }
-                else
-                {
-                    type = memberValue.GetType();
-                }
+                type = FormatterUtilities.GetContainedType(member);
 
                 var serializer = Serializer.Get(type);
 
