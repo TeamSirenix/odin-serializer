@@ -120,7 +120,7 @@ namespace OdinSerializer
             {
                 try
                 {
-                    var customAttributes = assembly.GetCustomAttributes(typeof(BindTypeNameToTypeAttribute), false);
+                    var customAttributes = assembly.SafeGetCustomAttributes(typeof(BindTypeNameToTypeAttribute), false);
                     if (customAttributes != null)
                     {
                         for (int i = 0; i < customAttributes.Length; i++)

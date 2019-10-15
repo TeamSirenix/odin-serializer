@@ -102,7 +102,7 @@ namespace OdinSerializer
 #endif
                     }
 
-                    foreach (var attrUncast in ass.GetCustomAttributes(typeof(RegisterFormatterAttribute), true))
+                    foreach (var attrUncast in ass.SafeGetCustomAttributes(typeof(RegisterFormatterAttribute), true))
                     {
                         var attr = (RegisterFormatterAttribute)attrUncast;
 
@@ -123,7 +123,7 @@ namespace OdinSerializer
                         });
                     }
 
-                    foreach (var attrUncast in ass.GetCustomAttributes(typeof(RegisterFormatterLocatorAttribute), true))
+                    foreach (var attrUncast in ass.SafeGetCustomAttributes(typeof(RegisterFormatterLocatorAttribute), true))
                     {
                         var attr = (RegisterFormatterLocatorAttribute)attrUncast;
 
@@ -157,6 +157,13 @@ namespace OdinSerializer
                     }
                 }
                 catch (ReflectionTypeLoadException)
+                {
+                    if (ass.GetName().Name == "OdinSerializer")
+                    {
+                        Debug.LogError("A ReflectionTypeLoadException occurred when FormatterLocator tried to load types from assembly '" + ass.FullName + "'. No serialization formatters in this assembly will be found. Serialization will be utterly broken.");
+                    }
+                }
+                catch (MissingMemberException)
                 {
                     if (ass.GetName().Name == "OdinSerializer")
                     {

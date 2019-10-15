@@ -136,7 +136,7 @@ namespace OdinSerializer
             var attributes = AppDomain.CurrentDomain.GetAssemblies()
                                                     .SelectMany(ass =>
                                                     {
-                                                        return ass.GetCustomAttributes(typeof(RegisterDictionaryKeyPathProviderAttribute), false)
+                                                        return ass.SafeGetCustomAttributes(typeof(RegisterDictionaryKeyPathProviderAttribute), false)
                                                                   .Select(attr => new { Assembly = ass, Attribute = (RegisterDictionaryKeyPathProviderAttribute)attr });
                                                     })
                                                     .Where(n => n.Attribute.ProviderType != null);

@@ -2297,5 +2297,41 @@ namespace OdinSerializer.Utilities
 
             return selectedValue;
         }
+
+        public static Type[] SafeGetTypes(this Assembly assembly)
+        {
+            try
+            {
+                return assembly.GetTypes();
+            }
+            catch
+            {
+                return Type.EmptyTypes;
+            }
+        }
+
+        public static bool SafeIsDefined(this Assembly assembly, Type attribute, bool inherit)
+        {
+            try
+            {
+                return assembly.IsDefined(attribute, inherit);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public static object[] SafeGetCustomAttributes(this Assembly assembly, Type type, bool inherit)
+        {
+            try
+            {
+                return assembly.GetCustomAttributes(type, inherit);
+            }
+            catch
+            {
+                return new object[0];
+            }
+        }
     }
 }
