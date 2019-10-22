@@ -28,6 +28,7 @@ namespace OdinSerializer.Editor
     using UnityEditor.SceneManagement;
     using UnityEngine;
     using System.Reflection;
+    using UnityEngine.SceneManagement;
 
     public sealed class AOTSupportScanner : IDisposable
     {
@@ -244,18 +245,23 @@ namespace OdinSerializer.Editor
                             return false;
                         }
 
-                        try
+                        if (!System.IO.File.Exists(scenePath))
                         {
-                            if (!EditorSceneManager.GetSceneByPath(scenePath).IsValid())
-                                continue;
-                        }
-                        catch
-                        {
-                            // Scene doesn't exist or loading is otherwise bugged
+                            Debug.LogWarning("Skipped AOT scanning scene '" + scenePath + "' for a file not existing at the scene path.");
                             continue;
                         }
 
-                        var openScene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+                        Scene openScene = default(Scene);
+
+                        try
+                        {
+                            openScene = EditorSceneManager.OpenScene(scenePath, OpenSceneMode.Single);
+                        }
+                        catch
+                        {
+                            Debug.LogWarning("Skipped AOT scanning scene '" + scenePath + "' for throwing exceptions when trying to load it.");
+                            continue;
+                        }
 
                         var sceneGOs = Resources.FindObjectsOfTypeAll<GameObject>();
 
