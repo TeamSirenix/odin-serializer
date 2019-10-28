@@ -23,6 +23,7 @@ namespace OdinSerializer
     using System;
     using System.Collections.Generic;
     using System.IO;
+    using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
     /// <summary>
@@ -1596,6 +1597,7 @@ namespace OdinSerializer
             return "Binary hex dump: " + ProperBitConverter.BytesToHexString(bytes);
         }
 
+        [MethodImpl((MethodImplOptions)0x100)]  // Set aggressive inlining flag, for the runtimes that understand that
         private void WriteType(Type type)
         {
             if (type == null)
@@ -1772,14 +1774,14 @@ namespace OdinSerializer
             base.FlushToStream();
         }
 
+        [MethodImpl((MethodImplOptions)0x100)]  // Set aggressive inlining flag, for the runtimes that understand that
         private void UNSAFE_WriteToBuffer_2_Char(char value)
         {
             fixed (byte* basePtr = this.buffer)
             {
                 if (BitConverter.IsLittleEndian)
                 {
-                    char* ptr = (char*)(basePtr + this.bufferIndex);
-                    *ptr = value;
+                    *(char*)(basePtr + this.bufferIndex) = value;
                 }
                 else
                 {
@@ -1794,14 +1796,14 @@ namespace OdinSerializer
             this.bufferIndex += 2;
         }
 
+        [MethodImpl((MethodImplOptions)0x100)]  // Set aggressive inlining flag, for the runtimes that understand that
         private void UNSAFE_WriteToBuffer_2_Int16(short value)
         {
             fixed (byte* basePtr = this.buffer)
             {
                 if (BitConverter.IsLittleEndian)
                 {
-                    short* ptr = (short*)(basePtr + this.bufferIndex);
-                    *ptr = value;
+                    *(short*)(basePtr + this.bufferIndex) = value;
                 }
                 else
                 {
@@ -1816,14 +1818,14 @@ namespace OdinSerializer
             this.bufferIndex += 2;
         }
 
+        [MethodImpl((MethodImplOptions)0x100)]  // Set aggressive inlining flag, for the runtimes that understand that
         private void UNSAFE_WriteToBuffer_2_UInt16(ushort value)
         {
             fixed (byte* basePtr = this.buffer)
             {
                 if (BitConverter.IsLittleEndian)
                 {
-                    ushort* ptr = (ushort*)(basePtr + this.bufferIndex);
-                    *ptr = value;
+                    *(ushort*)(basePtr + this.bufferIndex) = value;
                 }
                 else
                 {
@@ -1838,14 +1840,14 @@ namespace OdinSerializer
             this.bufferIndex += 2;
         }
 
+        [MethodImpl((MethodImplOptions)0x100)]  // Set aggressive inlining flag, for the runtimes that understand that
         private void UNSAFE_WriteToBuffer_4_Int32(int value)
         {
             fixed (byte* basePtr = this.buffer)
             {
                 if (BitConverter.IsLittleEndian)
                 {
-                    int* ptr = (int*)(basePtr + this.bufferIndex);
-                    *ptr = value;
+                    *(int*)(basePtr + this.bufferIndex) = value;
                 }
                 else
                 {
@@ -1862,14 +1864,14 @@ namespace OdinSerializer
             this.bufferIndex += 4;
         }
 
+        [MethodImpl((MethodImplOptions)0x100)]  // Set aggressive inlining flag, for the runtimes that understand that
         private void UNSAFE_WriteToBuffer_4_UInt32(uint value)
         {
             fixed (byte* basePtr = this.buffer)
             {
                 if (BitConverter.IsLittleEndian)
                 {
-                    uint* ptr = (uint*)(basePtr + this.bufferIndex);
-                    *ptr = value;
+                    *(uint*)(basePtr + this.bufferIndex) = value;
                 }
                 else
                 {
@@ -1886,14 +1888,23 @@ namespace OdinSerializer
             this.bufferIndex += 4;
         }
 
+        [MethodImpl((MethodImplOptions)0x100)]  // Set aggressive inlining flag, for the runtimes that understand that
         private void UNSAFE_WriteToBuffer_4_Float32(float value)
         {
             fixed (byte* basePtr = this.buffer)
             {
                 if (BitConverter.IsLittleEndian)
                 {
-                    float* ptr = (float*)(basePtr + this.bufferIndex);
-                    *ptr = value;
+                    if (ArchitectureInfo.Architecture_Supports_Unaligned_Float32_ReadWrites)
+                    {
+                        // We can write directly to the buffer, safe in the knowledge that any potential unaligned writes will work
+                        *(float*)(basePtr + this.bufferIndex) = value;
+                    }
+                    else
+                    {
+                        // We do a slightly slower but safer int write instead
+                        *(int*)&value = *(int*)(basePtr + this.bufferIndex);
+                    }
                 }
                 else
                 {
@@ -1910,14 +1921,27 @@ namespace OdinSerializer
             this.bufferIndex += 4;
         }
 
+        [MethodImpl((MethodImplOptions)0x100)]  // Set aggressive inlining flag, for the runtimes that understand that
         private void UNSAFE_WriteToBuffer_8_Int64(long value)
         {
             fixed (byte* basePtr = this.buffer)
             {
                 if (BitConverter.IsLittleEndian)
                 {
-                    long* ptr = (long*)(basePtr + this.bufferIndex);
-                    *ptr = value;
+                    if (ArchitectureInfo.Architecture_Supports_All_Unaligned_ReadWrites)
+                    {
+                        // We can write directly to the buffer, safe in the knowledge that any potential unaligned writes will work
+                        *(long*)(basePtr + this.bufferIndex) = value;
+                    }
+                    else
+                    {
+                        // We do a slower but safer int-by-int write instead
+                        int* fromPtr = (int*)&value;
+                        int* toPtr = (int*)(basePtr + this.bufferIndex);
+
+                        *toPtr++ = *fromPtr++;
+                        *toPtr = *fromPtr;
+                    }
                 }
                 else
                 {
@@ -1938,14 +1962,27 @@ namespace OdinSerializer
             this.bufferIndex += 8;
         }
 
+        [MethodImpl((MethodImplOptions)0x100)]  // Set aggressive inlining flag, for the runtimes that understand that
         private void UNSAFE_WriteToBuffer_8_UInt64(ulong value)
         {
             fixed (byte* basePtr = this.buffer)
             {
                 if (BitConverter.IsLittleEndian)
                 {
-                    ulong* ptr = (ulong*)(basePtr + this.bufferIndex);
-                    *ptr = value;
+                    if (ArchitectureInfo.Architecture_Supports_All_Unaligned_ReadWrites)
+                    {
+                        // We can write directly to the buffer, safe in the knowledge that any potential unaligned writes will work
+                        *(ulong*)(basePtr + this.bufferIndex) = value;
+                    }
+                    else
+                    {
+                        // We do a slower but safer int-by-int write instead
+                        int* fromPtr = (int*)&value;
+                        int* toPtr = (int*)(basePtr + this.bufferIndex);
+
+                        *toPtr++ = *fromPtr++;
+                        *toPtr = *fromPtr;
+                    }
                 }
                 else
                 {
@@ -1966,14 +2003,27 @@ namespace OdinSerializer
             this.bufferIndex += 8;
         }
 
+        [MethodImpl((MethodImplOptions)0x100)]  // Set aggressive inlining flag, for the runtimes that understand that
         private void UNSAFE_WriteToBuffer_8_Float64(double value)
         {
             fixed (byte* basePtr = this.buffer)
             {
                 if (BitConverter.IsLittleEndian)
                 {
-                    double* ptr = (double*)(basePtr + this.bufferIndex);
-                    *ptr = value;
+                    if (ArchitectureInfo.Architecture_Supports_All_Unaligned_ReadWrites)
+                    {
+                        // We can write directly to the buffer, safe in the knowledge that any potential unaligned writes will work
+                        *(double*)(basePtr + this.bufferIndex) = value;
+                    }
+                    else
+                    {
+                        // We do a slower but safer int-by-int write instead
+                        int* fromPtr = (int*)&value;
+                        int* toPtr = (int*)(basePtr + this.bufferIndex);
+
+                        *toPtr++ = *fromPtr++;
+                        *toPtr = *fromPtr;
+                    }
                 }
                 else
                 {
@@ -1994,14 +2044,29 @@ namespace OdinSerializer
             this.bufferIndex += 8;
         }
 
+        [MethodImpl((MethodImplOptions)0x100)]  // Set aggressive inlining flag, for the runtimes that understand that
         private void UNSAFE_WriteToBuffer_16_Decimal(decimal value)
         {
             fixed (byte* basePtr = this.buffer)
             {
                 if (BitConverter.IsLittleEndian)
                 {
-                    decimal* ptr = (decimal*)(basePtr + this.bufferIndex);
-                    *ptr = value;
+                    if (ArchitectureInfo.Architecture_Supports_All_Unaligned_ReadWrites)
+                    {
+                        // We can write directly to the buffer, safe in the knowledge that any potential unaligned writes will work
+                        *(decimal*)(basePtr + this.bufferIndex) = value;
+                    }
+                    else
+                    {
+                        // We do a slower but safer int-by-int write instead
+                        int* fromPtr = (int*)&value;
+                        int* toPtr = (int*)(basePtr + this.bufferIndex);
+
+                        *toPtr++ = *fromPtr++;
+                        *toPtr++ = *fromPtr++;
+                        *toPtr++ = *fromPtr++;
+                        *toPtr = *fromPtr;
+                    }
                 }
                 else
                 {
@@ -2030,6 +2095,7 @@ namespace OdinSerializer
             this.bufferIndex += 16;
         }
 
+        [MethodImpl((MethodImplOptions)0x100)]  // Set aggressive inlining flag, for the runtimes that understand that
         private void UNSAFE_WriteToBuffer_16_Guid(Guid value)
         {
             // First 10 bytes of a guid are always little endian
@@ -2042,8 +2108,22 @@ namespace OdinSerializer
             {
                 if (BitConverter.IsLittleEndian)
                 {
-                    Guid* ptr = (Guid*)(basePtr + this.bufferIndex);
-                    *ptr = value;
+                    if (ArchitectureInfo.Architecture_Supports_All_Unaligned_ReadWrites)
+                    {
+                        // We can write directly to the buffer, safe in the knowledge that any potential unaligned writes will work
+                        *(Guid*)(basePtr + this.bufferIndex) = value;
+                    }
+                    else
+                    {
+                        // We do a slower but safer int-by-int write instead
+                        int* fromPtr = (int*)&value;
+                        int* toPtr = (int*)(basePtr + this.bufferIndex);
+
+                        *toPtr++ = *fromPtr++;
+                        *toPtr++ = *fromPtr++;
+                        *toPtr++ = *fromPtr++;
+                        *toPtr = *fromPtr;
+                    }
                 }
                 else
                 {
@@ -2075,6 +2155,7 @@ namespace OdinSerializer
             this.bufferIndex += 16;
         }
 
+        [MethodImpl((MethodImplOptions)0x100)]  // Set aggressive inlining flag, for the runtimes that understand that
         private void EnsureBufferSpace(int space)
         {
             var length = this.buffer.Length;
@@ -2090,6 +2171,7 @@ namespace OdinSerializer
             }
         }
 
+        [MethodImpl((MethodImplOptions)0x100)]  // Set aggressive inlining flag, for the runtimes that understand that
         private bool TryEnsureBufferSpace(int space)
         {
             var length = this.buffer.Length;
