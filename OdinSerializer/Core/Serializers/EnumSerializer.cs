@@ -16,8 +16,6 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
-using System.Globalization;
-
 namespace OdinSerializer
 {
     using System;
@@ -27,6 +25,11 @@ namespace OdinSerializer
     /// </summary>
     /// <typeparam name="T">The type of the enum to serialize and deserialize.</typeparam>
     /// <seealso cref="Serializer{T}" />
+#if CSHARP_7_3_OR_NEWER
+    public unsafe sealed class EnumSerializer<T> : Serializer<T> where T : unmanaged, Enum
+    {
+        private static readonly int SizeOf_T = sizeof(T);
+#else
     public sealed class EnumSerializer<T> : Serializer<T>
     {
         static EnumSerializer()
@@ -36,6 +39,7 @@ namespace OdinSerializer
                 throw new Exception("Type " + typeof(T).Name + " is not an enum.");
             }
         }
+#endif
 
         /// <summary>
         /// Reads an enum value of type <see cref="T" />.
@@ -56,7 +60,12 @@ namespace OdinSerializer
                 {
                     reader.Context.Config.DebugContext.LogWarning("Failed to read entry '" + name + "' of type " + entry.ToString());
                 }
+
+#if CSHARP_7_3_OR_NEWER
+                return *(T*)&value;
+#else
                 return (T)Enum.ToObject(typeof(T), value);
+#endif
             }
             else
             {
@@ -78,17 +87,27 @@ namespace OdinSerializer
 
             FireOnSerializedType();
 
+#if CSHARP_7_3_OR_NEWER
+            byte* toPtr = (byte*)&ul;
+            byte* fromPtr = (byte*)&value;
+
+            for (int i = 0; i < SizeOf_T; i++)
+            {
+                *toPtr++ = *fromPtr++;
+            }
+#else
             try
             {
-                ul = Convert.ToUInt64(value as Enum, CultureInfo.InvariantCulture);
+                ul = Convert.ToUInt64(value as Enum);
             }
             catch (OverflowException)
             {
                 unchecked
                 {
-                    ul = (ulong)Convert.ToInt64(value as Enum, CultureInfo.InvariantCulture);
+                    ul = (ulong)Convert.ToInt64(value as Enum);
                 }
             }
+#endif
 
             writer.WriteUInt64(name, ul);
         }
