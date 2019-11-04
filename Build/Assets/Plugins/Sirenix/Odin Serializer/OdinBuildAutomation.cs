@@ -54,8 +54,6 @@ namespace OdinSerializer.Utilities.Editor
         {
             BuildTarget platform = EditorUserBuildSettings.activeBuildTarget;
 
-            AssetDatabase.StartAssetEditing();
-
             try
             {
                 // The EditorOnly dll should aways have the same import settings. But lets just make sure.
@@ -84,7 +82,8 @@ namespace OdinSerializer.Utilities.Editor
             }
             finally
             {
-                AssetDatabase.StopAssetEditing();
+                AssetDatabase.SaveAssets();
+                AssetDatabase.Refresh();
             }
         }
         
@@ -111,28 +110,12 @@ namespace OdinSerializer.Utilities.Editor
 #if UNITY_2018_1_OR_NEWER
 	    public void OnPreprocessBuild(BuildReport report)
 	    {
-            try
-            {
-                AssetDatabase.StartAssetEditing();
-                OdinBuildAutomation.OnPreprocessBuild();
-            }
-            finally
-            {
-                AssetDatabase.StopAssetEditing();
-            }
+            OdinBuildAutomation.OnPreprocessBuild();
 	    }
 #else
         public void OnPreprocessBuild(BuildTarget target, string path)
         {
-            try
-            {
-                AssetDatabase.StartAssetEditing();
-                OdinBuildAutomation.OnPreprocessBuild();
-            }
-            finally
-            {
-                AssetDatabase.StopAssetEditing();
-            }
+            OdinBuildAutomation.OnPreprocessBuild();
         }
 #endif
     }

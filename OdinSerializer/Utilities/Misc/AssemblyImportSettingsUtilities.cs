@@ -48,7 +48,7 @@ namespace OdinSerializer.Utilities.Editor
         /// </summary>
         ExcludeFromAll,
     }
-
+    
     /// <summary>
     /// Utility for correctly setting import on OdinSerializer assemblies based on platform and scripting backend.
     /// </summary>

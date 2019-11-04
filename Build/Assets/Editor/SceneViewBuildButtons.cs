@@ -41,7 +41,6 @@ namespace OdinSerializer.Utilities.Editor
 
         public static void CompileReleaseBuild()
         {
-            AssetDatabase.StartAssetEditing();
             try
             {
                 Build(BUILD_CONFIG_RELEASE_EDITOR);    //Plugins/Sirenix/Odin Serializer/EditorOnly/OdinSerializer.dll - Editor Only
@@ -50,11 +49,9 @@ namespace OdinSerializer.Utilities.Editor
             }
             finally
             {
-                AssetDatabase.StopAssetEditing();
+                AssetDatabase.Refresh();
                 Debug.Log("Finished at building EditorOnly/OdinSerializer.dll, AOT/OdinSerializer.dll and JIT/OdinSerializer.dll in release mode.");
             }
-
-            AssetDatabase.Refresh();
         }
 
         public static void Build(string configuration)
