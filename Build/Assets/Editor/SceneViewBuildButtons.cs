@@ -110,6 +110,7 @@ namespace OdinSerializer.Utilities.Editor
             if (GUI.Button(GUILayoutUtility.GetRect(0, 30), "Compile Debug Build"))
             {
                 Build("Debug Editor");
+                AssetDatabase.Refresh();
                 Debug.Log("Finished at building EditorOnly/OdinSerializer.dll in debug mode.");
             }
 
