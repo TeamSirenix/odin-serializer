@@ -46,7 +46,12 @@ namespace OdinSerializer
     /// </summary>
     public static class UnitySerializationUtility
     {
-#if UNITY_EDITOR
+#if UNITY_EDITOR        
+        /// <summary>
+        /// From the new scriptable build pipeline package
+        /// </summary>
+        [NonSerialized]
+        private static readonly Type SBP_ContentPipelineType = TwoWaySerializationBinder.Default.BindToType("UnityEditor.Build.Pipeline.ContentPipeline");
 
         [NonSerialized]
         private static readonly MethodInfo PrefabUtility_IsComponentAddedToPrefabInstance_MethodInfo = typeof(UnityEditor.PrefabUtility).GetMethod("IsComponentAddedToPrefabInstance");
@@ -423,13 +428,14 @@ namespace OdinSerializer
                     var stackFrames = new System.Diagnostics.StackTrace().GetFrames();
                     Type buildPipelineType = typeof(UnityEditor.BuildPipeline);
                     Type prefabUtilityType = typeof(UnityEditor.PrefabUtility);
+                    
 
                     for (int i = 0; i < stackFrames.Length; i++)
                     {
                         var frame = stackFrames[i];
                         var method = frame.GetMethod();
 
-                        if (method.DeclaringType == buildPipelineType)
+                        if (method.DeclaringType == buildPipelineType || method.DeclaringType == SBP_ContentPipelineType)
                         {
                             // We are currently building a player
                             pretendIsPlayer = true;
