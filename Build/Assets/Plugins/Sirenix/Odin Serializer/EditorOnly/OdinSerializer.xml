@@ -4,6 +4,35 @@
         <name>OdinSerializer</name>
     </assembly>
     <members>
+        <member name="T:OdinSerializer.MethodInfoFormatter`1">
+            <summary>
+            Custom formatter for MethodInfo, since Unity Mono's MethodInfo ISerializable implementation will often crash if the method no longer exists upon deserialization.
+            </summary>
+            <seealso cref="T:OdinSerializer.BaseFormatter`1" />
+        </member>
+        <member name="M:OdinSerializer.MethodInfoFormatter`1.DeserializeImplementation(`0@,OdinSerializer.IDataReader)">
+            <summary>
+            Provides the actual implementation for deserializing a value of type <see cref="!:T" />.
+            </summary>
+            <param name="value">The uninitialized value to serialize into. This value will have been created earlier using <see cref="M:OdinSerializer.BaseFormatter`1.GetUninitializedObject" />.</param>
+            <param name="reader">The reader to deserialize with.</param>
+        </member>
+        <member name="M:OdinSerializer.MethodInfoFormatter`1.SerializeImplementation(`0@,OdinSerializer.IDataWriter)">
+            <summary>
+            Provides the actual implementation for serializing a value of type <see cref="!:T" />.
+            </summary>
+            <param name="value">The value to serialize.</param>
+            <param name="writer">The writer to serialize with.</param>
+        </member>
+        <member name="M:OdinSerializer.MethodInfoFormatter`1.GetUninitializedObject">
+            <summary>
+            Get an uninitialized object of type <see cref="!:T" />. WARNING: If you override this and return null, the object's ID will not be automatically registered and its OnDeserializing callbacks will not be automatically called, before deserialization begins.
+            You will have to call <see cref="M:OdinSerializer.BaseFormatter`1.RegisterReferenceID(`0,OdinSerializer.IDataReader)" /> and <see cref="M:OdinSerializer.BaseFormatter`1.InvokeOnDeserializingCallbacks(`0,OdinSerializer.DeserializationContext)" /> immediately after creating the object yourself during deserialization.
+            </summary>
+            <returns>
+            An uninitialized object of type <see cref="!:T" />.
+            </returns>
+        </member>
         <member name="T:OdinSerializer.QueueFormatter`2">
             <summary>
             Custom generic formatter for the generic type definition <see cref="T:System.Collections.Generic.Queue`1"/>.
@@ -62,11 +91,65 @@
             <param name="value">The value to serialize.</param>
             <param name="writer">The writer to serialize with.</param>
         </member>
-        <member name="M:OdinSerializer.Editor.AOTSupportUtilities.ScanProjectForSerializedTypes(System.Collections.Generic.List{System.Type}@)">
+        <member name="T:OdinSerializer.VersionFormatter">
+            <summary>
+            Custom formatter for the <see cref="T:System.Version"/> type.
+            </summary>
+            <seealso cref="!:MinimalBaseFormatter&lt;System.Version&gt;" />
+        </member>
+        <member name="M:OdinSerializer.VersionFormatter.Read(System.Version@,OdinSerializer.IDataReader)">
+            <summary>
+            Reads into the specified value using the specified reader.
+            </summary>
+            <param name="value">The value to read into.</param>
+            <param name="reader">The reader to use.</param>
+        </member>
+        <member name="M:OdinSerializer.VersionFormatter.Write(System.Version@,OdinSerializer.IDataWriter)">
+            <summary>
+            Writes from the specified value using the specified writer.
+            </summary>
+            <param name="value">The value to write from.</param>
+            <param name="writer">The writer to use.</param>
+        </member>
+        <member name="T:OdinSerializer.AllowDeserializeInvalidDataAttribute">
+            <summary>
+            <para>
+            Applying this attribute to a type indicates that in the case where, when expecting to deserialize an instance of the type
+            or any of its derived types, but encountering an incompatible, uncastable type in the data being read, the serializer
+            should attempt to deserialize an instance of the expected type using the stored, possibly invalid data.
+            </para>
+            <para>
+            This is equivalent to the <see cref="F:OdinSerializer.SerializationConfig.AllowDeserializeInvalidData"/> option, expect type-specific instead
+            of global.
+            </para>
+            </summary>
+        </member>
+        <member name="T:OdinSerializer.ArchitectureInfo">
+            <summary>
+            This class gathers info about the current architecture for the purpose of determinining
+            the unaligned read/write capabilities that we have to work with.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.ArchitectureInfo.Architecture_Supports_All_Unaligned_ReadWrites">
+            <summary>
+            This will be false on some ARM architectures, such as ARMv7.
+            In these cases, we will have to perform slower but safer int-by-int read/writes of data.
+            <para />
+            Since this value will never change at runtime, performance hits from checking this 
+            everywhere should hopefully be negligible, since branch prediction from speculative
+            execution will always predict it correctly.
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.Editor.AOTSupportUtilities.ScanProjectForSerializedTypes(System.Collections.Generic.List{System.Type}@,System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Collections.Generic.List{System.String})">
             <summary>
             Scans the project's build scenes and resources, plus their dependencies, for serialized types to support. Progress bars are shown during the scan.
             </summary>
             <param name="serializedTypes">The serialized types to support.</param>
+            <param name="scanBuildScenes">Whether to scan the project's build scenes.</param>
+            <param name="scanAllAssetBundles">Whether to scan all the project's asset bundles.</param>
+            <param name="scanPreloadedAssets">Whether to scan the project's preloaded assets.</param>
+            <param name="scanResources">Whether to scan the project's resources.</param>
+            <param name="resourcesToScan">An optional list of the resource paths to scan. Only has an effect if the scanResources argument is true. All the resources will be scanned if null.</param>
             <returns>true if the scan succeeded, false if the scan failed or was cancelled</returns>
         </member>
         <member name="M:OdinSerializer.Editor.AOTSupportUtilities.GenerateDLL(System.String,System.String,System.Collections.Generic.List{System.Type},System.Boolean)">
@@ -387,48 +470,48 @@
             MemberInfo method extensions.
             </summary>
         </member>
-        <member name="M:OdinSerializer.Utilities.MemberInfoExtensions.IsDefined``1(System.Reflection.MemberInfo,System.Boolean)">
+        <member name="M:OdinSerializer.Utilities.MemberInfoExtensions.IsDefined``1(System.Reflection.ICustomAttributeProvider,System.Boolean)">
             <summary>
             Returns true if the attribute whose type is specified by the generic argument is defined on this member
             </summary>
         </member>
-        <member name="M:OdinSerializer.Utilities.MemberInfoExtensions.IsDefined``1(System.Reflection.MemberInfo)">
+        <member name="M:OdinSerializer.Utilities.MemberInfoExtensions.IsDefined``1(System.Reflection.ICustomAttributeProvider)">
             <summary>
             Returns true if the attribute whose type is specified by the generic argument is defined on this member
             </summary>
         </member>
-        <member name="M:OdinSerializer.Utilities.MemberInfoExtensions.GetAttribute``1(System.Reflection.MemberInfo,System.Boolean)">
+        <member name="M:OdinSerializer.Utilities.MemberInfoExtensions.GetAttribute``1(System.Reflection.ICustomAttributeProvider,System.Boolean)">
             <summary>
             Returns the first found custom attribute of type T on this member
             Returns null if none was found
             </summary>
         </member>
-        <member name="M:OdinSerializer.Utilities.MemberInfoExtensions.GetAttribute``1(System.Reflection.MemberInfo)">
+        <member name="M:OdinSerializer.Utilities.MemberInfoExtensions.GetAttribute``1(System.Reflection.ICustomAttributeProvider)">
             <summary>
             Returns the first found non-inherited custom attribute of type T on this member
             Returns null if none was found
             </summary>
         </member>
-        <member name="M:OdinSerializer.Utilities.MemberInfoExtensions.GetAttributes``1(System.Reflection.MemberInfo)">
+        <member name="M:OdinSerializer.Utilities.MemberInfoExtensions.GetAttributes``1(System.Reflection.ICustomAttributeProvider)">
             <summary>
             Gets all attributes of the specified generic type.
             </summary>
             <param name="member">The member.</param>
         </member>
-        <member name="M:OdinSerializer.Utilities.MemberInfoExtensions.GetAttributes``1(System.Reflection.MemberInfo,System.Boolean)">
+        <member name="M:OdinSerializer.Utilities.MemberInfoExtensions.GetAttributes``1(System.Reflection.ICustomAttributeProvider,System.Boolean)">
             <summary>
             Gets all attributes of the specified generic type.
             </summary>
             <param name="member">The member.</param>
             <param name="inherit">If true, specifies to also search the ancestors of element for custom attributes.</param>
         </member>
-        <member name="M:OdinSerializer.Utilities.MemberInfoExtensions.GetAttributes(System.Reflection.MemberInfo)">
+        <member name="M:OdinSerializer.Utilities.MemberInfoExtensions.GetAttributes(System.Reflection.ICustomAttributeProvider)">
             <summary>
             Gets all attribute instances defined on a MemeberInfo.
             </summary>
             <param name="member">The member.</param>
         </member>
-        <member name="M:OdinSerializer.Utilities.MemberInfoExtensions.GetAttributes(System.Reflection.MemberInfo,System.Boolean)">
+        <member name="M:OdinSerializer.Utilities.MemberInfoExtensions.GetAttributes(System.Reflection.ICustomAttributeProvider,System.Boolean)">
             <summary>
             Gets all attribute instances on a MemberInfo.
             </summary>
@@ -1099,194 +1182,15 @@
             <param name="obj">The Unity object to check.</param>
             <returns>True if the object is null, missing or destroyed; otherwise false.</returns>
         </member>
-        <member name="T:OdinSerializer.Utilities.AssemblyTypeFlags">
-            <summary>
-            AssemblyTypeFlags is a bitmask used to filter types and assemblies related to Unity.
-            </summary>
-            <seealso cref="T:OdinSerializer.Utilities.AssemblyUtilities"/>
-        </member>
-        <member name="F:OdinSerializer.Utilities.AssemblyTypeFlags.None">
-            <summary>
-            Excludes all types.
-            </summary>
-        </member>
-        <member name="F:OdinSerializer.Utilities.AssemblyTypeFlags.UserTypes">
-            <summary>
-            UserTypes includes all custom user scripts that are not located in an editor or plugin folder.
-            </summary>
-        </member>
-        <member name="F:OdinSerializer.Utilities.AssemblyTypeFlags.PluginTypes">
-            <summary>
-            PluginTypes includes all types located in the plugins folder and are not located in an editor folder.
-            </summary>
-        </member>
-        <member name="F:OdinSerializer.Utilities.AssemblyTypeFlags.UnityTypes">
-            <summary>
-            UnityTypes includes all types depended on UnityEngine and from UnityEngine, except editor, plugin and user types.
-            </summary>
-        </member>
-        <member name="F:OdinSerializer.Utilities.AssemblyTypeFlags.UserEditorTypes">
-            <summary>
-            UserEditorTypes includes all custom user scripts that are located in an editor folder but not in a plugins folder.
-            </summary>
-        </member>
-        <member name="F:OdinSerializer.Utilities.AssemblyTypeFlags.PluginEditorTypes">
-            <summary>
-            PluginEditorTypes includes all editor types located in the plugins folder.
-            </summary>
-        </member>
-        <member name="F:OdinSerializer.Utilities.AssemblyTypeFlags.UnityEditorTypes">
-            <summary>
-            UnityEditorTypes includes all editor types that are not user editor types nor plugin editor types.
-            </summary>
-        </member>
-        <member name="F:OdinSerializer.Utilities.AssemblyTypeFlags.OtherTypes">
-            <summary>
-            OtherTypes includes all other types that are not depended on UnityEngine or UnityEditor.
-            </summary>
-        </member>
-        <member name="F:OdinSerializer.Utilities.AssemblyTypeFlags.CustomTypes">
-            <summary>
-            CustomTypes includes includes all types manually added to the Unity project.
-            This includes UserTypes, UserEditorTypes, PluginTypes and PluginEditorTypes.
-            </summary>
-        </member>
-        <member name="F:OdinSerializer.Utilities.AssemblyTypeFlags.GameTypes">
-            <summary>
-            GameTypes includes all assemblies that are likely to be included in builds.
-            This includes UserTypes, PluginTypes, UnityTypes and OtherTypes.
-            </summary>
-        </member>
-        <member name="F:OdinSerializer.Utilities.AssemblyTypeFlags.EditorTypes">
-            <summary>
-            EditorTypes includes UserEditorTypes, PluginEditorTypes and UnityEditorTypes.
-            </summary>
-        </member>
-        <member name="F:OdinSerializer.Utilities.AssemblyTypeFlags.All">
-            <summary>
-            All includes UserTypes, PluginTypes, UnityTypes, UserEditorTypes, PluginEditorTypes, UnityEditorTypes and OtherTypes.
-            </summary>
-        </member>
-        <member name="T:OdinSerializer.Utilities.AssemblyUtilities">
-            <summary>
-            A utility class for finding types in various asssembly.
-            </summary>
-        </member>
-        <member name="F:OdinSerializer.Utilities.AssemblyUtilities.ASSEMBLY_LOAD_QUEUE_LOCK">
-            <summary>
-            Lock for the assembly load queue
-            </summary>
-        </member>
-        <member name="F:OdinSerializer.Utilities.AssemblyUtilities.MAIN_LOCK">
-            <summary>
-            Lock for everything but the assembly load queue, IsDynamic cache, and the initialized and initializing fields
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.Utilities.AssemblyUtilities.#cctor">
-            <summary>
-            Initializes the <see cref="T:OdinSerializer.Utilities.AssemblyUtilities"/> class.
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.Utilities.AssemblyUtilities.Reload">
-            <summary>
-            Re-scans the entire AppDomain.
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.Utilities.AssemblyUtilities.GetAllAssemblies">
-            <summary>
-            Gets an <see cref="T:OdinSerializer.Utilities.ImmutableList"/> of all assemblies in the current <see cref="T:System.AppDomain"/>.
-            </summary>
-            <returns>An <see cref="T:OdinSerializer.Utilities.ImmutableList"/> of all assemblies in the current <see cref="T:System.AppDomain"/>.</returns>
-        </member>
-        <member name="M:OdinSerializer.Utilities.AssemblyUtilities.GetAssemblyTypeFlag(System.Reflection.Assembly)">
-            <summary>
-            Gets the <see cref="T:OdinSerializer.Utilities.AssemblyTypeFlags"/> for a given assembly.
-            </summary>
-            <param name="assembly">The assembly.</param>
-            <returns>The <see cref="T:OdinSerializer.Utilities.AssemblyTypeFlags"/> for a given assembly.</returns>
-            <exception cref="T:System.NullReferenceException"><paramref name="assembly"/> is null.</exception>
-        </member>
-        <member name="M:OdinSerializer.Utilities.AssemblyUtilities.GetTypeByCachedFullName(System.String)">
-            <summary>
-            Gets the type.
-            </summary>
-            <param name="fullName">The full name of the type without any assembly information.</param>
-        </member>
-        <member name="M:OdinSerializer.Utilities.AssemblyUtilities.GetType(System.String)">
-            <summary>
-            Gets the type.
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.Utilities.AssemblyUtilities.IsDependentOn(System.Reflection.Assembly,System.Reflection.Assembly)">
-            <summary>
-            Determines whether an assembly is depended on another assembly.
-            </summary>
-            <param name="assembly">The assembly.</param>
-            <param name="otherAssembly">The other assembly.</param>
-            <returns>
-              <c>true</c> if <paramref name="assembly"/> has a reference in <paramref name="otherAssembly"/> or <paramref name="assembly"/> is the same as <paramref name="otherAssembly"/>.
-            </returns>
-            <exception cref="T:System.NullReferenceException"><paramref name="assembly"/> is null.</exception>
-            <exception cref="T:System.NullReferenceException"><paramref name="otherAssembly"/> is null.</exception>
-        </member>
-        <member name="M:OdinSerializer.Utilities.AssemblyUtilities.IsDynamic(System.Reflection.Assembly)">
-            <summary>
-            Determines whether the assembly module is a of type <see cref="T:System.Reflection.Emit.ModuleBuilder"/>.
-            </summary>
-            <param name="assembly">The assembly.</param>
-            <returns>
-              <c>true</c> if the specified assembly of type <see cref="T:System.Reflection.Emit.ModuleBuilder"/>; otherwise, <c>false</c>.
-            </returns>
-            <exception cref="T:System.ArgumentNullException">assembly</exception>
-        </member>
-        <member name="M:OdinSerializer.Utilities.AssemblyUtilities.GetAssemblyDirectory(System.Reflection.Assembly)">
-            <summary>
-            Gets the full file path to a given assembly.
-            </summary>
-            <param name="assembly">The assembly.</param>
-            <returns>The full file path to a given assembly, or <c>Null</c> if no file path was found.</returns>
-            <exception cref="T:System.NullReferenceException"><paramref name="assembly"/> is Null.</exception>
-        </member>
-        <member name="M:OdinSerializer.Utilities.AssemblyUtilities.GetAssemblyFilePath(System.Reflection.Assembly)">
-            <summary>
-            Gets the full directory path to a given assembly.
-            </summary>
-            <param name="assembly">The assembly.</param>
-            <returns>The full directory path in which a given assembly is located, or <c>Null</c> if no file path was found.</returns>
-        </member>
-        <member name="M:OdinSerializer.Utilities.AssemblyUtilities.GetTypes(OdinSerializer.Utilities.AssemblyTypeFlags)">
-            <summary>
-            Get types from the current AppDomain with a specified <see cref="T:OdinSerializer.Utilities.AssemblyTypeFlags"/> filter.
-            </summary>
-            <param name="assemblyTypeFlags">The <see cref="T:OdinSerializer.Utilities.AssemblyTypeFlags"/> filters.</param>
-            <returns>Types from the current AppDomain with the specified <see cref="T:OdinSerializer.Utilities.AssemblyTypeFlags"/> filters.</returns>
-        </member>
-        <member name="T:OdinSerializer.Utilities.ICache`1">
-            <summary>
-            The ICache interface used by <see cref="T:OdinSerializer.Utilities.Cache`1"/>.
-            </summary>
-            <seealso cref="T:OdinSerializer.Utilities.Cache`1" />
-        </member>
-        <member name="P:OdinSerializer.Utilities.ICache`1.Value">
-            <summary>
-            Not yet documented.
-            </summary>
-        </member>
-        <member name="P:OdinSerializer.Utilities.ICache`1.IsFree">
-            <summary>
-            Not yet documented.
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.Utilities.ICache`1.Release">
-            <summary>
-            Not yet documented.
-            </summary>
-        </member>
         <member name="T:OdinSerializer.Utilities.Cache`1">
             <summary>
             Provides an easy way of claiming and freeing cached values of any non-abstract reference type with a public parameterless constructor.
             <para />
             Cached types which implement the <see cref="T:OdinSerializer.Utilities.ICacheNotificationReceiver"/> interface will receive notifications when they are claimed and freed.
+            <para />
+            Only one thread should be holding a given cache instance at a time if <see cref="T:OdinSerializer.Utilities.ICacheNotificationReceiver"/> is implemented, since the invocation of 
+            <see cref="M:OdinSerializer.Utilities.ICacheNotificationReceiver.OnFreed"/> is not thread safe, IE, weird stuff might happen if multiple different threads are trying to free
+            the same cache instance at the same time. This will practically never happen unless you're doing really strange stuff, but the case is documented here.
             </summary>
             <typeparam name="T">The type which is cached.</typeparam>
             <seealso cref="T:System.IDisposable" />
@@ -1299,16 +1203,12 @@
             The maximum size of the cache.
             </value>
         </member>
-        <member name="P:OdinSerializer.Utilities.Cache`1.Value">
+        <member name="F:OdinSerializer.Utilities.Cache`1.Value">
             <summary>
-            Gets the cached value.
-            </summary>
-            <value>
             The cached value.
-            </value>
-            <exception cref="T:System.InvalidOperationException">Cannot access a cache while it is freed.</exception>
+            </summary>
         </member>
-        <member name="P:OdinSerializer.Utilities.Cache`1.OdinSerializer#Utilities#ICache{T}#IsFree">
+        <member name="P:OdinSerializer.Utilities.Cache`1.IsFree">
             <summary>
             Gets a value indicating whether this cached value is free.
             </summary>
@@ -1338,7 +1238,7 @@
             The result of the conversion.
             </returns>
         </member>
-        <member name="M:OdinSerializer.Utilities.Cache`1.OdinSerializer#Utilities#ICache{T}#Release">
+        <member name="M:OdinSerializer.Utilities.Cache`1.Release">
             <summary>
             Releases this cached value.
             </summary>
@@ -1656,7 +1556,7 @@
         </member>
         <member name="M:OdinSerializer.Utilities.EmitUtilities.CreateInstanceMethodCaller``1(System.Reflection.MethodInfo)">
             <summary>
-            Creates a fast delegate method which calls a given parameterless instance method.
+            Creates a fast delegate method which calls a given parameterless instance method on a reference type.
             </summary>
             <typeparam name="InstanceType">The type of the class which the method is on.</typeparam>
             <param name="methodInfo">The method info instance which is used.</param>
@@ -1664,12 +1564,36 @@
         </member>
         <member name="M:OdinSerializer.Utilities.EmitUtilities.CreateInstanceMethodCaller``2(System.Reflection.MethodInfo)">
             <summary>
-            Creates a fast delegate method which calls a given instance method with a given argument.
+            Creates a fast delegate method which calls a given instance method with a given argument on a reference type.
             </summary>
             <typeparam name="InstanceType">The type of the class which the method is on.</typeparam>
             <typeparam name="Arg1">The type of the argument with which to call the method.</typeparam>
             <param name="methodInfo">The method info instance which is used.</param>
             <returns>A delegate which calls the method and returns the result, except it's hundreds of times faster than MethodInfo.Invoke.</returns>
+        </member>
+        <member name="M:OdinSerializer.Utilities.EmitUtilities.CreateInstanceRefMethodCaller``1(System.Reflection.MethodInfo)">
+            <summary>
+            Creates a fast delegate method which calls a given parameterless instance method.
+            </summary>
+            <typeparam name="InstanceType">The type of the class which the method is on.</typeparam>
+            <param name="methodInfo">The method info instance which is used.</param>
+            <returns>A delegate which calls the method and returns the result, except it's hundreds of times faster than MethodInfo.Invoke.</returns>
+        </member>
+        <member name="M:OdinSerializer.Utilities.EmitUtilities.CreateInstanceRefMethodCaller``2(System.Reflection.MethodInfo)">
+            <summary>
+            Creates a fast delegate method which calls a given instance method with a given argument on a struct type.
+            </summary>
+            <typeparam name="InstanceType">The type of the class which the method is on.</typeparam>
+            <typeparam name="Arg1">The type of the argument with which to call the method.</typeparam>
+            <param name="methodInfo">The method info instance which is used.</param>
+            <returns>A delegate which calls the method and returns the result, except it's hundreds of times faster than MethodInfo.Invoke.</returns>
+        </member>
+        <member name="T:OdinSerializer.Utilities.FastTypeComparer">
+            <summary>
+            Compares types by reference before comparing them using the default type equality operator.
+            This can constitute a *significant* speedup when used as the comparer for dictionaries.
+            </summary>
+            <seealso cref="!:System.Collections.Generic.IEqualityComparer&lt;System.Type&gt;" />
         </member>
         <member name="T:OdinSerializer.Utilities.Flags">
             <summary>
@@ -2894,6 +2818,11 @@
             This method is only relevant when the same reader is used to deserialize several different, unrelated values.
             </summary>
         </member>
+        <member name="M:OdinSerializer.BaseDataReader.GetDataDump">
+            <summary>
+            Gets a dump of the data being read by the writer. The format of this dump varies, but should be useful for debugging purposes.
+            </summary>
+        </member>
         <member name="M:OdinSerializer.BaseDataReader.PeekEntry">
             <summary>
             Peeks the current entry.
@@ -2913,7 +2842,7 @@
         </member>
         <member name="P:OdinSerializer.BaseDataReaderWriter.Binder">
             <summary>
-            Gets or sets the reader's or writer's serialization binder.
+            Gets or sets the context's or writer's serialization binder.
             </summary>
             <value>
             The reader's or writer's serialization binder.
@@ -3210,6 +3139,11 @@
             <summary>
             Tells the writer that a new serialization session is about to begin, and that it should clear all cached values left over from any prior serialization sessions.
             This method is only relevant when the same writer is used to serialize several different, unrelated values.
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.BaseDataWriter.GetDataDump">
+            <summary>
+            Gets a dump of the data currently written by the writer. The format of this dump varies, but should be useful for debugging purposes.
             </summary>
         </member>
         <member name="T:OdinSerializer.BinaryDataReader">
@@ -4099,6 +4033,11 @@
             The deserialization context.
             </value>
         </member>
+        <member name="M:OdinSerializer.IDataReader.GetDataDump">
+            <summary>
+            Gets a dump of the data being read by the writer. The format of this dump varies, but should be useful for debugging purposes.
+            </summary>
+        </member>
         <member name="M:OdinSerializer.IDataReader.EnterNode(System.Type@)">
             <summary>
             Tries to enter a node. This will succeed if the next entry is an <see cref="F:OdinSerializer.EntryType.StartOfNode"/>.
@@ -4413,6 +4352,11 @@
             <value>
             The serialization context.
             </value>
+        </member>
+        <member name="M:OdinSerializer.IDataWriter.GetDataDump">
+            <summary>
+            Gets a dump of the data currently written by the writer. The format of this dump varies, but should be useful for debugging purposes.
+            </summary>
         </member>
         <member name="M:OdinSerializer.IDataWriter.FlushToStream">
             <summary>
@@ -5033,7 +4977,7 @@
             <param name="context">The serialization context to use.</param>>
             <param name="formatAsReadable">Whether the json should be packed, or formatted as human-readable.</param>
         </member>
-        <member name="P:OdinSerializer.JsonDataWriter.FormatAsReadable">
+        <member name="F:OdinSerializer.JsonDataWriter.FormatAsReadable">
             <summary>
             Gets or sets a value indicating whether the json should be packed, or formatted as human-readable.
             </summary>
@@ -5041,18 +4985,10 @@
               <c>true</c> if the json should be formatted as human-readable; otherwise, <c>false</c>.
             </value>
         </member>
-        <member name="P:OdinSerializer.JsonDataWriter.EnableTypeOptimization">
+        <member name="F:OdinSerializer.JsonDataWriter.EnableTypeOptimization">
             <summary>
             Whether to enable an optimization that ensures any given type name is only written once into the json stream, and thereafter kept track of by ID.
             </summary>
-        </member>
-        <member name="P:OdinSerializer.JsonDataWriter.Stream">
-            <summary>
-            Gets or sets the base stream of the writer.
-            </summary>
-            <value>
-            The base stream of the writer.
-            </value>
         </member>
         <member name="M:OdinSerializer.JsonDataWriter.MarkJustStarted">
             <summary>
@@ -5850,7 +5786,7 @@
         <member name="M:OdinSerializer.BaseFormatter`1.GetUninitializedObject">
             <summary>
             Get an uninitialized object of type <see cref="!:T"/>. WARNING: If you override this and return null, the object's ID will not be automatically registered and its OnDeserializing callbacks will not be automatically called, before deserialization begins.
-            You will have to call <see cref="M:OdinSerializer.BaseFormatter`1.RegisterReferenceID(`0,OdinSerializer.IDataReader)"/> and <see cref="M:OdinSerializer.BaseFormatter`1.InvokeOnDeserializingCallbacks(`0,OdinSerializer.DeserializationContext)"/> immediately after creating the object yourself during deserialization.
+            You will have to call <see cref="M:OdinSerializer.BaseFormatter`1.RegisterReferenceID(`0,OdinSerializer.IDataReader)"/> and <see cref="M:OdinSerializer.BaseFormatter`1.InvokeOnDeserializingCallbacks(`0@,OdinSerializer.DeserializationContext)"/> immediately after creating the object yourself during deserialization.
             </summary>
             <returns>An uninitialized object of type <see cref="!:T"/>.</returns>
         </member>
@@ -5864,6 +5800,15 @@
             <param name="reader">The reader which is currently being used.</param>
         </member>
         <member name="M:OdinSerializer.BaseFormatter`1.InvokeOnDeserializingCallbacks(`0,OdinSerializer.DeserializationContext)">
+            <summary>
+            Invokes all methods on the object with the [OnDeserializing] attribute.
+            <para />
+            WARNING: This method will not be called automatically if you override GetUninitializedObject and return null! You will have to call it manually after having created the object instance during deserialization.
+            </summary>
+            <param name="value">The value to invoke the callbacks on.</param>
+            <param name="context">The deserialization context.</param>
+        </member>
+        <member name="M:OdinSerializer.BaseFormatter`1.InvokeOnDeserializingCallbacks(`0@,OdinSerializer.DeserializationContext)">
             <summary>
             Invokes all methods on the object with the [OnDeserializing] attribute.
             <para />
@@ -6921,6 +6866,14 @@
             <param name="formatterConverter">The formatter converter to use.</param>
             <exception cref="T:System.ArgumentNullException">The formatterConverter parameter is null.</exception>
         </member>
+        <member name="P:OdinSerializer.DeserializationContext.Binder">
+            <summary>
+            Gets or sets the context's type binder.
+            </summary>
+            <value>
+            The context's serialization binder.
+            </value>
+        </member>
         <member name="P:OdinSerializer.DeserializationContext.StringReferenceResolver">
             <summary>
             Gets or sets the string reference resolver.
@@ -7368,6 +7321,20 @@
             Initializes a new instance of the <see cref="T:OdinSerializer.SerializationConfig"/> class.
             </summary>
         </member>
+        <member name="F:OdinSerializer.SerializationConfig.AllowDeserializeInvalidData">
+            <summary>
+            <para>
+            Setting this member to true indicates that in the case where, when expecting to deserialize an instance of a certain type, 
+            but encountering an incompatible, uncastable type in the data being read, the serializer should attempt to deserialize an 
+            instance of the expected type using the stored, possibly invalid data.
+            </para>
+            <para>
+            This is equivalent to applying the <see cref="F:OdinSerializer.SerializationConfig.AllowDeserializeInvalidData"/> attribute, except global 
+            instead of specific to a single type. Note that if this member is set to false, individual types may still be deserialized
+            with invalid data if they are decorated with the <see cref="F:OdinSerializer.SerializationConfig.AllowDeserializeInvalidData"/> attribute.
+            </para>
+            </summary>
+        </member>
         <member name="P:OdinSerializer.SerializationConfig.SerializationPolicy">
             <summary>
             Gets or sets the serialization policy. This value is never null; if set to null, it will default to <see cref="P:OdinSerializer.SerializationPolicies.Unity"/>.
@@ -7454,6 +7421,14 @@
             <param name="context">The streaming context to use.</param>
             <param name="formatterConverter">The formatter converter to use.</param>
             <exception cref="T:System.ArgumentNullException">The formatterConverter parameter is null.</exception>
+        </member>
+        <member name="P:OdinSerializer.SerializationContext.Binder">
+            <summary>
+            Gets or sets the context's type binder.
+            </summary>
+            <value>
+            The context's serialization binder.
+            </value>
         </member>
         <member name="P:OdinSerializer.SerializationContext.StreamingContext">
             <summary>
@@ -8262,20 +8237,20 @@
             <param name="value">The value to write from.</param>
             <param name="writer">The writer to use.</param>
         </member>
-        <member name="T:OdinSerializer.ColorBlockFormatter">
+        <member name="T:OdinSerializer.ColorBlockFormatter`1">
             <summary>
-            Custom formatter for the <see cref="T:UnityEngine.UI.ColorBlock"/> type.
+            Custom formatter for the <see cref="!:ColorBlock"/> type.
             </summary>
             <seealso cref="!:MinimalBaseFormatter&lt;UnityEngine.UI.ColorBlock&gt;" />
         </member>
-        <member name="M:OdinSerializer.ColorBlockFormatter.Read(UnityEngine.UI.ColorBlock@,OdinSerializer.IDataReader)">
+        <member name="M:OdinSerializer.ColorBlockFormatter`1.Read(`0@,OdinSerializer.IDataReader)">
             <summary>
             Reads into the specified value using the specified reader.
             </summary>
             <param name="value">The value to read into.</param>
             <param name="reader">The reader to use.</param>
         </member>
-        <member name="M:OdinSerializer.ColorBlockFormatter.Write(UnityEngine.UI.ColorBlock@,OdinSerializer.IDataWriter)">
+        <member name="M:OdinSerializer.ColorBlockFormatter`1.Write(`0@,OdinSerializer.IDataWriter)">
             <summary>
             Writes from the specified value using the specified writer.
             </summary>
@@ -8739,22 +8714,6 @@
             </summary>
         </member>
         <member name="M:OdinSerializer.SerializedMonoBehaviour.OnBeforeSerialize">
-            <summary>
-            Invoked before serialization has taken place.
-            </summary>
-        </member>
-        <member name="T:OdinSerializer.SerializedNetworkBehaviour">
-            <summary>
-            A Unity NetworkBehaviour which is serialized by the Sirenix serialization system.
-            Please note that Odin's custom serialization only works for non-synced variables - [SyncVar] and SyncLists still have the same limitations.
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.SerializedNetworkBehaviour.OnAfterDeserialize">
-            <summary>
-            Invoked after deserialization has taken place.
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.SerializedNetworkBehaviour.OnBeforeSerialize">
             <summary>
             Invoked before serialization has taken place.
             </summary>
@@ -9698,6 +9657,11 @@
             <para />
             Note that setting the IndexReferenceResolver on contexts passed into methods on this class will have no effect, as it will always
             be set to a UnityReferenceResolver.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.UnitySerializationUtility.SBP_ContentPipelineType">
+            <summary>
+            From the new scriptable build pipeline package
             </summary>
         </member>
         <member name="P:OdinSerializer.UnitySerializationUtility.ForceEditorModeSerialization">
