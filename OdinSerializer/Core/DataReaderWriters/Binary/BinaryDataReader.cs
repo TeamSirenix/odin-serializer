@@ -1939,16 +1939,10 @@ namespace OdinSerializer
             }
         }
         
-        private void SkipPeekedEntryContent(bool allowExitArrayAndNode = false)
+        private void SkipPeekedEntryContent()
         {
             if (this.peekedEntryType != null)
             {
-                if (allowExitArrayAndNode == false && (this.peekedBinaryEntryType == BinaryEntryType.EndOfNode || this.peekedBinaryEntryType == BinaryEntryType.EndOfArray))
-                {
-                    // We cannot skip past an end of node, or an end of array
-                    return;
-                }
-
                 try
                 {
                     switch (this.peekedBinaryEntryType)
@@ -2367,7 +2361,7 @@ namespace OdinSerializer
                 {
                     if (BitConverter.IsLittleEndian)
                     {
-                        if (ArchitectureInfo.Architecture_Supports_Unaligned_Float32_ReadWrites)
+                        if (ArchitectureInfo.Architecture_Supports_Unaligned_Float32_Reads)
                         {
                             // We can read directly from the buffer, safe in the knowledge that any potential unaligned reads will work
                             value = *((float*)(basePtr + this.bufferIndex));
@@ -2721,7 +2715,7 @@ namespace OdinSerializer
                 this.ReadEntireStreamToBuffer();
             }
 
-            return this.bufferIndex + amount < this.bufferEnd;
+            return this.bufferIndex + amount <= this.bufferEnd;
         }
 
         private void ReadEntireStreamToBuffer()

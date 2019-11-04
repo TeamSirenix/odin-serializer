@@ -26,7 +26,7 @@ namespace OdinSerializer
     /// </summary>
     public unsafe static class ArchitectureInfo
     {
-        public static readonly bool Architecture_Supports_Unaligned_Float32_ReadWrites;
+        public static readonly bool Architecture_Supports_Unaligned_Float32_Reads;
 
         /// <summary>
         /// This will be false on some ARM architectures, such as ARMv7.
@@ -41,7 +41,7 @@ namespace OdinSerializer
         static ArchitectureInfo()
         {
 #if UNITY_EDITOR
-            Architecture_Supports_Unaligned_Float32_ReadWrites = true;
+            Architecture_Supports_Unaligned_Float32_Reads = true;
             Architecture_Supports_All_Unaligned_ReadWrites = true;
             return;
 #endif
@@ -75,18 +75,18 @@ namespace OdinSerializer
                         float value = *(float*)(test + i);
                     }
 
-                    Architecture_Supports_Unaligned_Float32_ReadWrites = true;
+                    Architecture_Supports_Unaligned_Float32_Reads = true;
                 }
             }
             catch (NullReferenceException)
             {
-                Architecture_Supports_Unaligned_Float32_ReadWrites = false;
+                Architecture_Supports_Unaligned_Float32_Reads = false;
             }
         }
 
         internal static void SetIsOnAndroid(string architecture)
         {
-            if (!Architecture_Supports_Unaligned_Float32_ReadWrites || architecture == "armv7l" || architecture == "armv7")
+            if (!Architecture_Supports_Unaligned_Float32_Reads || architecture == "armv7l" || architecture == "armv7" || IntPtr.Size == 4)
             {
                 Architecture_Supports_All_Unaligned_ReadWrites = false;
             }
@@ -95,12 +95,12 @@ namespace OdinSerializer
                 Architecture_Supports_All_Unaligned_ReadWrites = true;
             }
 
-            UnityEngine.Debug.Log("OdinSerializer detected Android architecture '" + architecture + "' for determining unaligned read/write capabilities. Unaligned read/write support: all=" + Architecture_Supports_All_Unaligned_ReadWrites + ", float=" + Architecture_Supports_Unaligned_Float32_ReadWrites + "");
+            UnityEngine.Debug.Log("OdinSerializer detected Android architecture '" + architecture + "' for determining unaligned read/write capabilities. Unaligned read/write support: all=" + Architecture_Supports_All_Unaligned_ReadWrites + ", float=" + Architecture_Supports_Unaligned_Float32_Reads + "");
         }
 
         internal static void SetIsNotOnAndroid()
         {
-            if (Architecture_Supports_Unaligned_Float32_ReadWrites)
+            if (Architecture_Supports_Unaligned_Float32_Reads)
             {
                 Architecture_Supports_All_Unaligned_ReadWrites = true;
             }

@@ -1895,15 +1895,23 @@ namespace OdinSerializer
             {
                 if (BitConverter.IsLittleEndian)
                 {
-                    if (ArchitectureInfo.Architecture_Supports_Unaligned_Float32_ReadWrites)
+                    if (ArchitectureInfo.Architecture_Supports_All_Unaligned_ReadWrites)
                     {
                         // We can write directly to the buffer, safe in the knowledge that any potential unaligned writes will work
                         *(float*)(basePtr + this.bufferIndex) = value;
                     }
                     else
                     {
-                        // We do a slightly slower but safer int write instead
-                        *(int*)&value = *(int*)(basePtr + this.bufferIndex);
+                        // We do a slower but safer byte-by-byte write instead.
+                        // Apparently doing this bit through an int pointer alias can also crash sometimes.
+                        // Hence, we just do a byte-by-byte write to be safe.
+                        byte* from = (byte*)&value;
+                        byte* to = basePtr + this.bufferIndex;
+
+                        *to++ = *from++;
+                        *to++ = *from++;
+                        *to++ = *from++;
+                        *to = *from;
                     }
                 }
                 else
