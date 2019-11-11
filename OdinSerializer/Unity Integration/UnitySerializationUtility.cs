@@ -2392,8 +2392,10 @@ namespace OdinSerializer
 
         public static class PrefabModificationCache
         {
-            private static readonly Dictionary<UnityEngine.Object, List<PrefabModification>> CachedDeserializedModifications = new Dictionary<UnityEngine.Object, List<PrefabModification>>(ReferenceEqualityComparer<UnityEngine.Object>.Default);
-            private static readonly Dictionary<UnityEngine.Object, int> CachedDeserializedModificationTimes = new Dictionary<UnityEngine.Object, int>(ReferenceEqualityComparer<UnityEngine.Object>.Default);
+            private static readonly Dictionary<object, List<PrefabModification>> CachedDeserializedModifications = new Dictionary<object, List<PrefabModification>>(ReferenceEqualityComparer<object>.Default);
+            private static readonly Dictionary<object, int> CachedDeserializedModificationTimes = new Dictionary<object, int>(ReferenceEqualityComparer<object>.Default);
+
+            private static readonly object Prune_LOCK = new object();
 
             private static int counter = 0;
 
@@ -2424,28 +2426,48 @@ namespace OdinSerializer
             {
                 const int CACHE_SIZE = 10;
 
-                if (CachedDeserializedModifications.Count != CachedDeserializedModificationTimes.Count)
+                lock (Prune_LOCK)
                 {
-                    CachedDeserializedModifications.Clear();
-                    CachedDeserializedModificationTimes.Clear();
-                }
-
-                while (CachedDeserializedModificationTimes.Count > CACHE_SIZE)
-                {
-                    UnityEngine.Object lowestObj = null;
-                    int lowestTime = int.MaxValue;
-
-                    foreach (var pair in CachedDeserializedModificationTimes)
+                    if (CachedDeserializedModifications.Count != CachedDeserializedModificationTimes.Count)
                     {
-                        if (pair.Value < lowestTime)
-                        {
-                            lowestObj = pair.Key;
-                            lowestTime = pair.Value;
-                        }
+                        CachedDeserializedModifications.Clear();
+                        CachedDeserializedModificationTimes.Clear();
                     }
 
-                    CachedDeserializedModifications.Remove(lowestObj);
-                    CachedDeserializedModificationTimes.Remove(lowestObj);
+                    // Once, this was a 'while count > CACHE_SIZE' loop, but in certain cases that can infinite loop
+                    //   so now it's a simpler and harder-to-break for loop with extra debugging clauses in the body.
+                    int removeCount = CachedDeserializedModificationTimes.Count - CACHE_SIZE;
+                    
+                    for (int i = 0; i < removeCount; i++)
+                    {
+                        object lowestObj = null;
+                        int lowestTime = int.MaxValue;
+
+                        foreach (var pair in CachedDeserializedModificationTimes)
+                        {
+                            if (pair.Value < lowestTime)
+                            {
+                                lowestObj = pair.Key;
+                                lowestTime = pair.Value;
+                            }
+                        }
+
+                        CachedDeserializedModifications.Remove(lowestObj);
+                        if (!CachedDeserializedModificationTimes.Remove(lowestObj))
+                        {
+                            Debug.LogError("A Unity object instance of type '" + lowestObj.GetType().GetNiceName() + "' has likely become corrupt or destroyed somehow, yet deserialization has been invoked for it. If you're in the editor, you can click this log message to attempt to highlight the object. (It probably won't work, but there's a chance. If the highlighting doesn't work, the object instance is so broken that Odin cannot give you any more info about it than this message contains. Good luck!)", lowestObj as UnityEngine.Object);
+
+                            // There are bad keys in the dictionaries; we have to clear them and just rebuild the cache.
+                            // This theory isn't confirmed, but it's probably because UnityEngine.Object.GetHashCode() 
+                            //   returns inconsistent results/changes for destroyed objects.
+                            // 
+                            // If we don't clear the dictionaries, we will never be able to remove the bad keys. In olden
+                            //   days, this was the cause of infinite looping.
+
+                            CachedDeserializedModifications.Clear();
+                            CachedDeserializedModificationTimes.Clear();
+                        }
+                    }
                 }
             }
         }
