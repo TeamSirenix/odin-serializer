@@ -52,7 +52,22 @@ namespace OdinSerializer
             reader.ReadInt32(out build);
             reader.ReadInt32(out revision);
 
-            value = new Version(major, minor, build, revision);
+            if (major < 0 || minor < 0)
+            {
+                value = new Version();
+            }
+            else if (build < 0)
+            {
+                value = new Version(major, minor);
+            }
+            else if (revision < 0)
+            {
+                value = new Version(major, minor, build);
+            }
+            else
+            {
+                value = new Version(major, minor, build, revision);
+            }
         }
 
         /// <summary>
