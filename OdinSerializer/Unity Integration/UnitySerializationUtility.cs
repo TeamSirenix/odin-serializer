@@ -46,6 +46,8 @@ namespace OdinSerializer
     /// </summary>
     public static class UnitySerializationUtility
     {
+        private static readonly Type SerializeReferenceAttribute = typeof(SerializeField).Assembly.GetType("UnityEngine.SerializeReference");
+
 #if UNITY_EDITOR        
         /// <summary>
         /// From the new scriptable build pipeline package
@@ -172,13 +174,21 @@ namespace OdinSerializer
                 return true;
             }
 
-            var willUnitySerialize = GuessIfUnityWillSerialize(member);
+            // No need to check whether Unity serializes it or not, our answer will always be the same
+            if (serializeUnityFields) return true;
 
-            if (willUnitySerialize)
+            try
             {
-                return serializeUnityFields;
+                if (SerializeReferenceAttribute != null && member.IsDefined(SerializeReferenceAttribute, true))
+                {
+                    // Unity is serializing it as a polymorphic value
+                    return false;
+                }
             }
+            catch { }
 
+            if (GuessIfUnityWillSerialize(member)) return false;
+            
             return true;
         }
 
