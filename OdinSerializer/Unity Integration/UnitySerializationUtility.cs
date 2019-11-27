@@ -546,7 +546,7 @@ namespace OdinSerializer
                                 }
                             }
 
-                            UnityEditor.EditorApplication.delayCall += () =>
+                            EditorApplication_delayCall_Alias += () =>
                             {
                                 if (prefab)
                                 {
@@ -942,7 +942,7 @@ namespace OdinSerializer
 
                 // Setting the prefab modifications here directly has a tendency to crash the Unity Editor, so we use a delayed call
                 // so the modifications are set during a time that's better for Unity.
-                UnityEditor.EditorApplication.delayCall += () =>
+                EditorApplication_delayCall_Alias += () =>
                 {
 #if PREFAB_DEBUG
                     Debug.Log("DELAYED: Actually setting prefab modifications:");
@@ -1631,7 +1631,7 @@ namespace OdinSerializer
                             message += "A delayed warning message containing the originating object's name, type and scene/asset path (if applicable) will be scheduled for logging on Unity's main thread. Search for \"DELAYED SERIALIZATION LOG\". " +
                                 "This logging callback will also mark the object dirty if it is an asset, hopefully making the issue 'fix' itself. HOWEVER, THERE MAY STILL BE DATA LOSS.\n\n\n";
 
-                            UnityEditor.EditorApplication.delayCall += () =>
+                            EditorApplication_delayCall_Alias += () =>
                             {
                                 var log = "DELAYED SERIALIZATION LOG: Name = " + unityObject.name + ", Type = " + unityObject.GetType().GetNiceFullName();
 
@@ -2469,6 +2469,69 @@ namespace OdinSerializer
                         }
                     }
                 }
+            }
+        }
+
+        private static readonly MemberInfo EditorApplication_delayCall_Member = typeof(UnityEditor.EditorApplication).GetMember("delayCall", Flags.StaticAnyVisibility).FirstOrDefault();
+
+        /// <summary>
+        /// In 2020.1, Unity changed EditorApplication.delayCall from a field to an event, meaning 
+        /// we now have to use reflection to access it consistently across all versions of Unity.
+        /// </summary>
+        private static event Action EditorApplication_delayCall_Alias
+        {
+            add
+            {
+                if (EditorApplication_delayCall_Member == null) throw new InvalidOperationException("EditorApplication.delayCall field or event could not be found. Odin will be broken.");
+
+                if (EditorApplication_delayCall_Member is FieldInfo)
+                {
+                    UnityEditor.EditorApplication.CallbackFunction val = (UnityEditor.EditorApplication.CallbackFunction)(EditorApplication_delayCall_Member as FieldInfo).GetValue(null);
+                    val += value.ConvertDelegate<UnityEditor.EditorApplication.CallbackFunction>();
+                    (EditorApplication_delayCall_Member as FieldInfo).SetValue(null, val);
+                }
+                else if (EditorApplication_delayCall_Member is EventInfo)
+                {
+                    (EditorApplication_delayCall_Member as EventInfo).AddEventHandler(null, value);
+                }
+                else
+                {
+                    if (EditorApplication_delayCall_Member == null) throw new InvalidOperationException("EditorApplication.delayCall was not a field or an event. Odin will be broken.");
+                }
+            }
+            remove
+            {
+                if (EditorApplication_delayCall_Member == null) throw new InvalidOperationException("EditorApplication.delayCall field or event could not be found. Odin will be broken.");
+
+                if (EditorApplication_delayCall_Member is FieldInfo)
+                {
+                    UnityEditor.EditorApplication.CallbackFunction val = (UnityEditor.EditorApplication.CallbackFunction)(EditorApplication_delayCall_Member as FieldInfo).GetValue(null);
+                    val -= value.ConvertDelegate<UnityEditor.EditorApplication.CallbackFunction>();
+                    (EditorApplication_delayCall_Member as FieldInfo).SetValue(null, val);
+                }
+                else if (EditorApplication_delayCall_Member is EventInfo)
+                {
+                    (EditorApplication_delayCall_Member as EventInfo).RemoveEventHandler(null, value);
+                }
+                else
+                {
+                    if (EditorApplication_delayCall_Member == null) throw new InvalidOperationException("EditorApplication.delayCall was not a field or an event. Odin will be broken.");
+                }
+            }
+        }
+
+        private static T ConvertDelegate<T>(this Delegate src)
+        {
+            if (src == null || src.GetType() == typeof(T))
+                return (T)(object)src;
+
+            if (src.GetInvocationList().Count() == 1)
+            {
+                return (T)(object)Delegate.CreateDelegate(typeof(T), src.Target, src.Method);
+            }
+            else
+            {
+                return (T)(object)src.GetInvocationList().Aggregate<Delegate, Delegate>(null, (current, d) => Delegate.Combine(current, (Delegate)(object)ConvertDelegate<T>(d)));
             }
         }
 
