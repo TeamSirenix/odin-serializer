@@ -726,11 +726,6 @@ namespace OdinSerializer.Utilities
         /// <returns></returns>
         public static bool ImplementsOpenGenericType(this Type candidateType, Type openGenericType)
         {
-            if (candidateType == null || openGenericType == null)
-            {
-                throw new ArgumentNullException();
-            }
-
             if (openGenericType.IsInterface) return candidateType.ImplementsOpenGenericInterface(openGenericType);
             else return candidateType.ImplementsOpenGenericClass(openGenericType);
         }
@@ -744,19 +739,21 @@ namespace OdinSerializer.Utilities
         /// <exception cref="System.ArgumentException">Type " + openGenericInterfaceType.Name + " is not a generic type definition and an interface.</exception>
         public static bool ImplementsOpenGenericInterface(this Type candidateType, Type openGenericInterfaceType)
         {
-            if (candidateType == null || openGenericInterfaceType == null)
+            if (candidateType == openGenericInterfaceType)
+                return true;
+
+            if (candidateType.IsGenericType && candidateType.GetGenericTypeDefinition() == openGenericInterfaceType)
+                return true;
+
+            var interfaces = candidateType.GetInterfaces();
+
+            for (int i = 0; i < interfaces.Length; i++)
             {
-                throw new ArgumentNullException();
+                if (interfaces[i].ImplementsOpenGenericInterface(openGenericInterfaceType))
+                    return true;
             }
 
-            if (openGenericInterfaceType.IsGenericTypeDefinition == false || openGenericInterfaceType.IsInterface == false)
-            {
-                throw new ArgumentException("Type " + openGenericInterfaceType.Name + " is not a generic type definition and an interface.");
-            }
-
-            return candidateType.Equals(openGenericInterfaceType)
-                || (candidateType.IsGenericType && candidateType.GetGenericTypeDefinition().Equals(openGenericInterfaceType))
-                || candidateType.GetInterfaces().Any(i => i.IsGenericType && i.ImplementsOpenGenericInterface(openGenericInterfaceType));
+            return false;
         }
 
         /// <summary>
@@ -766,18 +763,15 @@ namespace OdinSerializer.Utilities
         /// <param name="openGenericType">Type of the open generic interface.</param>
         public static bool ImplementsOpenGenericClass(this Type candidateType, Type openGenericType)
         {
-            if (candidateType == null || openGenericType == null)
-            {
-                throw new ArgumentNullException();
-            }
+            if (candidateType.IsGenericType && candidateType.GetGenericTypeDefinition() == openGenericType)
+                return true;
 
-            if (openGenericType.IsGenericTypeDefinition == false || !(openGenericType.IsClass || openGenericType.IsValueType))
-            {
-                throw new ArgumentException("Type " + openGenericType.Name + " is not a generic type definition and a class/struct.");
-            }
+            var baseType = candidateType.BaseType;
 
-            return (candidateType.IsGenericType && candidateType.GetGenericTypeDefinition() == openGenericType)
-                || (candidateType.BaseType != null && candidateType.BaseType.ImplementsOpenGenericClass(openGenericType));
+            if (baseType != null && baseType.ImplementsOpenGenericClass(openGenericType))
+                return true;
+
+            return false;
         }
 
         /// <summary>
@@ -787,11 +781,6 @@ namespace OdinSerializer.Utilities
         /// <param name="openGenericType">The open generic type to get the arguments of.</param>
         public static Type[] GetArgumentsOfInheritedOpenGenericType(this Type candidateType, Type openGenericType)
         {
-            if (candidateType == null || openGenericType == null)
-            {
-                throw new ArgumentNullException();
-            }
-
             if (openGenericType.IsInterface) return candidateType.GetArgumentsOfInheritedOpenGenericInterface(openGenericType);
             else return candidateType.GetArgumentsOfInheritedOpenGenericClass(openGenericType);
         }
@@ -803,28 +792,15 @@ namespace OdinSerializer.Utilities
         /// <param name="openGenericType">Type of the open generic class.</param>
         public static Type[] GetArgumentsOfInheritedOpenGenericClass(this Type candidateType, Type openGenericType)
         {
-            if (candidateType == null || openGenericType == null)
-            {
-                throw new ArgumentNullException();
-            }
-
-            if (openGenericType.IsGenericTypeDefinition == false || !(openGenericType.IsClass || openGenericType.IsValueType))
-            {
-                throw new ArgumentException("Type " + openGenericType.Name + " is not a generic type definition and a class/struct.");
-            }
-
             if (candidateType.IsGenericType && candidateType.GetGenericTypeDefinition() == openGenericType)
-            {
                 return candidateType.GetGenericArguments();
-            }
-            else if (candidateType.BaseType != null && candidateType.BaseType.ImplementsOpenGenericClass(openGenericType))
-            {
-                return candidateType.BaseType.GetArgumentsOfInheritedOpenGenericClass(openGenericType);
-            }
-            else
-            {
-                return new Type[0];
-            }
+
+            var baseType = candidateType.BaseType;
+
+            if (baseType != null)
+                return baseType.GetArgumentsOfInheritedOpenGenericClass(openGenericType);
+
+            return null;
         }
 
         /// <summary>
@@ -834,34 +810,23 @@ namespace OdinSerializer.Utilities
         /// <param name="openGenericInterfaceType">Type of the open generic interface.</param>
         public static Type[] GetArgumentsOfInheritedOpenGenericInterface(this Type candidateType, Type openGenericInterfaceType)
         {
-            if (candidateType == null || openGenericInterfaceType == null)
-            {
-                throw new ArgumentNullException();
-            }
-
-            if (openGenericInterfaceType.IsGenericTypeDefinition == false || openGenericInterfaceType.IsInterface == false)
-            {
-                throw new ArgumentException("Type " + openGenericInterfaceType.Name + " is not a generic type definition and an interface.");
-            }
-
-            bool valid = candidateType.Equals(openGenericInterfaceType)
-                || (candidateType.IsGenericType && candidateType.GetGenericTypeDefinition().Equals(openGenericInterfaceType));
-
-            if (valid)
-            {
+            if (candidateType == openGenericInterfaceType)
                 return candidateType.GetGenericArguments();
-            }
-            else
-            {
-                Type[] result;
 
-                foreach (var i in candidateType.GetInterfaces())
-                {
-                    if (i.IsGenericType && (result = i.GetArgumentsOfInheritedOpenGenericInterface(openGenericInterfaceType)) != null)
-                    {
-                        return result;
-                    }
-                }
+            if (candidateType.IsGenericType && candidateType.GetGenericTypeDefinition() == openGenericInterfaceType)
+                return candidateType.GetGenericArguments();
+
+            var interfaces = candidateType.GetInterfaces();
+
+            for (int i = 0; i < interfaces.Length; i++)
+            {
+                var @interface = interfaces[i];
+                if (!@interface.IsGenericType) continue;
+
+                var result = @interface.GetArgumentsOfInheritedOpenGenericInterface(openGenericInterfaceType);
+
+                if (result != null)
+                    return result;
             }
 
             return null;
