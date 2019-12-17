@@ -225,13 +225,23 @@ namespace OdinSerializer
                 return false;
             }
 
+            if (fieldInfo.IsDefined<NonSerializedAttribute>())
+            {
+                return false;
+            }
+
+            if (SerializeReferenceAttribute != null && fieldInfo.IsDefined(SerializeReferenceAttribute, true))
+            {
+                return true;
+            }
+
             if (!typeof(UnityEngine.Object).IsAssignableFrom(fieldInfo.FieldType) && fieldInfo.FieldType == fieldInfo.DeclaringType)
             {
                 // Unity will not serialize references that are obviously cyclical
                 return false;
             }
 
-            if (fieldInfo.IsDefined<NonSerializedAttribute>() || (!fieldInfo.IsPublic && !fieldInfo.IsDefined<SerializeField>()))
+            if (!(fieldInfo.IsPublic || fieldInfo.IsDefined<SerializeField>()))
             {
                 return false;
             }
