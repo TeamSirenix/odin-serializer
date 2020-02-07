@@ -36,6 +36,9 @@ namespace OdinSerializer.Utilities
         private static readonly Dictionary<Type, Type> GenericConstraintsSatisfactionResolvedMap = new Dictionary<Type, Type>();
         private static readonly HashSet<Type> GenericConstraintsSatisfactionProcessedParams = new HashSet<Type>();
 
+        private static readonly Type GenericListInterface = typeof(IList<>);
+        private static readonly Type GenericCollectionInterface = typeof(ICollection<>);
+
         private static readonly object WeaklyTypedTypeCastDelegates_LOCK = new object();
         private static readonly object StronglyTypedTypeCastDelegates_LOCK = new object();
         private static readonly DoubleLookupDictionary<Type, Type, Func<object, object>> WeaklyTypedTypeCastDelegates = new DoubleLookupDictionary<Type, Type, Func<object, object>>();
@@ -810,6 +813,15 @@ namespace OdinSerializer.Utilities
         /// <param name="openGenericInterfaceType">Type of the open generic interface.</param>
         public static Type[] GetArgumentsOfInheritedOpenGenericInterface(this Type candidateType, Type openGenericInterfaceType)
         {
+            // This if clause fixes an "error" in newer .NET Runtimes where enum arrays 
+            //   implement interfaces like IList<int>, which will be matched on by Odin
+            //   before the IList<TheEnum> interface and cause a lot of issues because
+            //   you can't actually use an enum array as if it was an IList<int>.
+            if ((openGenericInterfaceType == GenericListInterface || openGenericInterfaceType == GenericCollectionInterface) && candidateType.IsArray)
+            {
+                return new Type[] { candidateType.GetElementType() };
+            }
+
             if (candidateType == openGenericInterfaceType)
                 return candidateType.GetGenericArguments();
 
