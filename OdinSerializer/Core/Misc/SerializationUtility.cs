@@ -730,7 +730,7 @@ namespace OdinSerializer
                 return obj;
             }
 
-            using (var stream = new System.IO.MemoryStream())
+            using (var stream = CachedMemoryStream.Claim())
             using (var serContext = Cache<SerializationContext>.Claim())
             using (var deserContext = Cache<DeserializationContext>.Claim())
             {
@@ -738,9 +738,9 @@ namespace OdinSerializer
                 deserContext.Value.Config.SerializationPolicy = SerializationPolicies.Everything;
 
                 List<UnityEngine.Object> unityReferences;
-                SerializeValue(obj, stream, DataFormat.Binary, out unityReferences, serContext);
-                stream.Position = 0;
-                return DeserializeValue<object>(stream, DataFormat.Binary, unityReferences, deserContext);
+                SerializeValue(obj, stream.Value.MemoryStream, DataFormat.Binary, out unityReferences, serContext);
+                stream.Value.MemoryStream.Position = 0;
+                return DeserializeValue<object>(stream.Value.MemoryStream, DataFormat.Binary, unityReferences, deserContext);
             }
         }
     }
