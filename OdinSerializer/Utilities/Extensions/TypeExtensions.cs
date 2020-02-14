@@ -44,6 +44,10 @@ namespace OdinSerializer.Utilities
         private static readonly DoubleLookupDictionary<Type, Type, Func<object, object>> WeaklyTypedTypeCastDelegates = new DoubleLookupDictionary<Type, Type, Func<object, object>>();
         private static readonly DoubleLookupDictionary<Type, Type, Delegate> StronglyTypedTypeCastDelegates = new DoubleLookupDictionary<Type, Type, Delegate>();
 
+        private static readonly Type[] TwoLengthTypeArray_Cached = new Type[2];
+
+        private static readonly Stack<Type> GenericArgumentsContainsTypes_ArgsToCheckCached = new Stack<Type>();
+
         private static HashSet<string> ReservedCSharpKeywords = new HashSet<string>()
         {
             "abstract",
@@ -512,42 +516,10 @@ namespace OdinSerializer.Utilities
         /// </remarks>
         public static Func<T, T, bool> GetEqualityComparerDelegate<T>()
         {
-            Func<T, T, bool> result;
+            Func<T, T, bool> result = null;
+            MethodInfo equalityMethod;
 
-            MethodInfo equalityMethod = typeof(T)
-                .GetOperatorMethods(Operator.Equality)
-                .FirstOrDefault(x =>
-                {
-                    var p = x.GetParameters();
-
-                    if (p.Length != 2)
-                        return false;
-
-                    if (x.ReturnType != typeof(bool))
-                        return false;
-
-                    if (p[0].ParameterType != typeof(T))
-                        return false;
-
-                    if (p[1].ParameterType != typeof(T))
-                        return false;
-
-                    return true;
-                });
-
-            if (equalityMethod != null)
-            {
-                if (typeof(T) == typeof(Quaternion))
-                {
-                    //Func<Quaternion, Quaternion, bool> equalityOp = (Func<Quaternion, Quaternion, bool>)Delegate.CreateDelegate(typeof(Func<Quaternion, Quaternion, bool>), equalityMethod, true);
-                    result = (Func<T, T, bool>)(object)(Func<Quaternion, Quaternion, bool>)((a, b) => /*equalityOp(a, b) ||*/ (a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w));
-                }
-                else
-                {
-                    result = (Func<T, T, bool>)Delegate.CreateDelegate(typeof(Func<T, T, bool>), equalityMethod, true);
-                }
-            }
-            else if (typeof(IEquatable<T>).IsAssignableFrom(typeof(T)))
+            if (typeof(IEquatable<T>).IsAssignableFrom(typeof(T)))
             {
                 if (typeof(T).IsValueType)
                 {
@@ -577,119 +549,37 @@ namespace OdinSerializer.Utilities
             }
             else
             {
+                Type currentType = typeof(T);
+
+                while (currentType != null && currentType != typeof(object))
+                {
+                    equalityMethod = currentType.GetOperatorMethod(Operator.Equality, currentType, currentType);
+
+                    if (equalityMethod != null)
+                    {
+                        if (typeof(T) == typeof(Quaternion))
+                        {
+                            //Func<Quaternion, Quaternion, bool> equalityOp = (Func<Quaternion, Quaternion, bool>)Delegate.CreateDelegate(typeof(Func<Quaternion, Quaternion, bool>), equalityMethod, true);
+                            result = (Func<T, T, bool>)(object)(Func<Quaternion, Quaternion, bool>)((a, b) => /*equalityOp(a, b) ||*/ (a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w));
+                        }
+                        else
+                        {
+                            result = (Func<T, T, bool>)Delegate.CreateDelegate(typeof(Func<T, T, bool>), equalityMethod, true);
+                        }
+                        break;
+                    }
+
+                    currentType = currentType.BaseType;
+                }
+            }
+
+            if (result == null)
+            {
                 var comparer = EqualityComparer<T>.Default;
                 result = comparer.Equals;
             }
 
             return result;
-        }
-
-        /// <summary>
-        /// Determines whether a MemberInfo has the attribute specified in the generic argument.
-        /// </summary>
-        /// <typeparam name="T">The attribute type.</typeparam>
-        /// <param name="memberInfo">The MemberInfo.</param>
-        public static bool HasCustomAttribute<T>(this MemberInfo memberInfo) where T : Attribute
-        {
-            return HasCustomAttribute(memberInfo, typeof(T), false);
-        }
-
-        /// <summary>
-        /// Determines whether a MemberInfo has the attribute specified in the generic argument.
-        /// </summary>
-        /// <typeparam name="T">The attribute type.</typeparam>
-        /// <param name="memberInfo">The MemberInfo.</param>
-        /// <param name="inherit">If true, specifies to also search the ancestors of element for custom attributes.</param>
-        public static bool HasCustomAttribute<T>(this MemberInfo memberInfo, bool inherit) where T : Attribute
-        {
-            return HasCustomAttribute(memberInfo, typeof(T), inherit);
-        }
-
-        /// <summary>
-        /// Determines whether a MemberInfo has the attribute specified in the generic argument.
-        /// </summary>
-        /// <typeparam name="T">The attribute type.</typeparam>
-        /// <param name="memberInfo">The MemberInfo.</param>
-        /// <param name="attribute">The attribute instance.</param>
-        public static bool HasCustomAttribute<T>(this MemberInfo memberInfo, out T attribute) where T : Attribute
-        {
-            return HasCustomAttribute(memberInfo, false, out attribute);
-        }
-
-        /// <summary>
-        /// Determines whether a MemberInfo has the attribute specified in the generic argument.
-        /// </summary>
-        /// <typeparam name="T">The attribute type.</typeparam>
-        /// <param name="memberInfo">The MemberInfo.</param>
-        /// <param name="attribute">The attribute instance.</param>
-        /// <param name="inherit">If true, specifies to also search the ancestors of element for custom attributes.</param>
-        public static bool HasCustomAttribute<T>(this MemberInfo memberInfo, bool inherit, out T attribute) where T : Attribute
-        {
-            Attribute attr;
-
-            var result = HasCustomAttribute(memberInfo, typeof(T), inherit, out attr);
-            attribute = result ? (T)attr : null;
-
-            return result;
-        }
-
-        /// <summary>
-        /// Determines whether a MemberInfo has the attribute specified.
-        /// </summary>
-        /// <param name="memberInfo">The MemberInfo.</param>
-        /// <param name="customAttributeType">Type of the custom attribute.</param>
-        /// <param name="inherit">If true, specifies to also search the ancestors of element for custom attributes.</param>
-        public static bool HasCustomAttribute(this MemberInfo memberInfo, Type customAttributeType, bool inherit)
-        {
-            if (memberInfo == null)
-            {
-                throw new ArgumentNullException("memberInfo");
-            }
-
-            if (customAttributeType == null)
-            {
-                throw new ArgumentNullException("customAttributeType");
-            }
-
-            if (typeof(Attribute).IsAssignableFrom(customAttributeType) == false)
-            {
-                throw new ArgumentException("Type " + customAttributeType.Name + " is not an attribute.");
-            }
-
-            return memberInfo.GetCustomAttributes(customAttributeType, inherit).Length > 0;
-        }
-
-        /// <summary>
-        /// Determines whether a MemberInfo has the attribute specified.
-        /// </summary>
-        /// <param name="memberInfo">The MemberInfo.</param>
-        /// <param name="customAttributeType">Type of the custom attribute.</param>
-        /// <param name="inherit">If true, specifies to also search the ancestors of element for custom attributes.</param>
-        /// <param name="attribute">The attribute instance.</param>
-        public static bool HasCustomAttribute(this MemberInfo memberInfo, Type customAttributeType, bool inherit, out Attribute attribute)
-        {
-            if (memberInfo == null || customAttributeType == null)
-            {
-                throw new ArgumentNullException();
-            }
-
-            if (typeof(Attribute).IsAssignableFrom(customAttributeType) == false)
-            {
-                throw new ArgumentException("Type " + customAttributeType.Name + " is not an attribute.");
-            }
-
-            var attrs = memberInfo.GetCustomAttributes(customAttributeType, inherit);
-
-            if (attrs.Length > 0)
-            {
-                attribute = (Attribute)attrs[0];
-                return true;
-            }
-            else
-            {
-                attribute = null;
-                return false;
-            }
         }
 
         /// <summary>
@@ -842,6 +732,109 @@ namespace OdinSerializer.Utilities
             }
 
             return null;
+        }
+
+        /// <summary>
+        /// Gets the MethodInfo of a specific operator kind, with the given left and right operands. This overload is *far* faster than any of the other GetOperatorMethod implementations, and should be used whenever possible.
+        /// </summary>
+        public static MethodInfo GetOperatorMethod(this Type type, Operator op, Type leftOperand, Type rightOperand)
+        {
+            string methodName;
+
+            switch (op)
+            {
+                case Operator.Equality:
+                    methodName = "op_Equality";
+                    break;
+
+                case Operator.Inequality:
+                    methodName = "op_Inequality";
+                    break;
+
+                case Operator.Addition:
+                    methodName = "op_Addition";
+                    break;
+
+                case Operator.Subtraction:
+                    methodName = "op_Subtraction";
+                    break;
+
+                case Operator.Multiply:
+                    methodName = "op_Multiply";
+                    break;
+
+                case Operator.Division:
+                    methodName = "op_Division";
+                    break;
+
+                case Operator.LessThan:
+                    methodName = "op_LessThan";
+                    break;
+
+                case Operator.GreaterThan:
+                    methodName = "op_GreaterThan";
+                    break;
+
+                case Operator.LessThanOrEqual:
+                    methodName = "op_LessThanOrEqual";
+                    break;
+
+                case Operator.GreaterThanOrEqual:
+                    methodName = "op_GreaterThanOrEqual";
+                    break;
+
+                case Operator.Modulus:
+                    methodName = "op_Modulus";
+                    break;
+
+                case Operator.RightShift:
+                    methodName = "op_RightShift";
+                    break;
+
+                case Operator.LeftShift:
+                    methodName = "op_LeftShift";
+                    break;
+
+                case Operator.BitwiseAnd:
+                    methodName = "op_BitwiseAnd";
+                    break;
+
+                case Operator.BitwiseOr:
+                    methodName = "op_BitwiseOr";
+                    break;
+
+                case Operator.ExclusiveOr:
+                    methodName = "op_ExclusiveOr";
+                    break;
+
+                case Operator.BitwiseComplement:
+                    methodName = "op_OnesComplement";
+                    break;
+
+                case Operator.LogicalNot:
+                    methodName = "op_LogicalNot";
+                    break;
+
+                case Operator.LogicalAnd:
+                case Operator.LogicalOr:
+                    return null; // Not overridable
+
+                default:
+                    throw new NotImplementedException();
+            }
+
+            var types = TwoLengthTypeArray_Cached;
+
+            lock (types)
+            {
+                types[0] = leftOperand;
+                types[1] = rightOperand;
+                var result = type.GetMethod(methodName, Flags.StaticAnyVisibility, null, types, null);
+
+                if (result != null && result.ReturnType != typeof(bool)) return null;
+
+                return result;
+            }
         }
 
         /// <summary>
@@ -2099,7 +2092,6 @@ namespace OdinSerializer.Utilities
 
             return sb.ToString();
         }
-
         /// <summary>
         /// Determines whether a generic type contains the specified generic argument constraints.
         /// </summary>
@@ -2120,52 +2112,62 @@ namespace OdinSerializer.Utilities
             bool[] typesSeen = new bool[types.Length];
             var args = type.GetGenericArguments();
 
-            Stack<Type> argsToCheck = new Stack<Type>(args);
+            var argsToCheck = GenericArgumentsContainsTypes_ArgsToCheckCached;
 
-            while (argsToCheck.Count > 0)
+            lock (argsToCheck)
             {
-                var arg = argsToCheck.Pop();
+                argsToCheck.Clear();
 
-                // Check if it's one of the types we're looking for, and if so, mark that as seen
-                for (int i = 0; i < types.Length; i++)
+                for (int i = 0; i < args.Length; i++)
                 {
-                    Type lookingForType = types[i];
-
-                    if (lookingForType == arg)
-                    {
-                        typesSeen[i] = true;
-                    }
-                    else if (lookingForType.IsGenericTypeDefinition && arg.IsGenericType && !arg.IsGenericTypeDefinition && arg.GetGenericTypeDefinition() == lookingForType)
-                    {
-                        typesSeen[i] = true;
-                    }
+                    argsToCheck.Push(args[i]);
                 }
 
-                // Check if all types we're looking for have been seen
+                while (argsToCheck.Count > 0)
                 {
-                    bool allSeen = true;
+                    var arg = argsToCheck.Pop();
 
-                    for (int i = 0; i < typesSeen.Length; i++)
+                    // Check if it's one of the types we're looking for, and if so, mark that as seen
+                    for (int i = 0; i < types.Length; i++)
                     {
-                        if (typesSeen[i] == false)
+                        Type lookingForType = types[i];
+
+                        if (lookingForType == arg)
                         {
-                            allSeen = false;
-                            break;
+                            typesSeen[i] = true;
+                        }
+                        else if (lookingForType.IsGenericTypeDefinition && arg.IsGenericType && !arg.IsGenericTypeDefinition && arg.GetGenericTypeDefinition() == lookingForType)
+                        {
+                            typesSeen[i] = true;
                         }
                     }
 
-                    if (allSeen)
+                    // Check if all types we're looking for have been seen
                     {
-                        return true;
-                    }
-                }
+                        bool allSeen = true;
 
-                // If argument is a generic type, we have to also check its arguments
-                if (arg.IsGenericType)
-                {
-                    foreach (var innerArg in arg.GetGenericArguments())
+                        for (int i = 0; i < typesSeen.Length; i++)
+                        {
+                            if (typesSeen[i] == false)
+                            {
+                                allSeen = false;
+                                break;
+                            }
+                        }
+
+                        if (allSeen)
+                        {
+                            return true;
+                        }
+                    }
+
+                    // If argument is a generic type, we have to also check its arguments
+                    if (arg.IsGenericType)
                     {
-                        argsToCheck.Push(innerArg);
+                        foreach (var innerArg in arg.GetGenericArguments())
+                        {
+                            argsToCheck.Push(innerArg);
+                        }
                     }
                 }
             }

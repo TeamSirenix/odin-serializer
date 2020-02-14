@@ -159,17 +159,54 @@ namespace OdinSerializer
         /// <returns>True if Odin will serialize the member, otherwise false.</returns>
         public static bool OdinWillSerialize(MemberInfo member, bool serializeUnityFields, ISerializationPolicy policy = null)
         {
-            if (policy == null)
+            Dictionary<MemberInfo, bool> cacheForPolicy;
+            
+            if (policy == null || object.ReferenceEquals(policy, UnityPolicy))
             {
-                policy = SerializationPolicies.Unity;
+                cacheForPolicy = OdinWillSerializeCache_UnityPolicy;
+            }
+            else if (object.ReferenceEquals(policy, EverythingPolicy))
+            {
+                cacheForPolicy = OdinWillSerializeCache_EverythingPolicy;
+            }
+            else if (object.ReferenceEquals(policy, StrictPolicy))
+            {
+                cacheForPolicy = OdinWillSerializeCache_StrictPolicy;
+            }
+            else
+            {
+                lock (OdinWillSerializeCache_CustomPolicies)
+                {
+                    if (!OdinWillSerializeCache_CustomPolicies.TryGetValue(policy, out cacheForPolicy))
+                    {
+                        cacheForPolicy = new Dictionary<MemberInfo, bool>(ReferenceEqualityComparer<MemberInfo>.Default);
+                        OdinWillSerializeCache_CustomPolicies.Add(policy, cacheForPolicy);
+                    }
+                }
             }
 
+            bool result;
+
+            lock (cacheForPolicy)
+            {
+                if (!cacheForPolicy.TryGetValue(member, out result))
+                {
+                    result = CalculateOdinWillSerialize(member, serializeUnityFields, policy ?? UnityPolicy);
+                    cacheForPolicy.Add(member, result);
+                }
+
+                return result;
+            }
+        }
+
+        private static bool CalculateOdinWillSerialize(MemberInfo member, bool serializeUnityFields, ISerializationPolicy policy)
+        {
             if (member.DeclaringType == typeof(UnityEngine.Object)) return false;
             if (!policy.ShouldSerializeMember(member)) return false;
 
             // Allow serialization of fields with [OdinSerialize], regardless of whether Unity
             // serializes the field or not
-            if (member is FieldInfo && member.HasCustomAttribute<OdinSerializeAttribute>())
+            if (member is FieldInfo && member.IsDefined(typeof(OdinSerializeAttribute), true))
             {
                 return true;
             }
@@ -188,9 +225,17 @@ namespace OdinSerializer
             catch { }
 
             if (GuessIfUnityWillSerialize(member)) return false;
-            
+
             return true;
         }
+
+        private static readonly ISerializationPolicy UnityPolicy = SerializationPolicies.Unity;
+        private static readonly ISerializationPolicy EverythingPolicy = SerializationPolicies.Everything;
+        private static readonly ISerializationPolicy StrictPolicy = SerializationPolicies.Strict;
+        private static readonly Dictionary<MemberInfo, bool> OdinWillSerializeCache_UnityPolicy = new Dictionary<MemberInfo, bool>(ReferenceEqualityComparer<MemberInfo>.Default);
+        private static readonly Dictionary<MemberInfo, bool> OdinWillSerializeCache_EverythingPolicy = new Dictionary<MemberInfo, bool>(ReferenceEqualityComparer<MemberInfo>.Default);
+        private static readonly Dictionary<MemberInfo, bool> OdinWillSerializeCache_StrictPolicy = new Dictionary<MemberInfo, bool>(ReferenceEqualityComparer<MemberInfo>.Default);
+        private static readonly Dictionary<ISerializationPolicy, Dictionary<MemberInfo, bool>> OdinWillSerializeCache_CustomPolicies = new Dictionary<ISerializationPolicy, Dictionary<MemberInfo, bool>>(ReferenceEqualityComparer<ISerializationPolicy>.Default);
 
         /// <summary>
         /// Guesses whether or not Unity will serialize a given member. This is not completely accurate.
