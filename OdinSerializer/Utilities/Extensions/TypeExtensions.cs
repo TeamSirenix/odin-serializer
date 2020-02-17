@@ -1273,8 +1273,9 @@ namespace OdinSerializer.Utilities
         /// </summary>
         public static T GetCustomAttribute<T>(this Type type, bool inherit) where T : Attribute
         {
-            var all = GetCustomAttributes<T>(type, inherit).ToArray();
-            return (all == null || all.Length == 0) ? null : all[0];
+            var attrs = type.GetCustomAttributes(typeof(T), inherit);
+            if (attrs.Length == 0) return null;
+            return attrs[0] as T;
         }
 
         /// <summary>
@@ -1302,7 +1303,12 @@ namespace OdinSerializer.Utilities
         /// <param name="inherit">If true, specifies to also search the ancestors of element for custom attributes.</param>
         public static IEnumerable<T> GetCustomAttributes<T>(this Type type, bool inherit) where T : Attribute
         {
-            return type.GetCustomAttributes(typeof(T), inherit).Cast<T>();
+            var attrs = type.GetCustomAttributes(typeof(T), inherit);
+
+            for (int i = 0; i < attrs.Length; i++)
+            {
+                yield return attrs[i] as T;
+            }
         }
 
         /// <summary>
