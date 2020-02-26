@@ -159,7 +159,7 @@ namespace OdinSerializer
         /// <returns>True if Odin will serialize the member, otherwise false.</returns>
         public static bool OdinWillSerialize(MemberInfo member, bool serializeUnityFields, ISerializationPolicy policy = null)
         {
-            Dictionary<MemberInfo, bool> cacheForPolicy;
+            Dictionary<MemberInfo, CachedSerializationBackendResult> cacheForPolicy;
             
             if (policy == null || object.ReferenceEquals(policy, UnityPolicy))
             {
@@ -179,23 +179,52 @@ namespace OdinSerializer
                 {
                     if (!OdinWillSerializeCache_CustomPolicies.TryGetValue(policy, out cacheForPolicy))
                     {
-                        cacheForPolicy = new Dictionary<MemberInfo, bool>(ReferenceEqualityComparer<MemberInfo>.Default);
+                        cacheForPolicy = new Dictionary<MemberInfo, CachedSerializationBackendResult>(ReferenceEqualityComparer<MemberInfo>.Default);
                         OdinWillSerializeCache_CustomPolicies.Add(policy, cacheForPolicy);
                     }
                 }
             }
 
-            bool result;
+            CachedSerializationBackendResult result;
 
             lock (cacheForPolicy)
             {
                 if (!cacheForPolicy.TryGetValue(member, out result))
                 {
-                    result = CalculateOdinWillSerialize(member, serializeUnityFields, policy ?? UnityPolicy);
+                    result = default(CachedSerializationBackendResult);
+
+                    if (serializeUnityFields)
+                    {
+                        result.SerializeUnityFieldsTrueResult = CalculateOdinWillSerialize(member, serializeUnityFields, policy ?? UnityPolicy);
+                        result.HasCalculatedSerializeUnityFieldsTrueResult = true;
+                    }
+                    else
+                    {
+                        result.SerializeUnityFieldsFalseResult = CalculateOdinWillSerialize(member, serializeUnityFields, policy ?? UnityPolicy);
+                        result.HasCalculatedSerializeUnityFieldsFalseResult = true;
+                    }
+
                     cacheForPolicy.Add(member, result);
                 }
+                else
+                {
+                    if (serializeUnityFields && !result.HasCalculatedSerializeUnityFieldsTrueResult)
+                    {
+                        result.SerializeUnityFieldsTrueResult = CalculateOdinWillSerialize(member, serializeUnityFields, policy ?? UnityPolicy);
+                        result.HasCalculatedSerializeUnityFieldsTrueResult = true;
 
-                return result;
+                        cacheForPolicy[member] = result;
+                    }
+                    else if (!serializeUnityFields && !result.HasCalculatedSerializeUnityFieldsFalseResult)
+                    {
+                        result.SerializeUnityFieldsFalseResult = CalculateOdinWillSerialize(member, serializeUnityFields, policy ?? UnityPolicy);
+                        result.HasCalculatedSerializeUnityFieldsFalseResult = true;
+
+                        cacheForPolicy[member] = result;
+                    }
+                }
+
+                return serializeUnityFields ? result.SerializeUnityFieldsTrueResult : result.SerializeUnityFieldsFalseResult;
             }
         }
 
@@ -229,13 +258,22 @@ namespace OdinSerializer
             return true;
         }
 
+        private struct CachedSerializationBackendResult
+        {
+            public bool HasCalculatedSerializeUnityFieldsTrueResult;
+            public bool HasCalculatedSerializeUnityFieldsFalseResult;
+
+            public bool SerializeUnityFieldsTrueResult;
+            public bool SerializeUnityFieldsFalseResult;
+        }
+
         private static readonly ISerializationPolicy UnityPolicy = SerializationPolicies.Unity;
         private static readonly ISerializationPolicy EverythingPolicy = SerializationPolicies.Everything;
         private static readonly ISerializationPolicy StrictPolicy = SerializationPolicies.Strict;
-        private static readonly Dictionary<MemberInfo, bool> OdinWillSerializeCache_UnityPolicy = new Dictionary<MemberInfo, bool>(ReferenceEqualityComparer<MemberInfo>.Default);
-        private static readonly Dictionary<MemberInfo, bool> OdinWillSerializeCache_EverythingPolicy = new Dictionary<MemberInfo, bool>(ReferenceEqualityComparer<MemberInfo>.Default);
-        private static readonly Dictionary<MemberInfo, bool> OdinWillSerializeCache_StrictPolicy = new Dictionary<MemberInfo, bool>(ReferenceEqualityComparer<MemberInfo>.Default);
-        private static readonly Dictionary<ISerializationPolicy, Dictionary<MemberInfo, bool>> OdinWillSerializeCache_CustomPolicies = new Dictionary<ISerializationPolicy, Dictionary<MemberInfo, bool>>(ReferenceEqualityComparer<ISerializationPolicy>.Default);
+        private static readonly Dictionary<MemberInfo, CachedSerializationBackendResult> OdinWillSerializeCache_UnityPolicy = new Dictionary<MemberInfo, CachedSerializationBackendResult>(ReferenceEqualityComparer<MemberInfo>.Default);
+        private static readonly Dictionary<MemberInfo, CachedSerializationBackendResult> OdinWillSerializeCache_EverythingPolicy = new Dictionary<MemberInfo, CachedSerializationBackendResult>(ReferenceEqualityComparer<MemberInfo>.Default);
+        private static readonly Dictionary<MemberInfo, CachedSerializationBackendResult> OdinWillSerializeCache_StrictPolicy = new Dictionary<MemberInfo, CachedSerializationBackendResult>(ReferenceEqualityComparer<MemberInfo>.Default);
+        private static readonly Dictionary<ISerializationPolicy, Dictionary<MemberInfo, CachedSerializationBackendResult>> OdinWillSerializeCache_CustomPolicies = new Dictionary<ISerializationPolicy, Dictionary<MemberInfo, CachedSerializationBackendResult>>(ReferenceEqualityComparer<ISerializationPolicy>.Default);
 
         /// <summary>
         /// Guesses whether or not Unity will serialize a given member. This is not completely accurate.
