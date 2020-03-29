@@ -818,55 +818,6 @@
              <para>This is because, by default, Quaternion's equality operator is broken when operating on invalid quaternions; "default(Quaternion) == default(Quaternion)" evaluates to false, and this causes a multitude of problems.</para>
              </remarks>
         </member>
-        <member name="M:OdinSerializer.Utilities.TypeExtensions.HasCustomAttribute``1(System.Reflection.MemberInfo)">
-            <summary>
-            Determines whether a MemberInfo has the attribute specified in the generic argument.
-            </summary>
-            <typeparam name="T">The attribute type.</typeparam>
-            <param name="memberInfo">The MemberInfo.</param>
-        </member>
-        <member name="M:OdinSerializer.Utilities.TypeExtensions.HasCustomAttribute``1(System.Reflection.MemberInfo,System.Boolean)">
-            <summary>
-            Determines whether a MemberInfo has the attribute specified in the generic argument.
-            </summary>
-            <typeparam name="T">The attribute type.</typeparam>
-            <param name="memberInfo">The MemberInfo.</param>
-            <param name="inherit">If true, specifies to also search the ancestors of element for custom attributes.</param>
-        </member>
-        <member name="M:OdinSerializer.Utilities.TypeExtensions.HasCustomAttribute``1(System.Reflection.MemberInfo,``0@)">
-            <summary>
-            Determines whether a MemberInfo has the attribute specified in the generic argument.
-            </summary>
-            <typeparam name="T">The attribute type.</typeparam>
-            <param name="memberInfo">The MemberInfo.</param>
-            <param name="attribute">The attribute instance.</param>
-        </member>
-        <member name="M:OdinSerializer.Utilities.TypeExtensions.HasCustomAttribute``1(System.Reflection.MemberInfo,System.Boolean,``0@)">
-            <summary>
-            Determines whether a MemberInfo has the attribute specified in the generic argument.
-            </summary>
-            <typeparam name="T">The attribute type.</typeparam>
-            <param name="memberInfo">The MemberInfo.</param>
-            <param name="attribute">The attribute instance.</param>
-            <param name="inherit">If true, specifies to also search the ancestors of element for custom attributes.</param>
-        </member>
-        <member name="M:OdinSerializer.Utilities.TypeExtensions.HasCustomAttribute(System.Reflection.MemberInfo,System.Type,System.Boolean)">
-            <summary>
-            Determines whether a MemberInfo has the attribute specified.
-            </summary>
-            <param name="memberInfo">The MemberInfo.</param>
-            <param name="customAttributeType">Type of the custom attribute.</param>
-            <param name="inherit">If true, specifies to also search the ancestors of element for custom attributes.</param>
-        </member>
-        <member name="M:OdinSerializer.Utilities.TypeExtensions.HasCustomAttribute(System.Reflection.MemberInfo,System.Type,System.Boolean,System.Attribute@)">
-            <summary>
-            Determines whether a MemberInfo has the attribute specified.
-            </summary>
-            <param name="memberInfo">The MemberInfo.</param>
-            <param name="customAttributeType">Type of the custom attribute.</param>
-            <param name="inherit">If true, specifies to also search the ancestors of element for custom attributes.</param>
-            <param name="attribute">The attribute instance.</param>
-        </member>
         <member name="M:OdinSerializer.Utilities.TypeExtensions.GetAttribute``1(System.Type,System.Boolean)">
             <summary>
             Gets the first attribute of type T. Returns null in the no attribute of type T was found.
@@ -925,6 +876,11 @@
             </summary>
             <param name="candidateType">Type of the candidate.</param>
             <param name="openGenericInterfaceType">Type of the open generic interface.</param>
+        </member>
+        <member name="M:OdinSerializer.Utilities.TypeExtensions.GetOperatorMethod(System.Type,OdinSerializer.Utilities.Operator,System.Type,System.Type)">
+            <summary>
+            Gets the MethodInfo of a specific operator kind, with the given left and right operands. This overload is *far* faster than any of the other GetOperatorMethod implementations, and should be used whenever possible.
+            </summary>
         </member>
         <member name="M:OdinSerializer.Utilities.TypeExtensions.GetOperatorMethod(System.Type,OdinSerializer.Utilities.Operator)">
             <summary>
@@ -9757,6 +9713,12 @@
         <member name="M:OdinSerializer.UnitySerializationUtility.CreateDefaultUnityInitializedObject(System.Type)">
             <summary>
             Creates an object with default values initialized in the style of Unity; strings will be "", classes will be instantiated recursively with default values, and so on.
+            </summary>
+        </member>
+        <member name="E:OdinSerializer.UnitySerializationUtility.EditorApplication_delayCall_Alias">
+            <summary>
+            In 2020.1, Unity changed EditorApplication.delayCall from a field to an event, meaning 
+            we now have to use reflection to access it consistently across all versions of Unity.
             </summary>
         </member>
     </members>
