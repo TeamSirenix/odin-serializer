@@ -378,6 +378,11 @@ namespace OdinSerializer.Editor
 
         public bool ScanAsset(string assetPath, bool includeAssetDependencies)
         {
+            if (assetPath.EndsWith(".unity"))
+            {
+                return this.ScanScenes(new string[] { assetPath }, includeAssetDependencies, false);
+            }
+
             if (!(assetPath.EndsWith(".asset") || assetPath.EndsWith(".prefab")))
             {
                 // ScanAsset can only scan .asset and .prefab assets.
