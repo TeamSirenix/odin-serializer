@@ -241,7 +241,8 @@ namespace OdinSerializer
                 if (this.peekedEntryType == EntryType.EndOfArray)
                 {
                     this.Context.Config.DebugContext.LogError("Data layout mismatch; skipping past array boundary when exiting node.");
-                    this.MarkEntryConsumed();
+                    this.peekedEntryType = null;
+                    //this.MarkEntryConsumed();
                 }
 
                 this.SkipEntry();
@@ -335,7 +336,8 @@ namespace OdinSerializer
                 if (this.peekedEntryType == EntryType.EndOfNode)
                 {
                     this.Context.Config.DebugContext.LogError("Data layout mismatch; skipping past node boundary when exiting array.");
-                    this.MarkEntryConsumed();
+                    this.peekedEntryType = null;
+                    //this.MarkEntryConsumed();
                 }
 
                 this.SkipEntry();
