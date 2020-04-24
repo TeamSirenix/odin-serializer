@@ -43,28 +43,39 @@ namespace OdinSerializer
                 {
                     if (!initialized)
                     {
-                        // Ensure that the config instance is loaded before deserialization of anything occurs.
-                        // If we try to load it during deserialization, Unity will throw exceptions, as a lot of
-                        // the Unity API is disallowed during serialization and deserialization.
-                        GlobalSerializationConfig.LoadInstanceIfAssetExists();
-
-                        initialized = true;
+                        try
+                        {
+                            // Ensure that the config instance is loaded before deserialization of anything occurs.
+                            // If we try to load it during deserialization, Unity will throw exceptions, as a lot of
+                            // the Unity API is disallowed during serialization and deserialization.
+                            GlobalSerializationConfig.LoadInstanceIfAssetExists();
                         
-                        CurrentPlatform = Application.platform;
+                            CurrentPlatform = Application.platform;
 
-                        if (Application.isEditor) return;
+                            if (Application.isEditor) return;
 
-                        if (CurrentPlatform == RuntimePlatform.Android)
-                        {
-                            using (var system = new AndroidJavaClass("java.lang.System"))
-                            {
-                                string architecture = system.CallStatic<string>("getProperty", "os.arch");
-                                ArchitectureInfo.SetIsOnAndroid(architecture);
-                            }
+                            ArchitectureInfo.SetRuntimePlatform(CurrentPlatform);
+
+                            //if (CurrentPlatform == RuntimePlatform.Android)
+                            //{
+                            //    //using (var system = new AndroidJavaClass("java.lang.System"))
+                            //    //{
+                            //    //    string architecture = system.CallStatic<string>("getProperty", "os.arch");
+                            //    //    ArchitectureInfo.SetIsOnAndroid(architecture);
+                            //    //}
+                            //}
+                            //else if (CurrentPlatform == RuntimePlatform.IPhonePlayer)
+                            //{
+                            //    ArchitectureInfo.SetIsOnIPhone();
+                            //}
+                            //else
+                            //{
+                            //    ArchitectureInfo.SetIsNotOnMobile();
+                            //}
                         }
-                        else
+                        finally
                         {
-                            ArchitectureInfo.SetIsNotOnAndroid();
+                            initialized = true;
                         }
                     }
                 }
@@ -80,10 +91,10 @@ namespace OdinSerializer
 #if UNITY_EDITOR
 
         [UnityEditor.InitializeOnLoadMethod]
-#endif
         private static void InitializeEditor()
         {
             Initialize();
         }
+#endif
     }
 }

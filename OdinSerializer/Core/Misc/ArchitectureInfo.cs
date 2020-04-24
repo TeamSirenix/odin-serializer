@@ -19,6 +19,7 @@
 namespace OdinSerializer
 {
     using System;
+    using UnityEngine;
 
     /// <summary>
     /// This class gathers info about the current architecture for the purpose of determinining
@@ -26,7 +27,7 @@ namespace OdinSerializer
     /// </summary>
     public unsafe static class ArchitectureInfo
     {
-        public static readonly bool Architecture_Supports_Unaligned_Float32_Reads;
+        public static bool Architecture_Supports_Unaligned_Float32_Reads;
 
         /// <summary>
         /// This will be false on some ARM architectures, such as ARMv7.
@@ -84,26 +85,44 @@ namespace OdinSerializer
             }
         }
 
-        internal static void SetIsOnAndroid(string architecture)
+        internal static void SetRuntimePlatform(RuntimePlatform platform)
         {
-            if (!Architecture_Supports_Unaligned_Float32_Reads || architecture == "armv7l" || architecture == "armv7" || IntPtr.Size == 4)
+            // Experience indicates that unaligned read/write support is pretty spotty and sometimes causes subtle bugs even when it appears to work,
+            // so to be safe, we simply shouldn't be doing unaligned accesses at all on mobile architectures.
+
+            switch (platform)
             {
-                Architecture_Supports_All_Unaligned_ReadWrites = false;
-            }
-            else
-            {
-                Architecture_Supports_All_Unaligned_ReadWrites = true;
+                case RuntimePlatform.IPhonePlayer:
+                    Architecture_Supports_All_Unaligned_ReadWrites = false;
+                    Architecture_Supports_Unaligned_Float32_Reads = false;
+                    Debug.Log("OdinSerializer detected that it's running on an iPhone; disabling all unaligned read/writes.");
+                    break;
+                case RuntimePlatform.Android:
+                    Architecture_Supports_All_Unaligned_ReadWrites = false;
+                    Architecture_Supports_Unaligned_Float32_Reads = false;
+                    Debug.Log("OdinSerializer detected that it's running in Android; disabling all unaligned read/writes.");
+                    break;
+                default:
+                    if (Architecture_Supports_Unaligned_Float32_Reads)
+                    {
+                        Architecture_Supports_All_Unaligned_ReadWrites = true;
+                    }
+                    break;
             }
 
-            UnityEngine.Debug.Log("OdinSerializer detected Android architecture '" + architecture + "' for determining unaligned read/write capabilities. Unaligned read/write support: all=" + Architecture_Supports_All_Unaligned_ReadWrites + ", float=" + Architecture_Supports_Unaligned_Float32_Reads + "");
-        }
+            // Old code for checking against actual architecture; this is obsolete, but left around for now in case we want to get more precise again later
+            // instead of the current blanket ban on unaligned read/writes on mobile.
 
-        internal static void SetIsNotOnAndroid()
-        {
-            if (Architecture_Supports_Unaligned_Float32_Reads)
-            {
-                Architecture_Supports_All_Unaligned_ReadWrites = true;
-            }
+            //if (!Architecture_Supports_Unaligned_Float32_Reads || architecture == "armv7l" || architecture == "armv7" || IntPtr.Size == 4)
+            //{
+            //    Architecture_Supports_All_Unaligned_ReadWrites = false;
+            //}
+            //else
+            //{
+            //    Architecture_Supports_All_Unaligned_ReadWrites = true;
+            //}
+
+            //UnityEngine.Debug.Log("OdinSerializer detected Android architecture '" + architecture + "' for determining unaligned read/write capabilities. Unaligned read/write support: all=" + Architecture_Supports_All_Unaligned_ReadWrites + ", float=" + Architecture_Supports_Unaligned_Float32_Reads + "");
         }
     }
 }
