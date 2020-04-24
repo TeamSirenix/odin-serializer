@@ -46,7 +46,7 @@ namespace OdinSerializer
     /// </summary>
     public static class UnitySerializationUtility
     {
-        private static readonly Type SerializeReferenceAttribute = typeof(SerializeField).Assembly.GetType("UnityEngine.SerializeReference");
+        public static readonly Type SerializeReferenceAttributeType = typeof(SerializeField).Assembly.GetType("UnityEngine.SerializeReference");
 
 #if UNITY_EDITOR        
         /// <summary>
@@ -245,7 +245,7 @@ namespace OdinSerializer
 
             try
             {
-                if (SerializeReferenceAttribute != null && member.IsDefined(SerializeReferenceAttribute, true))
+                if (SerializeReferenceAttributeType != null && member.IsDefined(SerializeReferenceAttributeType, true))
                 {
                     // Unity is serializing it as a polymorphic value
                     return false;
@@ -313,7 +313,7 @@ namespace OdinSerializer
                 return false;
             }
 
-            if (SerializeReferenceAttribute != null && fieldInfo.IsDefined(SerializeReferenceAttribute, true))
+            if (SerializeReferenceAttributeType != null && fieldInfo.IsDefined(SerializeReferenceAttributeType, true))
             {
                 return true;
             }
