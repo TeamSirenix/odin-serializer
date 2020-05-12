@@ -40,6 +40,8 @@ namespace OdinSerializer
 
     /// <summary>
     /// Provides an array of utility wrapper methods for easy serialization and deserialization of Unity objects of any type.
+    /// Note that, during serialization, it is always assumed that we are running on Unity's main thread. Deserialization can
+    /// happen on any thread, and all API's interacting with deserialization are thread-safe.
     /// <para />
     /// Note that setting the IndexReferenceResolver on contexts passed into methods on this class will have no effect, as it will always
     /// be set to a UnityReferenceResolver.
@@ -64,60 +66,83 @@ namespace OdinSerializer
         [NonSerialized]
         private static readonly Dictionary<UnityEngine.Object, List<PrefabModification>> RegisteredPrefabModifications = new Dictionary<UnityEngine.Object, List<PrefabModification>>(ReferenceEqualityComparer<UnityEngine.Object>.Default);
 
-        [NonSerialized]
-        private static readonly HashSet<UnityEngine.Object> PrefabsWithValuesApplied = new HashSet<UnityEngine.Object>(ReferenceEqualityComparer<UnityEngine.Object>.Default);
-
-        [NonSerialized]
-        private static readonly Dictionary<UnityEngine.Object, HashSet<object>> SceneObjectsToKeepOnApply = new Dictionary<UnityEngine.Object, HashSet<object>>(ReferenceEqualityComparer<UnityEngine.Object>.Default);
-
-        private static class SceneObjectsToKeepOnApplyUtility
+        private static class PrefabDeserializeUtility
         {
             private static int updateCount = 0;
 
-            static SceneObjectsToKeepOnApplyUtility()
+            [NonSerialized]
+            public static readonly HashSet<UnityEngine.Object> PrefabsWithValuesApplied = new HashSet<UnityEngine.Object>(ReferenceEqualityComparer<UnityEngine.Object>.Default);
+
+            [NonSerialized]
+            private static readonly Dictionary<UnityEngine.Object, HashSet<object>> SceneObjectsToKeepOnApply = new Dictionary<UnityEngine.Object, HashSet<object>>(ReferenceEqualityComparer<UnityEngine.Object>.Default);
+
+            [NonSerialized]
+            public static readonly object DeserializePrefabs_LOCK = new object();
+
+            private static readonly List<UnityEngine.Object> toRemove = new List<UnityEngine.Object>();
+
+            static PrefabDeserializeUtility()
             {
                 UnityEditor.EditorApplication.update += OnEditorUpdate;
             }
 
-            private static readonly List<UnityEngine.Object> toRemove = new List<UnityEngine.Object>();
-
-            public static void Clean()
+            /// <summary>
+            /// Note: it is assumed that code calling this is holding the DeserializePrefabCaches_LOCK lock, and will continue to hold it while the returned hashset is being modified
+            /// </summary>
+            public static HashSet<object> GetSceneObjectsToKeepSet(UnityEngine.Object unityObject, bool createIfDoesntExist)
             {
-                foreach (var obj in SceneObjectsToKeepOnApply.Keys)
+                HashSet<object> keep;
+
+                if (!SceneObjectsToKeepOnApply.TryGetValue(unityObject, out keep))
                 {
-                    if (obj == null)
+                    keep = new HashSet<object>(ReferenceEqualityComparer<object>.Default);
+                    SceneObjectsToKeepOnApply.Add(unityObject, keep);
+                }
+
+                return keep;
+            }
+
+            public static void CleanSceneObjectToKeepOnApply()
+            {
+                lock (DeserializePrefabs_LOCK)
+                {
+                    foreach (var obj in SceneObjectsToKeepOnApply.Keys)
                     {
-                        toRemove.Add(obj);
+                        if (obj == null)
+                        {
+                            toRemove.Add(obj);
+                        }
                     }
-                }
 
-                for (int i = 0; i < toRemove.Count; i++)
-                {
-                    SceneObjectsToKeepOnApply.Remove(toRemove[i]);
-                }
+                    for (int i = 0; i < toRemove.Count; i++)
+                    {
+                        SceneObjectsToKeepOnApply.Remove(toRemove[i]);
+                    }
 
-                toRemove.Clear();
+                    toRemove.Clear();
+                }
             }
 
             private static void OnEditorUpdate()
             {
-                updateCount++;
-
-                if (updateCount >= 1000)
+                lock (DeserializePrefabs_LOCK)
                 {
-                    SceneObjectsToKeepOnApply.Clear();
-                    updateCount = 0;
+                    updateCount++;
+
+                    if (updateCount >= 1000)
+                    {
+                        SceneObjectsToKeepOnApply.Clear();
+                        updateCount = 0;
+                    }
                 }
             }
         }
 
 #endif
 
-        private static readonly Dictionary<DataFormat, IDataReader> UnityReaders = new Dictionary<DataFormat, IDataReader>();
-        private static readonly Dictionary<DataFormat, IDataWriter> UnityWriters = new Dictionary<DataFormat, IDataWriter>();
+        // Note: Code that accesses any of these four caches should lock on the cache data structure itself
         private static readonly Dictionary<MemberInfo, WeakValueGetter> UnityMemberGetters = new Dictionary<MemberInfo, WeakValueGetter>();
         private static readonly Dictionary<MemberInfo, WeakValueSetter> UnityMemberSetters = new Dictionary<MemberInfo, WeakValueSetter>();
-
         private static readonly Dictionary<MemberInfo, bool> UnityWillSerializeMembersCache = new Dictionary<MemberInfo, bool>();
         private static readonly Dictionary<Type, bool> UnityWillSerializeTypesCache = new Dictionary<Type, bool>();
 
@@ -290,10 +315,13 @@ namespace OdinSerializer
 
             bool result;
 
-            if (!UnityWillSerializeMembersCache.TryGetValue(member, out result))
+            lock (UnityWillSerializeMembersCache)
             {
-                result = GuessIfUnityWillSerializePrivate(member);
-                UnityWillSerializeMembersCache[member] = result;
+                if (!UnityWillSerializeMembersCache.TryGetValue(member, out result))
+                {
+                    result = GuessIfUnityWillSerializePrivate(member);
+                    UnityWillSerializeMembersCache[member] = result;
+                }
             }
 
             return result;
@@ -352,10 +380,13 @@ namespace OdinSerializer
 
             bool result;
 
-            if (!UnityWillSerializeTypesCache.TryGetValue(type, out result))
+            lock (UnityWillSerializeTypesCache)
             {
-                result = GuessIfUnityWillSerializePrivate(type);
-                UnityWillSerializeTypesCache[type] = result;
+                if (!UnityWillSerializeTypesCache.TryGetValue(type, out result))
+                {
+                    result = GuessIfUnityWillSerializePrivate(type);
+                    UnityWillSerializeTypesCache[type] = result;
+                }
             }
 
             return result;
@@ -724,59 +755,55 @@ namespace OdinSerializer
                         // Now we determine the Unity object references to keep if this prefab instance is ever applied
                         if (data.Prefab != null) // It can still be "fake null", in which case, never mind
                         {
-                            SceneObjectsToKeepOnApplyUtility.Clean();
+                            PrefabDeserializeUtility.CleanSceneObjectToKeepOnApply();
 
-                            HashSet<object> keep;
-
-                            if (!SceneObjectsToKeepOnApply.TryGetValue(unityObject, out keep))
+                            lock (PrefabDeserializeUtility.DeserializePrefabs_LOCK)
                             {
-                                keep = new HashSet<object>(ReferenceEqualityComparer<object>.Default);
-                                SceneObjectsToKeepOnApply.Add(unityObject, keep);
-                            }
+                                HashSet<object> keep = PrefabDeserializeUtility.GetSceneObjectsToKeepSet(unityObject, true);
+                                keep.Clear();
 
-                            keep.Clear();
-
-                            if (data.PrefabModificationsReferencedUnityObjects != null && data.PrefabModificationsReferencedUnityObjects.Count > 0)
-                            {
-                                //var prefabRoot = UnityEditor.PrefabUtility.FindPrefabRoot(((Component)data.Prefab).gameObject);
-                                var instanceRoot = UnityEditor.PrefabUtility.FindPrefabRoot(((Component)unityObject).gameObject);
-
-                                foreach (var reference in data.PrefabModificationsReferencedUnityObjects)
+                                if (data.PrefabModificationsReferencedUnityObjects != null && data.PrefabModificationsReferencedUnityObjects.Count > 0)
                                 {
-                                    if (reference == null) continue;
-                                    if (!(reference is GameObject || reference is Component)) continue;
-                                    if (UnityEditor.AssetDatabase.Contains(reference)) continue;
+                                    //var prefabRoot = UnityEditor.PrefabUtility.FindPrefabRoot(((Component)data.Prefab).gameObject);
+                                    var instanceRoot = UnityEditor.PrefabUtility.FindPrefabRoot(((Component)unityObject).gameObject);
 
-                                    var referencePrefabType = UnityEditor.PrefabUtility.GetPrefabType(reference);
-
-                                    bool mightBeInPrefab = referencePrefabType == UnityEditor.PrefabType.Prefab
-                                                        || referencePrefabType == UnityEditor.PrefabType.PrefabInstance
-                                                        || referencePrefabType == UnityEditor.PrefabType.ModelPrefab
-                                                        || referencePrefabType == UnityEditor.PrefabType.ModelPrefabInstance;
-
-                                    if (!mightBeInPrefab)
+                                    foreach (var reference in data.PrefabModificationsReferencedUnityObjects)
                                     {
-                                        if (PrefabUtility_IsComponentAddedToPrefabInstance_MethodInfo != null)
+                                        if (reference == null) continue;
+                                        if (!(reference is GameObject || reference is Component)) continue;
+                                        if (UnityEditor.AssetDatabase.Contains(reference)) continue;
+
+                                        var referencePrefabType = UnityEditor.PrefabUtility.GetPrefabType(reference);
+
+                                        bool mightBeInPrefab = referencePrefabType == UnityEditor.PrefabType.Prefab
+                                                            || referencePrefabType == UnityEditor.PrefabType.PrefabInstance
+                                                            || referencePrefabType == UnityEditor.PrefabType.ModelPrefab
+                                                            || referencePrefabType == UnityEditor.PrefabType.ModelPrefabInstance;
+
+                                        if (!mightBeInPrefab)
                                         {
-                                            if (reference is Component && (bool)PrefabUtility_IsComponentAddedToPrefabInstance_MethodInfo.Invoke(null, new object[] { reference }))
+                                            if (PrefabUtility_IsComponentAddedToPrefabInstance_MethodInfo != null)
                                             {
-                                                mightBeInPrefab = true;
+                                                if (reference is Component && (bool)PrefabUtility_IsComponentAddedToPrefabInstance_MethodInfo.Invoke(null, new object[] { reference }))
+                                                {
+                                                    mightBeInPrefab = true;
+                                                }
                                             }
                                         }
-                                    }
 
-                                    if (!mightBeInPrefab)
-                                    {
-                                        keep.Add(reference);
-                                        continue;
-                                    }
+                                        if (!mightBeInPrefab)
+                                        {
+                                            keep.Add(reference);
+                                            continue;
+                                        }
 
-                                    var gameObject = (GameObject)(reference is GameObject ? reference : (reference as Component).gameObject);
-                                    var referenceRoot = UnityEditor.PrefabUtility.FindPrefabRoot(gameObject);
+                                        var gameObject = (GameObject)(reference is GameObject ? reference : (reference as Component).gameObject);
+                                        var referenceRoot = UnityEditor.PrefabUtility.FindPrefabRoot(gameObject);
 
-                                    if (referenceRoot != instanceRoot)
-                                    {
-                                        keep.Add(reference);
+                                        if (referenceRoot != instanceRoot)
+                                        {
+                                            keep.Add(reference);
+                                        }
                                     }
                                 }
                             }
@@ -1128,7 +1155,10 @@ namespace OdinSerializer
                 if (context != null)
                 {
                     context.IndexReferenceResolver = resolver.Value;
-                    SerializeUnityObject(unityObject, GetCachedUnityWriter(format, stream.Value.MemoryStream, context), serializeUnityFields);
+                    using (var writerCache = GetCachedUnityWriter(format, stream.Value.MemoryStream, context))
+                    {
+                        SerializeUnityObject(unityObject, writerCache.Value, serializeUnityFields);
+                    }
                 }
                 else
                 {
@@ -1161,7 +1191,10 @@ namespace OdinSerializer
 
                         con.Value.IndexReferenceResolver = resolver.Value;
 
-                        SerializeUnityObject(unityObject, GetCachedUnityWriter(format, stream.Value.MemoryStream, con), serializeUnityFields);
+                        using (var writerCache = GetCachedUnityWriter(format, stream.Value.MemoryStream, con))
+                        {
+                            SerializeUnityObject(unityObject, writerCache.Value, serializeUnityFields);
+                        }
                     }
                 }
 
@@ -1441,7 +1474,10 @@ namespace OdinSerializer
                                 // in that case as it makes no sense.
 
 #if UNITY_EDITOR
-                                PrefabsWithValuesApplied.Add(unityObject);
+                                lock (PrefabDeserializeUtility.DeserializePrefabs_LOCK)
+                                {
+                                    PrefabDeserializeUtility.PrefabsWithValuesApplied.Add(unityObject);
+                                }
 #endif
                             }
                             else
@@ -1450,46 +1486,49 @@ namespace OdinSerializer
                                 SerializationData prefabData = (data.Prefab as ISupportsPrefabSerialization).SerializationData;
 
 #if UNITY_EDITOR
-                                // Only perform this check in the editor, as we are never dealing with a prefab
-                                // instance outside of the editor - even if the serialized data is weird
-                                if (PrefabsWithValuesApplied.Contains(data.Prefab))
+                                lock (PrefabDeserializeUtility.DeserializePrefabs_LOCK)
                                 {
-                                    // Our prefab has had values applied; now to check if the object we're
-                                    // deserializing was the one to apply those values. If it is, then we
-                                    // have to wipe all of this object's prefab modifications clean.
-                                    //
-                                    // So far, the only way we know how to do that, is checking whether this
-                                    // object is currently selected.
-
-                                    if (IsCurrentlySelectedPrefabRoot(unityObject))
+                                    // Only perform this check in the editor, as we are never dealing with a prefab
+                                    // instance outside of the editor - even if the serialized data is weird
+                                    if (PrefabDeserializeUtility.PrefabsWithValuesApplied.Contains(data.Prefab))
                                     {
-                                        PrefabsWithValuesApplied.Remove(data.Prefab);
+                                        // Our prefab has had values applied; now to check if the object we're
+                                        // deserializing was the one to apply those values. If it is, then we
+                                        // have to wipe all of this object's prefab modifications clean.
+                                        //
+                                        // So far, the only way we know how to do that, is checking whether this
+                                        // object is currently selected.
 
-                                        List<PrefabModification> newModifications = null;
-                                        HashSet<object> keep;
+                                        if (PrefabSelectionTracker.IsCurrentlySelectedPrefabRoot(unityObject))
+                                        {
+                                            PrefabDeserializeUtility.PrefabsWithValuesApplied.Remove(data.Prefab);
 
-                                        if (data.PrefabModificationsReferencedUnityObjects.Count > 0 && SceneObjectsToKeepOnApply.TryGetValue(unityObject, out keep) && keep.Count > 0)
-                                        {
-                                            newModifications = DeserializePrefabModifications(data.PrefabModifications, data.PrefabModificationsReferencedUnityObjects);
-                                            newModifications.RemoveAll(n => object.ReferenceEquals(n.ModifiedValue, null) || !keep.Contains(n.ModifiedValue));
-                                        }
-                                        else
-                                        {
-                                            if (data.PrefabModifications != null)
+                                            List<PrefabModification> newModifications = null;
+                                            HashSet<object> keep = PrefabDeserializeUtility.GetSceneObjectsToKeepSet(unityObject, false);
+
+                                            if (data.PrefabModificationsReferencedUnityObjects.Count > 0 && keep != null && keep.Count > 0)
                                             {
-                                                data.PrefabModifications.Clear();
+                                                newModifications = DeserializePrefabModifications(data.PrefabModifications, data.PrefabModificationsReferencedUnityObjects);
+                                                newModifications.RemoveAll(n => object.ReferenceEquals(n.ModifiedValue, null) || !keep.Contains(n.ModifiedValue));
+                                            }
+                                            else
+                                            {
+                                                if (data.PrefabModifications != null)
+                                                {
+                                                    data.PrefabModifications.Clear();
+                                                }
+
+                                                if (data.PrefabModificationsReferencedUnityObjects != null)
+                                                {
+                                                    data.PrefabModificationsReferencedUnityObjects.Clear();
+                                                }
                                             }
 
-                                            if (data.PrefabModificationsReferencedUnityObjects != null)
-                                            {
-                                                data.PrefabModificationsReferencedUnityObjects.Clear();
-                                            }
+                                            newModifications = newModifications ?? new List<PrefabModification>();
+                                            PrefabModificationCache.CachePrefabModifications(unityObject, newModifications);
+
+                                            RegisterPrefabModificationsChange(unityObject, newModifications);
                                         }
-
-                                        newModifications = newModifications ?? new List<PrefabModification>();
-                                        PrefabModificationCache.CachePrefabModifications(unityObject, newModifications);
-
-                                        RegisterPrefabModificationsChange(unityObject, newModifications);
                                     }
                                 }
 #endif
@@ -1634,7 +1673,11 @@ namespace OdinSerializer
                 if (context != null)
                 {
                     context.IndexReferenceResolver = resolver.Value;
-                    DeserializeUnityObject(unityObject, GetCachedUnityReader(format, stream.Value.MemoryStream, context));
+
+                    using (var readerCache = GetCachedUnityReader(format, stream.Value.MemoryStream, context))
+                    {
+                        DeserializeUnityObject(unityObject, readerCache.Value);
+                    }
                 }
                 else
                 {
@@ -1667,7 +1710,10 @@ namespace OdinSerializer
 
                         con.Value.IndexReferenceResolver = resolver.Value;
 
-                        DeserializeUnityObject(unityObject, GetCachedUnityReader(format, stream.Value.MemoryStream, con));
+                        using (var readerCache = GetCachedUnityReader(format, stream.Value.MemoryStream, con))
+                        {
+                            DeserializeUnityObject(unityObject, readerCache.Value);
+                        }
                     }
                 }
             }
@@ -1888,9 +1934,13 @@ namespace OdinSerializer
 
             using (var context = Cache<SerializationContext>.Claim())
             using (var stream = CachedMemoryStream.Claim())
-            using (var writer = (JsonDataWriter)GetCachedUnityWriter(DataFormat.JSON, stream.Value.MemoryStream, context))
+            using (var writerCache = Cache<JsonDataWriter>.Claim())
             using (var resolver = Cache<UnityReferenceResolver>.Claim())
             {
+                var writer = writerCache.Value;
+
+                writer.Context = context;
+                writer.Stream = stream.Value.MemoryStream;
                 writer.PrepareNewSerializationSession();
                 writer.FormatAsReadable = false;
                 writer.EnableTypeOptimization = false;
@@ -1991,10 +2041,15 @@ namespace OdinSerializer
 
             using (var context = Cache<DeserializationContext>.Claim())
             using (var streamCache = CachedMemoryStream.Claim(longestByteCount))
-            using (var reader = (JsonDataReader)GetCachedUnityReader(DataFormat.JSON, streamCache.Value.MemoryStream, context))
+            using (var readerCache = Cache<JsonDataReader>.Claim())// GetCachedUnityReader(DataFormat.JSON, streamCache.Value.MemoryStream, context))
             using (var resolver = Cache<UnityReferenceResolver>.Claim())
             {
                 var stream = streamCache.Value.MemoryStream;
+                var reader = readerCache.Value;
+
+                reader.Context = context;
+                reader.Stream = stream;
+
                 resolver.Value.SetReferencedUnityObjects(referencedUnityObjects);
                 reader.Context.IndexReferenceResolver = resolver.Value;
 
@@ -2287,110 +2342,170 @@ namespace OdinSerializer
 
         private static WeakValueGetter GetCachedUnityMemberGetter(MemberInfo member)
         {
-            WeakValueGetter result;
-
-            if (UnityMemberGetters.TryGetValue(member, out result) == false)
+            lock (UnityMemberGetters)
             {
-                if (member is FieldInfo)
+                WeakValueGetter result;
+
+                if (UnityMemberGetters.TryGetValue(member, out result) == false)
                 {
-                    result = EmitUtilities.CreateWeakInstanceFieldGetter(member.DeclaringType, member as FieldInfo);
-                }
-                else if (member is PropertyInfo)
-                {
-                    result = EmitUtilities.CreateWeakInstancePropertyGetter(member.DeclaringType, member as PropertyInfo);
-                }
-                else
-                {
-                    result = delegate (ref object instance)
+                    if (member is FieldInfo)
                     {
-                        return FormatterUtilities.GetMemberValue(member, instance);
-                    };
+                        result = EmitUtilities.CreateWeakInstanceFieldGetter(member.DeclaringType, member as FieldInfo);
+                    }
+                    else if (member is PropertyInfo)
+                    {
+                        result = EmitUtilities.CreateWeakInstancePropertyGetter(member.DeclaringType, member as PropertyInfo);
+                    }
+                    else
+                    {
+                        result = delegate (ref object instance)
+                        {
+                            return FormatterUtilities.GetMemberValue(member, instance);
+                        };
+                    }
+
+                    UnityMemberGetters.Add(member, result);
                 }
 
-                UnityMemberGetters.Add(member, result);
+                return result;
             }
-
-            return result;
         }
 
         private static WeakValueSetter GetCachedUnityMemberSetter(MemberInfo member)
         {
-            WeakValueSetter result;
-
-            if (UnityMemberSetters.TryGetValue(member, out result) == false)
+            lock (UnityMemberSetters)
             {
-                if (member is FieldInfo)
+                WeakValueSetter result;
+
+                if (UnityMemberSetters.TryGetValue(member, out result) == false)
                 {
-                    result = EmitUtilities.CreateWeakInstanceFieldSetter(member.DeclaringType, member as FieldInfo);
-                }
-                else if (member is PropertyInfo)
-                {
-                    result = EmitUtilities.CreateWeakInstancePropertySetter(member.DeclaringType, member as PropertyInfo);
-                }
-                else
-                {
-                    result = delegate (ref object instance, object value)
+                    if (member is FieldInfo)
                     {
-                        FormatterUtilities.SetMemberValue(member, instance, value);
-                    };
+                        result = EmitUtilities.CreateWeakInstanceFieldSetter(member.DeclaringType, member as FieldInfo);
+                    }
+                    else if (member is PropertyInfo)
+                    {
+                        result = EmitUtilities.CreateWeakInstancePropertySetter(member.DeclaringType, member as PropertyInfo);
+                    }
+                    else
+                    {
+                        result = delegate (ref object instance, object value)
+                        {
+                            FormatterUtilities.SetMemberValue(member, instance, value);
+                        };
+                    }
+
+                    UnityMemberSetters.Add(member, result);
                 }
 
-                UnityMemberSetters.Add(member, result);
+                return result;
             }
-
-            return result;
         }
 
-        private static IDataWriter GetCachedUnityWriter(DataFormat format, Stream stream, SerializationContext context)
+        private static ICache<IDataWriter> GetCachedUnityWriter(DataFormat format, Stream stream, SerializationContext context)
         {
-            IDataWriter writer;
+            ICache<IDataWriter> cache;
 
-            if (UnityWriters.TryGetValue(format, out writer) == false)
+            switch (format)
             {
-                writer = SerializationUtility.CreateWriter(stream, context, format);
-                UnityWriters.Add(format, writer);
+                case DataFormat.Binary:
+                    {
+                        var c = Cache<BinaryDataWriter>.Claim();
+                        c.Value.Stream = stream;
+                        cache = c;
+                    }
+                    break;
+                case DataFormat.JSON:
+                    {
+                        var c = Cache<JsonDataWriter>.Claim();
+                        c.Value.Stream = stream;
+                        cache = c;
+                    }
+                    break;
+                case DataFormat.Nodes:
+                    throw new InvalidOperationException("Don't do this for nodes!");
+                default:
+                    throw new NotImplementedException(format.ToString());
             }
-            else
-            {
-                writer.Context = context;
 
-                if (writer is BinaryDataWriter)
-                {
-                    (writer as BinaryDataWriter).Stream = stream;
-                }
-                else if (writer is JsonDataWriter)
-                {
-                    (writer as JsonDataWriter).Stream = stream;
-                }
-            }
+            cache.Value.Context = context;
 
-            return writer;
+            return cache;
+
+            //IDataWriter writer;
+
+            //if (UnityWriters.TryGetValue(format, out writer) == false)
+            //{
+            //    writer = SerializationUtility.CreateWriter(stream, context, format);
+            //    UnityWriters.Add(format, writer);
+            //}
+            //else
+            //{
+            //    writer.Context = context;
+
+            //    if (writer is BinaryDataWriter)
+            //    {
+            //        (writer as BinaryDataWriter).Stream = stream;
+            //    }
+            //    else if (writer is JsonDataWriter)
+            //    {
+            //        (writer as JsonDataWriter).Stream = stream;
+            //    }
+            //}
+
+            //return writer;
         }
 
-        private static IDataReader GetCachedUnityReader(DataFormat format, Stream stream, DeserializationContext context)
+        private static ICache<IDataReader> GetCachedUnityReader(DataFormat format, Stream stream, DeserializationContext context)
         {
-            IDataReader reader;
+            ICache<IDataReader> cache;
 
-            if (UnityReaders.TryGetValue(format, out reader) == false)
+            switch (format)
             {
-                reader = SerializationUtility.CreateReader(stream, context, format);
-                UnityReaders.Add(format, reader);
+                case DataFormat.Binary:
+                    {
+                        var c = Cache<BinaryDataReader>.Claim();
+                        c.Value.Stream = stream;
+                        cache = c;
+                    }
+                    break;
+                case DataFormat.JSON:
+                    {
+                        var c = Cache<JsonDataReader>.Claim();
+                        c.Value.Stream = stream;
+                        cache = c;
+                    }
+                    break;
+                case DataFormat.Nodes:
+                    throw new InvalidOperationException("Don't do this for nodes!");
+                default:
+                    throw new NotImplementedException(format.ToString());
             }
-            else
-            {
-                reader.Context = context;
 
-                if (reader is BinaryDataReader)
-                {
-                    (reader as BinaryDataReader).Stream = stream;
-                }
-                else if (reader is JsonDataReader)
-                {
-                    (reader as JsonDataReader).Stream = stream;
-                }
-            }
+            cache.Value.Context = context;
 
-            return reader;
+            return cache;
+
+            //if (UnityReaders.TryGetValue(format, out reader) == false)
+            //{
+            //    reader = SerializationUtility.CreateReader(stream, context, format);
+            //    UnityReaders.Add(format, reader);
+            //}
+            //else
+            //{
+            //    reader.Context = context;
+
+            //    if (reader is BinaryDataReader)
+            //    {
+            //        (reader as BinaryDataReader).Stream = stream;
+            //    }
+            //    else if (reader is JsonDataReader)
+            //    {
+            //        (reader as JsonDataReader).Stream = stream;
+            //    }
+            //}
+
+            //return reader;
         }
 
 #if UNITY_EDITOR
@@ -2398,36 +2513,72 @@ namespace OdinSerializer
         [UnityEditor.InitializeOnLoad]
         private static class PrefabSelectionTracker
         {
-            public static HashSet<UnityEngine.Object> SelectedPrefabObjects { get; private set; }
+            private static readonly object LOCK = new object();
+            private static readonly HashSet<UnityEngine.Object> selectedPrefabObjects;
 
             static PrefabSelectionTracker()
             {
-                SelectedPrefabObjects = new HashSet<UnityEngine.Object>(ReferenceEqualityComparer<UnityEngine.Object>.Default);
+                selectedPrefabObjects = new HashSet<UnityEngine.Object>(ReferenceEqualityComparer<UnityEngine.Object>.Default);
                 UnityEditor.Selection.selectionChanged += OnSelectionChanged;
                 OnSelectionChanged();
             }
 
+            public static bool IsCurrentlySelectedPrefabRoot(UnityEngine.Object obj)
+            {
+                lock (LOCK)
+                {
+                    return selectedPrefabObjects.Contains(obj);
+                }
+
+                //var component = obj as Component;
+
+                //if (object.ReferenceEquals(component, null))
+                //{
+                //    Debug.LogError("A non-component type Unity object (type '" + obj.GetType() + "') is acting like a prefab. What?", obj);
+                //    return false;
+                //}
+
+                //var prefabRoot = UnityEditor.PrefabUtility.FindPrefabRoot(component.gameObject);
+
+                //return prefabRoot != null && PrefabSelectionTracker.SelectedPrefabRoots.Contains(prefabRoot);
+
+                //var selectedObjects = PrefabSelectionTracker.SelectedPrefabRoots;
+
+                //for (int i = 0; i < selectedObjects.Count; i++)
+                //{
+                //    if (object.ReferenceEquals(obj, selectedObjects[i]))
+                //    {
+                //        return true;
+                //    }
+                //}
+
+                //return false;
+            }
+
             private static void OnSelectionChanged()
             {
-                SelectedPrefabObjects.Clear();
-
-                var rootPrefabs = UnityEditor.Selection.objects
-                    .Where(n =>
-                    {
-                        if (!(n is GameObject)) return false;
-
-                        var prefabType = UnityEditor.PrefabUtility.GetPrefabType(n);
-                        return prefabType == UnityEditor.PrefabType.Prefab
-                            || prefabType == UnityEditor.PrefabType.ModelPrefab
-                            || prefabType == UnityEditor.PrefabType.PrefabInstance
-                            || prefabType == UnityEditor.PrefabType.ModelPrefabInstance;
-                    })
-                    .Select(n => UnityEditor.PrefabUtility.FindPrefabRoot((GameObject)n))
-                    .Distinct();
-
-                foreach (var root in rootPrefabs)
+                lock (LOCK)
                 {
-                    RegisterRecursive(root);
+                    selectedPrefabObjects.Clear();
+
+                    var rootPrefabs = UnityEditor.Selection.objects
+                        .Where(n =>
+                        {
+                            if (!(n is GameObject)) return false;
+
+                            var prefabType = UnityEditor.PrefabUtility.GetPrefabType(n);
+                            return prefabType == UnityEditor.PrefabType.Prefab
+                                || prefabType == UnityEditor.PrefabType.ModelPrefab
+                                || prefabType == UnityEditor.PrefabType.PrefabInstance
+                                || prefabType == UnityEditor.PrefabType.ModelPrefabInstance;
+                        })
+                        .Select(n => UnityEditor.PrefabUtility.FindPrefabRoot((GameObject)n))
+                        .Distinct();
+
+                    foreach (var root in rootPrefabs)
+                    {
+                        RegisterRecursive(root);
+                    }
                 }
                 //SelectedPrefabRoots.AddRange(selection);
 
@@ -2446,13 +2597,13 @@ namespace OdinSerializer
 
             private static void RegisterRecursive(GameObject go)
             {
-                SelectedPrefabObjects.Add(go);
+                selectedPrefabObjects.Add(go);
 
                 var components = go.GetComponents<Component>();
 
                 for (int i = 0; i < components.Length; i++)
                 {
-                    SelectedPrefabObjects.Add(components[i]);
+                    selectedPrefabObjects.Add(components[i]);
                 }
 
                 var transform = go.transform;
@@ -2465,111 +2616,87 @@ namespace OdinSerializer
             }
         }
 
-        private static bool IsCurrentlySelectedPrefabRoot(UnityEngine.Object obj)
-        {
-            return PrefabSelectionTracker.SelectedPrefabObjects.Contains(obj);
-            //var component = obj as Component;
-
-            //if (object.ReferenceEquals(component, null))
-            //{
-            //    Debug.LogError("A non-component type Unity object (type '" + obj.GetType() + "') is acting like a prefab. What?", obj);
-            //    return false;
-            //}
-
-            //var prefabRoot = UnityEditor.PrefabUtility.FindPrefabRoot(component.gameObject);
-
-            //return prefabRoot != null && PrefabSelectionTracker.SelectedPrefabRoots.Contains(prefabRoot);
-
-            //var selectedObjects = PrefabSelectionTracker.SelectedPrefabRoots;
-
-            //for (int i = 0; i < selectedObjects.Count; i++)
-            //{
-            //    if (object.ReferenceEquals(obj, selectedObjects[i]))
-            //    {
-            //        return true;
-            //    }
-            //}
-
-            //return false;
-        }
 
         public static class PrefabModificationCache
         {
             private static readonly Dictionary<object, List<PrefabModification>> CachedDeserializedModifications = new Dictionary<object, List<PrefabModification>>(ReferenceEqualityComparer<object>.Default);
             private static readonly Dictionary<object, int> CachedDeserializedModificationTimes = new Dictionary<object, int>(ReferenceEqualityComparer<object>.Default);
 
-            private static readonly object Prune_LOCK = new object();
+            private static readonly object Caches_LOCK = new object();
 
             private static int counter = 0;
 
             public static List<PrefabModification> DeserializePrefabModificationsCached(UnityEngine.Object obj, List<string> modifications, List<UnityEngine.Object> referencedUnityObjects)
             {
-                List<PrefabModification> result;
-
-                if (!CachedDeserializedModifications.TryGetValue(obj, out result))
+                lock (Caches_LOCK)
                 {
-                    result = DeserializePrefabModifications(modifications, referencedUnityObjects);
-                    CachedDeserializedModifications.Add(obj, result);
+                    List<PrefabModification> result;
+
+                    if (!CachedDeserializedModifications.TryGetValue(obj, out result))
+                    {
+                        result = DeserializePrefabModifications(modifications, referencedUnityObjects);
+                        CachedDeserializedModifications.Add(obj, result);
+                    }
+
+                    CachedDeserializedModificationTimes[obj] = ++counter;
+                    PrunePrefabModificationsCache();
+
+                    return result;
                 }
-
-                CachedDeserializedModificationTimes[obj] = ++counter;
-                PrunePrefabModificationsCache();
-
-                return result;
             }
 
             public static void CachePrefabModifications(UnityEngine.Object obj, List<PrefabModification> modifications)
             {
-                CachedDeserializedModifications[obj] = modifications;
-                CachedDeserializedModificationTimes[obj] = ++counter;
-                PrunePrefabModificationsCache();
+                lock (Caches_LOCK)
+                {
+                    CachedDeserializedModifications[obj] = modifications;
+                    CachedDeserializedModificationTimes[obj] = ++counter;
+                    PrunePrefabModificationsCache();
+                }
             }
 
             private static void PrunePrefabModificationsCache()
             {
                 const int CACHE_SIZE = 10;
 
-                lock (Prune_LOCK)
+                if (CachedDeserializedModifications.Count != CachedDeserializedModificationTimes.Count)
                 {
-                    if (CachedDeserializedModifications.Count != CachedDeserializedModificationTimes.Count)
+                    CachedDeserializedModifications.Clear();
+                    CachedDeserializedModificationTimes.Clear();
+                }
+
+                // Once, this was a 'while count > CACHE_SIZE' loop, but in certain cases that can infinite loop
+                //   so now it's a simpler and harder-to-break for loop with extra debugging clauses in the body.
+                int removeCount = CachedDeserializedModificationTimes.Count - CACHE_SIZE;
+                    
+                for (int i = 0; i < removeCount; i++)
+                {
+                    object lowestObj = null;
+                    int lowestTime = int.MaxValue;
+
+                    foreach (var pair in CachedDeserializedModificationTimes)
                     {
-                        CachedDeserializedModifications.Clear();
-                        CachedDeserializedModificationTimes.Clear();
+                        if (pair.Value < lowestTime)
+                        {
+                            lowestObj = pair.Key;
+                            lowestTime = pair.Value;
+                        }
                     }
 
-                    // Once, this was a 'while count > CACHE_SIZE' loop, but in certain cases that can infinite loop
-                    //   so now it's a simpler and harder-to-break for loop with extra debugging clauses in the body.
-                    int removeCount = CachedDeserializedModificationTimes.Count - CACHE_SIZE;
-                    
-                    for (int i = 0; i < removeCount; i++)
+                    CachedDeserializedModifications.Remove(lowestObj);
+                    if (!CachedDeserializedModificationTimes.Remove(lowestObj))
                     {
-                        object lowestObj = null;
-                        int lowestTime = int.MaxValue;
+                        Debug.LogError("A Unity object instance of type '" + lowestObj.GetType().GetNiceName() + "' has likely become corrupt or destroyed somehow, yet deserialization has been invoked for it. If you're in the editor, you can click this log message to attempt to highlight the object. (It probably won't work, but there's a chance. If the highlighting doesn't work, the object instance is so broken that Odin cannot give you any more info about it than this message contains. Good luck!)", lowestObj as UnityEngine.Object);
 
-                        foreach (var pair in CachedDeserializedModificationTimes)
-                        {
-                            if (pair.Value < lowestTime)
-                            {
-                                lowestObj = pair.Key;
-                                lowestTime = pair.Value;
-                            }
-                        }
+                        // There are bad keys in the dictionaries; we have to clear them and just rebuild the cache.
+                        // This theory isn't confirmed, but it's probably because UnityEngine.Object.GetHashCode() 
+                        //   returns inconsistent results/changes for destroyed objects.
+                        // 
+                        // If we don't clear the dictionaries, we will never be able to remove the bad keys. In olden
+                        //   days, this was the cause of infinite looping.
 
-                        CachedDeserializedModifications.Remove(lowestObj);
-                        if (!CachedDeserializedModificationTimes.Remove(lowestObj))
-                        {
-                            Debug.LogError("A Unity object instance of type '" + lowestObj.GetType().GetNiceName() + "' has likely become corrupt or destroyed somehow, yet deserialization has been invoked for it. If you're in the editor, you can click this log message to attempt to highlight the object. (It probably won't work, but there's a chance. If the highlighting doesn't work, the object instance is so broken that Odin cannot give you any more info about it than this message contains. Good luck!)", lowestObj as UnityEngine.Object);
-
-                            // There are bad keys in the dictionaries; we have to clear them and just rebuild the cache.
-                            // This theory isn't confirmed, but it's probably because UnityEngine.Object.GetHashCode() 
-                            //   returns inconsistent results/changes for destroyed objects.
-                            // 
-                            // If we don't clear the dictionaries, we will never be able to remove the bad keys. In olden
-                            //   days, this was the cause of infinite looping.
-
-                            CachedDeserializedModifications.Clear();
-                            CachedDeserializedModificationTimes.Clear();
-                        }
+                        CachedDeserializedModifications.Clear();
+                        CachedDeserializedModificationTimes.Clear();
                     }
                 }
             }
