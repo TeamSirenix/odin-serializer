@@ -31,6 +31,10 @@ namespace OdinSerializer.Utilities
     /// </summary>
     public static class TypeExtensions
     {
+        private static readonly Func<float, float, bool> FloatEqualityComparerFunc = FloatEqualityComparer;
+        private static readonly Func<double, double, bool> DoubleEqualityComparerFunc = DoubleEqualityComparer;
+        private static readonly Func<Quaternion, Quaternion, bool> QuaternionEqualityComparerFunc = QuaternionEqualityComparer;
+
         private static readonly object GenericConstraintsSatisfaction_LOCK = new object();
         private static readonly Dictionary<Type, Type> GenericConstraintsSatisfactionInferredParameters = new Dictionary<Type, Type>();
         private static readonly Dictionary<Type, Type> GenericConstraintsSatisfactionResolvedMap = new Dictionary<Type, Type>();
@@ -503,6 +507,23 @@ namespace OdinSerializer.Utilities
             return null;
         }
 
+        private static bool FloatEqualityComparer(float a, float b)
+        {
+            if (float.IsNaN(a) && float.IsNaN(b)) return true;
+            return a == b;
+        }
+
+        private static bool DoubleEqualityComparer(double a, double b)
+        {
+            if (double.IsNaN(a) && double.IsNaN(b)) return true;
+            return a == b;
+        }
+
+        private static bool QuaternionEqualityComparer(Quaternion a, Quaternion b)
+        {
+            return a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w;
+        }
+
         /// <summary>
         /// Gets an equality comparer delegate used to compare the equality of values of a given type. In order, this will be:
         ///
@@ -513,9 +534,17 @@ namespace OdinSerializer.Utilities
         /// <remarks>
         /// <para>Note that in the special case of the type <see cref="UnityEngine.Quaternion"/>, a special equality comparer is returned that only checks whether all the Quaternion components are equal.</para>
         /// <para>This is because, by default, Quaternion's equality operator is broken when operating on invalid quaternions; "default(Quaternion) == default(Quaternion)" evaluates to false, and this causes a multitude of problems.</para>
+        /// <para>Special delegates are also returned for float and double, that consider float.NaN to be equal to float.NaN, and double.NaN to be equal to double.NaN.</para>
         /// </remarks>
         public static Func<T, T, bool> GetEqualityComparerDelegate<T>()
         {
+            if (typeof(T) == typeof(float))
+                return (Func<T, T, bool>)(object)FloatEqualityComparerFunc;
+            else if (typeof(T) == typeof(double))
+                return (Func<T, T, bool>)(object)DoubleEqualityComparerFunc;
+            else if (typeof(T) == typeof(Quaternion))
+                return (Func<T, T, bool>)(object)QuaternionEqualityComparerFunc;
+
             Func<T, T, bool> result = null;
             MethodInfo equalityMethod;
 
@@ -557,15 +586,7 @@ namespace OdinSerializer.Utilities
 
                     if (equalityMethod != null)
                     {
-                        if (typeof(T) == typeof(Quaternion))
-                        {
-                            //Func<Quaternion, Quaternion, bool> equalityOp = (Func<Quaternion, Quaternion, bool>)Delegate.CreateDelegate(typeof(Func<Quaternion, Quaternion, bool>), equalityMethod, true);
-                            result = (Func<T, T, bool>)(object)(Func<Quaternion, Quaternion, bool>)((a, b) => /*equalityOp(a, b) ||*/ (a.x == b.x && a.y == b.y && a.z == b.z && a.w == b.w));
-                        }
-                        else
-                        {
-                            result = (Func<T, T, bool>)Delegate.CreateDelegate(typeof(Func<T, T, bool>), equalityMethod, true);
-                        }
+                        result = (Func<T, T, bool>)Delegate.CreateDelegate(typeof(Func<T, T, bool>), equalityMethod, true);
                         break;
                     }
 
