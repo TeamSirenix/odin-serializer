@@ -1157,7 +1157,7 @@ namespace OdinSerializer
                     context.IndexReferenceResolver = resolver.Value;
                     using (var writerCache = GetCachedUnityWriter(format, stream.Value.MemoryStream, context))
                     {
-                        SerializeUnityObject(unityObject, writerCache.Value, serializeUnityFields);
+                        SerializeUnityObject(unityObject, writerCache.Value as IDataWriter, serializeUnityFields);
                     }
                 }
                 else
@@ -1193,7 +1193,7 @@ namespace OdinSerializer
 
                         using (var writerCache = GetCachedUnityWriter(format, stream.Value.MemoryStream, con))
                         {
-                            SerializeUnityObject(unityObject, writerCache.Value, serializeUnityFields);
+                            SerializeUnityObject(unityObject, writerCache.Value as IDataWriter, serializeUnityFields);
                         }
                     }
                 }
@@ -1676,7 +1676,7 @@ namespace OdinSerializer
 
                     using (var readerCache = GetCachedUnityReader(format, stream.Value.MemoryStream, context))
                     {
-                        DeserializeUnityObject(unityObject, readerCache.Value);
+                        DeserializeUnityObject(unityObject, readerCache.Value as IDataReader);
                     }
                 }
                 else
@@ -1712,7 +1712,7 @@ namespace OdinSerializer
 
                         using (var readerCache = GetCachedUnityReader(format, stream.Value.MemoryStream, con))
                         {
-                            DeserializeUnityObject(unityObject, readerCache.Value);
+                            DeserializeUnityObject(unityObject, readerCache.Value as IDataReader);
                         }
                     }
                 }
@@ -2402,9 +2402,9 @@ namespace OdinSerializer
             }
         }
 
-        private static ICache<IDataWriter> GetCachedUnityWriter(DataFormat format, Stream stream, SerializationContext context)
+        private static ICache GetCachedUnityWriter(DataFormat format, Stream stream, SerializationContext context)
         {
-            ICache<IDataWriter> cache;
+            ICache cache;
 
             switch (format)
             {
@@ -2428,7 +2428,7 @@ namespace OdinSerializer
                     throw new NotImplementedException(format.ToString());
             }
 
-            cache.Value.Context = context;
+            (cache.Value as IDataWriter).Context = context;
 
             return cache;
 
@@ -2456,9 +2456,9 @@ namespace OdinSerializer
             //return writer;
         }
 
-        private static ICache<IDataReader> GetCachedUnityReader(DataFormat format, Stream stream, DeserializationContext context)
+        private static ICache GetCachedUnityReader(DataFormat format, Stream stream, DeserializationContext context)
         {
-            ICache<IDataReader> cache;
+            ICache cache;
 
             switch (format)
             {
@@ -2482,7 +2482,7 @@ namespace OdinSerializer
                     throw new NotImplementedException(format.ToString());
             }
 
-            cache.Value.Context = context;
+            (cache.Value as IDataReader).Context = context;
 
             return cache;
 

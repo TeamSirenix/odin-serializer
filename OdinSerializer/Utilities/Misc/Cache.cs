@@ -21,9 +21,9 @@ namespace OdinSerializer.Utilities
     using System;
     using System.Threading;
 
-    public interface ICache<out T> : IDisposable
+    public interface ICache : IDisposable
     {
-        T Value { get; }
+        object Value { get; }
     }
 
     /// <summary>
@@ -37,7 +37,7 @@ namespace OdinSerializer.Utilities
     /// </summary>
     /// <typeparam name="T">The type which is cached.</typeparam>
     /// <seealso cref="System.IDisposable" />
-    public sealed class Cache<T> : ICache<T> where T : class, new()
+    public sealed class Cache<T> : ICache where T : class, new()
     {
         private static readonly bool IsNotificationReceiver = typeof(ICacheNotificationReceiver).IsAssignableFrom(typeof(T));
         private static object[] FreeValues = new object[4];
@@ -86,7 +86,7 @@ namespace OdinSerializer.Utilities
         /// </value>
         public bool IsFree { get { return this.isFree; } }
 
-        T ICache<T>.Value { get { return this.Value; } }
+        object ICache.Value { get { return this.Value; } }
 
         /// <summary>
         /// Claims a cached value of type <see cref="T"/>.
