@@ -36,6 +36,8 @@ namespace OdinSerializer.Editor
         private bool scanning;
         private bool allowRegisteringScannedTypes;
         private HashSet<Type> seenSerializedTypes = new HashSet<Type>();
+        private HashSet<string> scannedPathsNoDependencies = new HashSet<string>();
+        private HashSet<string> scannedPathsWithDependencies = new HashSet<string>();
 
         private static System.Diagnostics.Stopwatch smartProgressBarWatch = System.Diagnostics.Stopwatch.StartNew();
         private static int smartProgressBarDisplaysSinceLastUpdate = 0;
@@ -49,6 +51,8 @@ namespace OdinSerializer.Editor
             allowRegisteringScannedTypes = false;
 
             this.seenSerializedTypes.Clear();
+            this.scannedPathsNoDependencies.Clear();
+            this.scannedPathsWithDependencies.Clear();
 
             FormatterLocator.OnLocatedEmittableFormatterForType += this.OnLocatedEmitType;
             FormatterLocator.OnLocatedFormatter += this.OnLocatedFormatter;
@@ -542,6 +546,20 @@ namespace OdinSerializer.Editor
 
         public bool ScanAsset(string assetPath, bool includeAssetDependencies)
         {
+            if (includeAssetDependencies)
+            {
+                if (this.scannedPathsWithDependencies.Contains(assetPath)) return true; // Already scanned this asset
+
+                this.scannedPathsWithDependencies.Add(assetPath);
+                this.scannedPathsNoDependencies.Add(assetPath);
+            }
+            else
+            {
+                if (this.scannedPathsNoDependencies.Contains(assetPath)) return true; // Already scanned this asset
+
+                this.scannedPathsNoDependencies.Add(assetPath);
+            }
+
             if (assetPath.EndsWith(".unity"))
             {
                 return this.ScanScenes(new string[] { assetPath }, includeAssetDependencies, false);
@@ -549,7 +567,7 @@ namespace OdinSerializer.Editor
 
             if (!(assetPath.EndsWith(".asset") || assetPath.EndsWith(".prefab")))
             {
-                // ScanAsset can only scan .asset and .prefab assets.
+                // ScanAsset can only scan .unity, .asset and .prefab assets.
                 return false;
             }
 
