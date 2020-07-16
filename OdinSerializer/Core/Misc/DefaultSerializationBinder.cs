@@ -92,7 +92,15 @@ namespace OdinSerializer
         {
             AppDomain.CurrentDomain.AssemblyLoad += (sender, args) =>
             {
-                RegisterAssembly(args.LoadedAssembly);
+                Assembly assembly;
+
+                try
+                {
+                    assembly = args.LoadedAssembly;
+                }
+                catch { return; } // Assembly is invalid, likely causing a type load or bad image format exception of some sort
+
+                RegisterAssembly(assembly);
             };
 
             foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
@@ -103,7 +111,13 @@ namespace OdinSerializer
 
         private static void RegisterAssembly(Assembly assembly)
         {
-            var name = assembly.GetName().Name;
+            string name;
+
+            try
+            {
+                name = assembly.GetName().Name;
+            }
+            catch { return; } // Assembly is invalid somehow
 
             bool wasAdded = false;
 
