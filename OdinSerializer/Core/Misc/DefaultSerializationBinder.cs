@@ -88,25 +88,88 @@ namespace OdinSerializer
         private static readonly List<string> genericArgNamesList = new List<string>();
         private static readonly List<Type> genericArgTypesList = new List<Type>();
 
+        private static readonly object ASSEMBLY_REGISTER_QUEUE_LOCK = new object();
+        private static readonly List<Assembly> assembliesQueuedForRegister = new List<Assembly>();
+        private static readonly List<AssemblyLoadEventArgs> assemblyLoadEventsQueuedForRegister = new List<AssemblyLoadEventArgs>();
+
         static DefaultSerializationBinder()
         {
             AppDomain.CurrentDomain.AssemblyLoad += (sender, args) =>
             {
+                lock (ASSEMBLY_REGISTER_QUEUE_LOCK)
+                {
+                    assemblyLoadEventsQueuedForRegister.Add(args);
+                }
+            };
+
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                lock (ASSEMBLY_REGISTER_QUEUE_LOCK)
+                {
+                    assembliesQueuedForRegister.Add(assembly);
+                }
+            }
+        }
+
+        private static void RegisterAllQueuedAssembliesRepeating()
+        {
+            while (RegisterQueuedAssemblies()) { }
+            while (RegisterQueuedAssemblyLoadEvents()) { }
+        }
+
+        private static bool RegisterQueuedAssemblies()
+        {
+            Assembly[] toRegister = null;
+
+            lock (ASSEMBLY_REGISTER_QUEUE_LOCK)
+            {
+                if (assembliesQueuedForRegister.Count > 0)
+                {
+                    toRegister = assembliesQueuedForRegister.ToArray();
+                    assembliesQueuedForRegister.Clear();
+                }
+            }
+
+            if (toRegister == null) return false;
+
+            for (int i = 0; i < toRegister.Length; i++)
+            {
+                RegisterAssembly(toRegister[i]);
+            }
+
+            return true;
+        }
+
+        private static bool RegisterQueuedAssemblyLoadEvents()
+        {
+            AssemblyLoadEventArgs[] toRegister = null;
+
+            lock (ASSEMBLY_REGISTER_QUEUE_LOCK)
+            {
+                if (assemblyLoadEventsQueuedForRegister.Count > 0)
+                {
+                    toRegister = assemblyLoadEventsQueuedForRegister.ToArray();
+                    assemblyLoadEventsQueuedForRegister.Clear();
+                }
+            }
+
+            if (toRegister == null) return false;
+
+            for (int i = 0; i < toRegister.Length; i++)
+            {
+                var args = toRegister[i];
                 Assembly assembly;
 
                 try
                 {
                     assembly = args.LoadedAssembly;
                 }
-                catch { return; } // Assembly is invalid, likely causing a type load or bad image format exception of some sort
+                catch { continue; } // Assembly is invalid, likely causing a type load or bad image format exception of some sort
 
-                RegisterAssembly(assembly);
-            };
-
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
-            {
                 RegisterAssembly(assembly);
             }
+
+            return true;
         }
 
         private static void RegisterAssembly(Assembly assembly)
@@ -251,6 +314,8 @@ namespace OdinSerializer
             {
                 throw new ArgumentNullException("typeName");
             }
+
+            RegisterAllQueuedAssembliesRepeating();
 
             Type result;
 
