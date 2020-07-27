@@ -85,7 +85,7 @@ namespace OdinSerializer.Editor
                     else
                     {
                         // Just scan the asset
-                        this.ScanObject(assets[i]);
+                        this.ScanObject(asset);
                     }
                 }
             }
@@ -172,6 +172,8 @@ namespace OdinSerializer.Editor
 
                 for (int i = 0; i < resources.Length; i++)
                 {
+                    if (resources[i] == null) continue;
+
                     if (showProgressBar && DisplaySmartUpdatingCancellableProgressBar("Scanning resource " + i + " for AOT support", resources[i].name, (float)i / resources.Length))
                     {
                         return false;
@@ -404,6 +406,8 @@ namespace OdinSerializer.Editor
 
                 foreach (var asset in assets)
                 {
+                    if (asset == null) continue;
+
                     this.ScanObject(asset);
                 }
 
