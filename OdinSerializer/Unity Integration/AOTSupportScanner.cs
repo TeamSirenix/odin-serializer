@@ -174,9 +174,18 @@ namespace OdinSerializer.Editor
                 {
                     if (resources[i] == null) continue;
 
-                    if (showProgressBar && DisplaySmartUpdatingCancellableProgressBar("Scanning resource " + i + " for AOT support", resources[i].name, (float)i / resources.Length))
+                    try
                     {
-                        return false;
+                        if (showProgressBar && DisplaySmartUpdatingCancellableProgressBar("Scanning resource " + i + " for AOT support", resources[i].name, (float)i / resources.Length))
+                        {
+                            return false;
+                        }
+                    }
+                    catch (MissingReferenceException ex)
+                    {
+                        Debug.LogError("A resource threw a missing reference exception when scanning. Skipping resource and continuing scan.", resources[i]);
+                        Debug.LogException(ex, resources[i]);
+                        continue;
                     }
 
                     var assetPath = AssetDatabase.GetAssetPath(resources[i]);
