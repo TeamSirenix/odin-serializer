@@ -155,7 +155,7 @@ namespace OdinSerializer.Editor
                     return false;
                 }
 
-                var resourcesSet = new HashSet<UnityEngine.Object>();
+                var resourcesSet = new HashSet<UnityEngine.Object>(ReferenceEqualityComparer<UnityEngine.Object>.Default);
                 for (int i = 0; i < resourcesPaths.Count; i++)
                 {
                     var resourcesPath = resourcesPaths[i];
