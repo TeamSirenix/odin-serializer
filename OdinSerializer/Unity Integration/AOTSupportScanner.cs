@@ -155,7 +155,8 @@ namespace OdinSerializer.Editor
                     return false;
                 }
 
-                var resourcesSet = new HashSet<UnityEngine.Object>(ReferenceEqualityComparer<UnityEngine.Object>.Default);
+                var resourcesPathsSet = new HashSet<string>();
+
                 for (int i = 0; i < resourcesPaths.Count; i++)
                 {
                     var resourcesPath = resourcesPaths[i];
@@ -165,35 +166,54 @@ namespace OdinSerializer.Editor
                         return false;
                     }
 
-                    resourcesSet.UnionWith(Resources.LoadAll(resourcesPath));
+                    var resources = Resources.LoadAll(resourcesPath);
+
+                    foreach (var resource in resources)
+                    {
+                        try
+                        {
+                            var assetPath = AssetDatabase.GetAssetPath(resource);
+
+                            if (assetPath != null)
+                            {
+                                resourcesPathsSet.Add(assetPath);
+                            }
+                        }
+                        catch (MissingReferenceException ex)
+                        {
+                            Debug.LogError("A resource threw a missing reference exception when scanning. Skipping resource and continuing scan.", resource);
+                            Debug.LogException(ex, resource);
+                            continue;
+                        }
+                    }
                 }
 
-                var resources = resourcesSet.ToArray();
+                string[] resourcePaths = resourcesPathsSet.ToArray();
 
-                for (int i = 0; i < resources.Length; i++)
+                for (int i = 0; i < resourcePaths.Length; i++)
                 {
-                    if (resources[i] == null) continue;
+                    if (resourcePaths[i] == null) continue;
 
                     try
                     {
-                        if (showProgressBar && DisplaySmartUpdatingCancellableProgressBar("Scanning resource " + i + " for AOT support", resources[i].name, (float)i / resources.Length))
+                        if (showProgressBar && DisplaySmartUpdatingCancellableProgressBar("Scanning resource " + i + " for AOT support", resourcePaths[i], (float)i / resourcePaths.Length))
                         {
                             return false;
                         }
+
+                        var assetPath = resourcePaths[i];
+
+                        // Exclude editor-only resources
+                        if (assetPath.ToLower().Contains("/editor/")) continue;
+
+                        this.ScanAsset(assetPath, includeAssetDependencies: includeResourceDependencies);
                     }
                     catch (MissingReferenceException ex)
                     {
-                        Debug.LogError("A resource threw a missing reference exception when scanning. Skipping resource and continuing scan.", resources[i]);
-                        Debug.LogException(ex, resources[i]);
+                        Debug.LogError("A resource '" + resourcePaths[i] + "' threw a missing reference exception when scanning. Skipping resource and continuing scan.");
+                        Debug.LogException(ex);
                         continue;
                     }
-
-                    var assetPath = AssetDatabase.GetAssetPath(resources[i]);
-
-                    // Exclude editor-only resources
-                    if (assetPath.ToLower().Contains("/editor/")) continue;
-
-                    this.ScanAsset(assetPath, includeAssetDependencies: includeResourceDependencies);
                 }
 
                 return true;
