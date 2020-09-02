@@ -44,85 +44,88 @@ namespace OdinSerializer
 #if UNITY_EDITOR
             Architecture_Supports_Unaligned_Float32_Reads = true;
             Architecture_Supports_All_Unaligned_ReadWrites = true;
-            return;
+#else
+            // At runtime, we are going to be very pessimistic and assume the
+            // worst until we get more info about the platform we are on.
+            Architecture_Supports_Unaligned_Float32_Reads = false;
+            Architecture_Supports_All_Unaligned_ReadWrites = false;
+
+            Debug.Log("Odin Serializer ArchitectureInfo initialization with defaults (all unaligned read/writes disabled).");
 #endif
-
-            try
-            {
-                // Try to perform some unaligned float reads.
-                // If this throws an exception, the current
-                // architecture does not support doing this.
-
-                // Note that there are cases where this is supported
-                // but other unaligned read/writes are not, usually 
-                // 64-bit read/writes. However, testing indicates 
-                // that these read/writes cause hard crashes and not
-                // NullReferenceExceptions, and so we cannot test for
-                // them but must instead look at the architecture.
-
-                byte[] testArray = new byte[8];
-
-                fixed (byte* test = testArray)
-                {
-                    // Even if test is weirdly aligned in the stack, trying four differently aligned 
-                    // reads will definitely have an unligned read or two in there.
-
-                    // If all of these reads work, we are safe. We do it this way instead of just having one read,
-                    // because as far as I have been able to determine, there are no guarantees about the alignment 
-                    // of local stack memory.
-
-                    for (int i = 0; i < 4; i++)
-                    {
-                        float value = *(float*)(test + i);
-                    }
-
-                    Architecture_Supports_Unaligned_Float32_Reads = true;
-                }
-            }
-            catch (NullReferenceException)
-            {
-                Architecture_Supports_Unaligned_Float32_Reads = false;
-            }
         }
 
         internal static void SetRuntimePlatform(RuntimePlatform platform)
         {
             // Experience indicates that unaligned read/write support is pretty spotty and sometimes causes subtle bugs even when it appears to work,
-            // so to be safe, we simply shouldn't be doing unaligned accesses at all on mobile architectures.
+            // so to be safe, we only enable it for platforms where we are certain that it will work.
 
             switch (platform)
             {
-                case RuntimePlatform.IPhonePlayer:
-                    Architecture_Supports_All_Unaligned_ReadWrites = false;
-                    Architecture_Supports_Unaligned_Float32_Reads = false;
-                    Debug.Log("OdinSerializer detected that it's running on an iPhone; disabling all unaligned read/writes.");
-                    break;
-                case RuntimePlatform.Android:
-                    Architecture_Supports_All_Unaligned_ReadWrites = false;
-                    Architecture_Supports_Unaligned_Float32_Reads = false;
-                    Debug.Log("OdinSerializer detected that it's running in Android; disabling all unaligned read/writes.");
-                    break;
-                default:
+                case RuntimePlatform.LinuxPlayer:
+                case RuntimePlatform.WindowsPlayer:
+                case RuntimePlatform.OSXPlayer:
+                case RuntimePlatform.PS3:
+                case RuntimePlatform.PS4:
+                case RuntimePlatform.XBOX360:
+                case RuntimePlatform.XboxOne:
+                case RuntimePlatform.WebGLPlayer:
+                case RuntimePlatform.WSAPlayerX64:
+                case RuntimePlatform.WSAPlayerX86:
+                case RuntimePlatform.WiiU:
+                    
+                    try
+                    {
+                        // Try to perform some unaligned float reads.
+                        // If this throws an exception, the current
+                        // architecture does not support doing this.
+
+                        // Note that there are cases where this is supported
+                        // but other unaligned read/writes are not, usually 
+                        // 64-bit read/writes. However, testing indicates 
+                        // that these read/writes cause hard crashes and not
+                        // NullReferenceExceptions, and so we cannot test for
+                        // them but must instead look at the architecture.
+
+                        byte[] testArray = new byte[8];
+
+                        fixed (byte* test = testArray)
+                        {
+                            // Even if test is weirdly aligned in the stack, trying four differently aligned 
+                            // reads will definitely have an unaligned read or two in there.
+
+                            // If all of these reads work, we are safe. We do it this way instead of just having one read,
+                            // because as far as I have been able to determine, there are no guarantees about the alignment 
+                            // of local stack memory.
+
+                            for (int i = 0; i < 4; i++)
+                            {
+                                float value = *(float*)(test + i);
+                            }
+
+                            Architecture_Supports_Unaligned_Float32_Reads = true;
+                        }
+                    }
+                    catch (NullReferenceException)
+                    {
+                        Architecture_Supports_Unaligned_Float32_Reads = false;
+                    }
+
                     if (Architecture_Supports_Unaligned_Float32_Reads)
                     {
+                        Debug.Log("Odin Serializer detected whitelisted runtime platform " + platform + " and memory read test succeeded; enabling all unaligned memory read/writes.");
                         Architecture_Supports_All_Unaligned_ReadWrites = true;
                     }
+                    else
+                    {
+                        Debug.Log("Odin Serializer detected whitelisted runtime platform " + platform + " and memory read test failed; disabling all unaligned memory read/writes.");
+                    }
+                    break;
+                default:
+                    Architecture_Supports_Unaligned_Float32_Reads = false;
+                    Architecture_Supports_All_Unaligned_ReadWrites = false;
+                    Debug.Log("Odin Serializer detected non-white-listed runtime platform " + platform + "; disabling all unaligned memory read/writes.");
                     break;
             }
-
-            // Old code for checking against actual architecture; this is obsolete, but left around for now in case we want to get more precise again later
-            // instead of the current blanket ban on unaligned read/writes on mobile.
-
-            //if (!Architecture_Supports_Unaligned_Float32_Reads || architecture == "armv7l" || architecture == "armv7" || IntPtr.Size == 4)
-            //{
-            //    Architecture_Supports_All_Unaligned_ReadWrites = false;
-            //}
-            //else
-            //{
-            //    Architecture_Supports_All_Unaligned_ReadWrites = true;
-            //}
-
-            //UnityEngine.Debug.Log("OdinSerializer detected Android architecture '" + architecture + "' for determining unaligned read/write capabilities. Unaligned read/write support: all=" + Architecture_Supports_All_Unaligned_ReadWrites + ", float=" + Architecture_Supports_Unaligned_Float32_Reads + "");
         }
     }
 }
