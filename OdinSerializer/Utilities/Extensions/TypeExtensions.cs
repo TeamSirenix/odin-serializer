@@ -850,11 +850,35 @@ namespace OdinSerializer.Utilities
             {
                 types[0] = leftOperand;
                 types[1] = rightOperand;
-                var result = type.GetMethod(methodName, Flags.StaticAnyVisibility, null, types, null);
 
-                if (result != null && result.ReturnType != typeof(bool)) return null;
+                try
+                {
+                    var result = type.GetMethod(methodName, Flags.StaticAnyVisibility, null, types, null);
 
-                return result;
+                    if (result != null && result.ReturnType != typeof(bool)) return null;
+
+                    return result;
+                }
+                catch (AmbiguousMatchException)
+                {
+                    // We fallback to manual resolution
+                    var methods = type.GetMethods(Flags.StaticAnyVisibility);
+
+                    for (int i = 0; i < methods.Length; i++)
+                    {
+                        var method = methods[i];
+                        if (method.Name != methodName) continue;
+                        if (method.ReturnType != typeof(bool)) continue;
+                        var parameters = method.GetParameters();
+                        if (parameters.Length != 2) continue;
+                        if (!parameters[0].ParameterType.IsAssignableFrom(leftOperand)) continue;
+                        if (!parameters[1].ParameterType.IsAssignableFrom(rightOperand)) continue;
+
+                        return method;
+                    }
+
+                    return null;
+                }
             }
         }
 
