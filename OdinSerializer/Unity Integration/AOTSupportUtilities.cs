@@ -345,9 +345,13 @@ namespace OdinSerializer.Editor
                 pluginImporter.SetCompatibleWithAnyPlatform(true);
 
                 // Disable for all standalones
-                pluginImporter.SetCompatibleWithPlatform(BuildTarget.StandaloneLinux, false);
                 pluginImporter.SetCompatibleWithPlatform(BuildTarget.StandaloneLinux64, false);
-                pluginImporter.SetCompatibleWithPlatform(BuildTarget.StandaloneLinuxUniversal, false);
+                
+                if (!UnityVersion.IsVersionOrGreater(2019, 2))
+                {
+                    pluginImporter.SetCompatibleWithPlatform((BuildTarget)17, false);       // StandaloneLinux
+                    pluginImporter.SetCompatibleWithPlatform((BuildTarget)25, false);       // StandaloneLinuxUniversal
+                }
 
                 // StandaloneOSXUniversal (<= 2017.2) / StandaloneOSX (>= 2017.3)
                 pluginImporter.SetCompatibleWithPlatform((BuildTarget)2, false);
