@@ -29,6 +29,7 @@ namespace OdinSerializer.Editor
     using UnityEngine;
     using System.Reflection;
     using UnityEngine.SceneManagement;
+    using System.Collections;
 
     public sealed class AOTSupportScanner : IDisposable
     {
@@ -133,6 +134,138 @@ namespace OdinSerializer.Editor
             finally
             {
                 if (showProgressBar)
+                {
+                    EditorUtility.ClearProgressBar();
+                }
+            }
+
+            return true;
+        }
+
+        public bool ScanAllAddressables(bool includeAssetDependencies, bool showProgressBar)
+        {
+            // We don't know whether the addressables package is installed or not. So... needs must.
+            // Our only real choice is to utilize reflection that's stocked to the brim with failsafes
+            // and error logging.
+            //
+            // Truly, the code below should not have needed to be written.
+
+            // The following section is the code as it would be without reflection. Please modify this 
+            // code reference to be accurate if the reflection code is changed.
+
+            /*
+
+            var settings = UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject.Settings;
+
+            if (settings != null && settings.groups != null)
+            {
+                foreach (AddressableAssetGroup group in settings.groups)
+                {
+                    if (group.HasSchema(typeof(PlayerDataGroupSchema))) continue;
+
+                    List<AddressableAssetEntry> results = new List<AddressableAssetEntry>();
+
+                    group.GatherAllAssets(results, true, true, true, null);
+
+                    foreach (var result in results)
+                    {
+                        this.ScanAsset(result.AssetPath, includeAssetDependencies);
+                    }
+                }
+            }
+
+            */
+
+            bool progressBarWasDisplayed = false;
+
+            try
+            {
+                Type AddressableAssetSettingsDefaultObject_Type = TwoWaySerializationBinder.Default.BindToType("UnityEditor.AddressableAssets.AddressableAssetSettingsDefaultObject");
+                if (AddressableAssetSettingsDefaultObject_Type == null) return true;
+                PropertyInfo AddressableAssetSettingsDefaultObject_Settings = AddressableAssetSettingsDefaultObject_Type.GetProperty("Settings");
+                if (AddressableAssetSettingsDefaultObject_Settings == null) throw new NotSupportedException("AddressableAssetSettingsDefaultObject.Settings property not found");
+                ScriptableObject settings = (ScriptableObject)AddressableAssetSettingsDefaultObject_Settings.GetValue(null, null);
+
+                if (settings == null) return true;
+
+                Type AddressableAssetSettings_Type = settings.GetType();
+                PropertyInfo AddressableAssetSettings_groups = AddressableAssetSettings_Type.GetProperty("groups");
+                if (AddressableAssetSettings_groups == null) throw new NotSupportedException("AddressableAssetSettings.groups property not found");
+
+                IList groups = (IList)AddressableAssetSettings_groups.GetValue(settings, null);
+
+                if (groups == null) return true;
+
+                Type PlayerDataGroupSchema_Type = TwoWaySerializationBinder.Default.BindToType("UnityEditor.AddressableAssets.Settings.GroupSchemas.PlayerDataGroupSchema");
+                if (PlayerDataGroupSchema_Type == null) throw new NotSupportedException("PlayerDataGroupSchema type not found");
+
+                Type AddressableAssetGroup_Type = null;
+                MethodInfo AddressableAssetGroup_HasSchema = null;
+                MethodInfo AddressableAssetGroup_GatherAllAssets = null;
+
+                Type AddressableAssetEntry_Type = TwoWaySerializationBinder.Default.BindToType("UnityEditor.AddressableAssets.Settings.AddressableAssetEntry");
+                if (AddressableAssetEntry_Type == null) throw new NotSupportedException("AddressableAssetEntry type not found");
+                Type List_AddressableAssetEntry_Type = typeof(List<>).MakeGenericType(AddressableAssetEntry_Type);
+                Type Func_AddressableAssetEntry_bool_Type = typeof(Func<,>).MakeGenericType(AddressableAssetEntry_Type, typeof(bool));
+                PropertyInfo AddressableAssetEntry_AssetPath = AddressableAssetEntry_Type.GetProperty("AssetPath");
+                if (AddressableAssetEntry_AssetPath == null) throw new NotSupportedException("AddressableAssetEntry.AssetPath property not found");
+
+                foreach (object groupObj in groups)
+                {
+                    ScriptableObject group = (ScriptableObject)groupObj;
+                    if (group == null) continue;
+
+                    string groupName = group.name;
+
+                    if (AddressableAssetGroup_Type == null)
+                    {
+                        AddressableAssetGroup_Type = group.GetType();
+                        AddressableAssetGroup_HasSchema = AddressableAssetGroup_Type.GetMethod("HasSchema", Flags.InstancePublic, null, new Type[] { typeof(Type) }, null);
+                        if (AddressableAssetGroup_HasSchema == null) throw new NotSupportedException("AddressableAssetGroup.HasSchema(Type type) method not found");
+                        AddressableAssetGroup_GatherAllAssets = AddressableAssetGroup_Type.GetMethod("GatherAllAssets", Flags.InstancePublic, null, new Type[] { List_AddressableAssetEntry_Type, typeof(bool), typeof(bool), typeof(bool), Func_AddressableAssetEntry_bool_Type }, null);
+                        if (AddressableAssetGroup_GatherAllAssets == null) throw new NotSupportedException("AddressableAssetGroup.GatherAllAssets(List<AddressableAssetEntry> results, bool includeSelf, bool recurseAll, bool includeSubObjects, Func<AddressableAssetEntry, bool> entryFilter) method not found");
+                    }
+
+                    bool hasPlayerDataGroupSchema = (bool)AddressableAssetGroup_HasSchema.Invoke(group, new object[] { PlayerDataGroupSchema_Type });
+                    if (hasPlayerDataGroupSchema) continue; // Skip this group, since it contains all the player data such as resources and build scenes, and we're scanning that separately
+
+                    IList results = (IList)Activator.CreateInstance(List_AddressableAssetEntry_Type);
+
+                    AddressableAssetGroup_GatherAllAssets.Invoke(group, new object[] { results, true, true, true, null });
+
+                    for (int i = 0; i < results.Count; i++)
+                    {
+                        object entry = (object)results[i];
+                        if (entry == null) continue;
+                        string assetPath = (string)AddressableAssetEntry_AssetPath.GetValue(entry, null);
+
+                        if (showProgressBar)
+                        {
+                            progressBarWasDisplayed = true;
+
+                            if (DisplaySmartUpdatingCancellableProgressBar("Scanning addressables for AOT support", groupName + ": " + assetPath, (float)i / results.Count))
+                            {
+                                return false;
+                            }
+                        }
+
+                        // Finally!
+                        this.ScanAsset(assetPath, includeAssetDependencies);
+                    }
+                }
+            }
+            catch (NotSupportedException ex)
+            {
+                Debug.LogWarning("Could not AOT scan Addressables assets due to missing APIs: " + ex.Message);
+            }
+            catch (Exception ex)
+            {
+                Debug.LogError("Scanning addressables failed with the following exception...");
+                Debug.LogException(ex);
+            }
+            finally
+            {
+                if (progressBarWasDisplayed)
                 {
                     EditorUtility.ClearProgressBar();
                 }
