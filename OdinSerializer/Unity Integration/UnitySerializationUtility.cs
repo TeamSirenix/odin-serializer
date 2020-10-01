@@ -50,6 +50,10 @@ namespace OdinSerializer
     {
         public static readonly Type SerializeReferenceAttributeType = typeof(SerializeField).Assembly.GetType("UnityEngine.SerializeReference");
 
+        private static readonly Assembly String_Assembly = typeof(string).Assembly;
+        private static readonly Assembly HashSet_Assembly = typeof(HashSet<>).Assembly;
+        private static readonly Assembly LinkedList_Assembly = typeof(LinkedList<>).Assembly;
+
 #if UNITY_EDITOR        
         /// <summary>
         /// From the new scriptable build pipeline package
@@ -480,8 +484,9 @@ namespace OdinSerializer
                 return false;
             }
 
-            // Unity does not serialize [Serializable] structs and classes if they are defined in mscorlib
-            if (type.Assembly == typeof(string).Assembly)
+            // Unity does not serialize [Serializable] structs and classes if they are defined in mscorlib, System.dll or System.Core.dll if those are present
+            // Checking against the assemblies that declare System.String, HashSet<T> and LinkedList<T> is a simple way to do this.
+            if (type.Assembly == String_Assembly || type.Assembly == HashSet_Assembly || type.Assembly == LinkedList_Assembly)
             {
                 return false;
             }
