@@ -280,4 +280,243 @@ namespace OdinSerializer
             }
         }
     }
+
+    public sealed class WeakMultiDimensionalArrayFormatter : WeakBaseFormatter
+    {
+        private const string RANKS_NAME = "ranks";
+        private const char RANKS_SEPARATOR = '|';
+
+        private readonly int ArrayRank;
+        private readonly Type ElementType;
+        private readonly Serializer ValueReaderWriter;
+
+        public WeakMultiDimensionalArrayFormatter(Type arrayType, Type elementType) : base(arrayType)
+        {
+            this.ArrayRank = arrayType.GetArrayRank();
+            this.ElementType = elementType;
+        }
+
+        /// <summary>
+        /// Returns null.
+        /// </summary>
+        /// <returns>
+        /// A null value.
+        /// </returns>
+        protected override object GetUninitializedObject()
+        {
+            return null;
+        }
+
+        /// <summary>
+        /// Provides the actual implementation for deserializing a value of type <see cref="T" />.
+        /// </summary>
+        /// <param name="value">The uninitialized value to serialize into. This value will have been created earlier using <see cref="BaseFormatter{T}.GetUninitializedObject" />.</param>
+        /// <param name="reader">The reader to deserialize with.</param>
+        protected override void DeserializeImplementation(ref object value, IDataReader reader)
+        {
+            string name;
+            var entry = reader.PeekEntry(out name);
+
+            if (entry == EntryType.StartOfArray)
+            {
+                long length;
+                reader.EnterArray(out length);
+
+                entry = reader.PeekEntry(out name);
+
+                if (entry != EntryType.String || name != RANKS_NAME)
+                {
+                    value = null;
+                    reader.SkipEntry();
+                    return;
+                }
+
+                string lengthStr;
+                reader.ReadString(out lengthStr);
+
+                string[] lengthsStrs = lengthStr.Split(RANKS_SEPARATOR);
+
+                if (lengthsStrs.Length != ArrayRank)
+                {
+                    value = null;
+                    reader.SkipEntry();
+                    return;
+                }
+
+                int[] lengths = new int[lengthsStrs.Length];
+
+                for (int i = 0; i < lengthsStrs.Length; i++)
+                {
+                    int rankVal;
+                    if (int.TryParse(lengthsStrs[i], out rankVal))
+                    {
+                        lengths[i] = rankVal;
+                    }
+                    else
+                    {
+                        value = null;
+                        reader.SkipEntry();
+                        return;
+                    }
+                }
+
+                long rankTotal = lengths[0];
+
+                for (int i = 1; i < lengths.Length; i++)
+                {
+                    rankTotal *= lengths[i];
+                }
+
+                if (rankTotal != length)
+                {
+                    value = null;
+                    reader.SkipEntry();
+                    return;
+                }
+
+                value = Array.CreateInstance(this.ElementType, lengths);
+
+                // We must remember to register the array reference ourselves, since we return null in GetUninitializedObject
+                this.RegisterReferenceID(value, reader);
+
+                // There aren't any OnDeserializing callbacks on arrays.
+                // Hence we don't invoke this.InvokeOnDeserializingCallbacks(value, reader, context);
+                int elements = 0;
+
+                try
+                {
+                    this.IterateArrayWrite(
+                        (Array)(object)value,
+                        () =>
+                        {
+                            if (reader.PeekEntry(out name) == EntryType.EndOfArray)
+                            {
+                                reader.Context.Config.DebugContext.LogError("Reached end of array after " + elements + " elements, when " + length + " elements were expected.");
+                                throw new InvalidOperationException();
+                            }
+
+                            var v = ValueReaderWriter.ReadValueWeak(reader);
+
+                            if (reader.IsInArrayNode == false)
+                            {
+                                reader.Context.Config.DebugContext.LogError("Reading array went wrong. Data dump: " + reader.GetDataDump());
+                                throw new InvalidOperationException();
+                            }
+
+                            elements++;
+                            return v;
+                        });
+                }
+                catch (InvalidOperationException)
+                {
+                }
+                catch (Exception ex)
+                {
+                    reader.Context.Config.DebugContext.LogException(ex);
+                }
+
+                reader.ExitArray();
+            }
+            else
+            {
+                value = null;
+                reader.SkipEntry();
+            }
+        }
+
+        /// <summary>
+        /// Provides the actual implementation for serializing a value of type <see cref="T" />.
+        /// </summary>
+        /// <param name="value">The value to serialize.</param>
+        /// <param name="writer">The writer to serialize with.</param>
+        protected override void SerializeImplementation(ref object value, IDataWriter writer)
+        {
+            var array = value as Array;
+
+            try
+            {
+                writer.BeginArrayNode(array.LongLength);
+
+                int[] lengths = new int[ArrayRank];
+
+                for (int i = 0; i < ArrayRank; i++)
+                {
+                    lengths[i] = array.GetLength(i);
+                }
+
+                StringBuilder sb = new StringBuilder();
+
+                for (int i = 0; i < ArrayRank; i++)
+                {
+                    if (i > 0)
+                    {
+                        sb.Append(RANKS_SEPARATOR);
+                    }
+
+                    sb.Append(lengths[i].ToString(CultureInfo.InvariantCulture));
+                }
+
+                string lengthStr = sb.ToString();
+
+                writer.WriteString(RANKS_NAME, lengthStr);
+
+                this.IterateArrayRead(
+                    (Array)(object)value,
+                    (v) =>
+                    {
+                        ValueReaderWriter.WriteValueWeak(v, writer);
+                    });
+            }
+            finally
+            {
+                writer.EndArrayNode();
+            }
+        }
+
+        private void IterateArrayWrite(Array a, Func<object> write)
+        {
+            int[] indices = new int[ArrayRank];
+            this.IterateArrayWrite(a, 0, indices, write);
+        }
+
+        private void IterateArrayWrite(Array a, int rank, int[] indices, Func<object> write)
+        {
+            for (int i = 0; i < a.GetLength(rank); i++)
+            {
+                indices[rank] = i;
+
+                if (rank + 1 < a.Rank)
+                {
+                    this.IterateArrayWrite(a, rank + 1, indices, write);
+                }
+                else
+                {
+                    a.SetValue(write(), indices);
+                }
+            }
+        }
+
+        private void IterateArrayRead(Array a, Action<object> read)
+        {
+            int[] indices = new int[ArrayRank];
+            this.IterateArrayRead(a, 0, indices, read);
+        }
+
+        private void IterateArrayRead(Array a, int rank, int[] indices, Action<object> read)
+        {
+            for (int i = 0; i < a.GetLength(rank); i++)
+            {
+                indices[rank] = i;
+
+                if (rank + 1 < a.Rank)
+                {
+                    this.IterateArrayRead(a, rank + 1, indices, read);
+                }
+                else
+                {
+                    read(a.GetValue(indices));
+                }
+            }
+        }
+    }
 }

@@ -18,7 +18,7 @@
 
 using OdinSerializer;
 
-[assembly: RegisterFormatter(typeof(DerivedDictionaryFormatter<,,>))]
+[assembly: RegisterFormatter(typeof(DerivedDictionaryFormatter<,,>), weakFallback: typeof(WeakDictionaryFormatter), priority: -1)]
 
 namespace OdinSerializer
 {

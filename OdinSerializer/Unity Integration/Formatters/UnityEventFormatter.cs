@@ -18,10 +18,11 @@
 
 using OdinSerializer;
 
-[assembly: RegisterFormatter(typeof(UnityEventFormatter<>))]
+[assembly: RegisterFormatter(typeof(UnityEventFormatter<>), weakFallback: typeof(WeakUnityEventFormatter))] 
 
 namespace OdinSerializer
 {
+    using System;
     using UnityEngine.Events;
 
     /// <summary>
@@ -40,6 +41,18 @@ namespace OdinSerializer
         protected override T GetUninitializedObject()
         {
             return new T();
+        }
+    }
+
+    public class WeakUnityEventFormatter : WeakReflectionFormatter
+    {
+        public WeakUnityEventFormatter(Type serializedType) : base(serializedType)
+        {
+        }
+
+        protected override object GetUninitializedObject()
+        {
+            return Activator.CreateInstance(this.SerializedType);
         }
     }
 }

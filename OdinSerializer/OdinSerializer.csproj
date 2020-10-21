@@ -87,6 +87,7 @@
     <Compile Include="Core\Formatters\VersionFormatter.cs" />
     <Compile Include="Core\Misc\AllowDeserializeInvalidDataAttribute.cs" />
     <Compile Include="Core\Misc\ArchitectureInfo.cs" />
+    <Compile Include="Core\Serializers\AnySerializer.cs" />
     <Compile Include="Unity Integration\AOTSupportScanner.cs" />
     <Compile Include="Unity Integration\OdinPrefabSerializationEditorUtility.cs" />
     <Compile Include="Unity Integration\SerializedUnityObjects\IOverridesSerializationPolicy.cs" />

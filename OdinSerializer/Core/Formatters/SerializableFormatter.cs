@@ -236,4 +236,201 @@ namespace OdinSerializer
             }
         }
     }
+
+    public sealed class WeakSerializableFormatter : WeakBaseFormatter
+    {
+        private readonly Func<SerializationInfo, StreamingContext, ISerializable> ISerializableConstructor;
+        private readonly WeakReflectionFormatter ReflectionFormatter;
+
+        public WeakSerializableFormatter(Type serializedType) : base(serializedType)
+        {
+            var current = serializedType;
+            ConstructorInfo constructor = null;
+
+            do
+            {
+                constructor = current.GetConstructor(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance, null, new Type[] { typeof(SerializationInfo), typeof(StreamingContext) }, null);
+                current = current.BaseType;
+            }
+            while (constructor == null && current != typeof(object) && current != null);
+
+            if (constructor != null)
+            {
+                // TODO: Fancy compiled delegate
+                ISerializableConstructor = (info, context) =>
+                {
+                    ISerializable obj = (ISerializable)FormatterServices.GetUninitializedObject(this.SerializedType);
+                    constructor.Invoke(obj, new object[] { info, context });
+                    return obj;
+                };
+            }
+            else
+            {
+                DefaultLoggers.DefaultLogger.LogWarning("Type " + this.SerializedType.Name + " implements the interface ISerializable but does not implement the required constructor with signature " + this.SerializedType.Name + "(SerializationInfo info, StreamingContext context). The interface declaration will be ignored, and the formatter fallbacks to reflection.");
+                ReflectionFormatter = new WeakReflectionFormatter(this.SerializedType);
+            }
+        }
+
+        /// <summary>
+        /// Get an uninitialized object of type <see cref="T" />. WARNING: If you override this and return null, the object's ID will not be automatically registered and its OnDeserializing callbacks will not be automatically called, before deserialization begins.
+        /// You will have to call <see cref="BaseFormatter{T}.RegisterReferenceID(T, IDataReader, DeserializationContext)" /> and <see cref="BaseFormatter{T}.InvokeOnDeserializingCallbacks(T, IDataReader, DeserializationContext)" /> immediately after creating the object yourself during deserialization.
+        /// </summary>
+        /// <returns>
+        /// An uninitialized object of type <see cref="T" />.
+        /// </returns>
+        protected override object GetUninitializedObject()
+        {
+            return null;
+        }
+
+        /// <summary>
+        /// Provides the actual implementation for deserializing a value of type <see cref="T" />.
+        /// </summary>
+        /// <param name="value">The uninitialized value to serialize into. This value will have been created earlier using <see cref="BaseFormatter{T}.GetUninitializedObject" />.</param>
+        /// <param name="reader">The reader to deserialize with.</param>
+        protected override void DeserializeImplementation(ref object value, IDataReader reader)
+        {
+            if (this.ISerializableConstructor != null)
+            {
+                var info = this.ReadSerializationInfo(reader);
+
+                if (info != null)
+                {
+                    try
+                    {
+                        value = this.ISerializableConstructor(info, reader.Context.StreamingContext);
+
+                        this.InvokeOnDeserializingCallbacks(value, reader.Context);
+
+                        if (IsValueType == false)
+                        {
+                            this.RegisterReferenceID(value, reader);
+                        }
+
+                        return;
+                    }
+                    catch (Exception ex)
+                    {
+                        reader.Context.Config.DebugContext.LogException(ex);
+                    }
+                }
+            }
+            else
+            {
+                value = this.ReflectionFormatter.Deserialize(reader);
+
+                this.InvokeOnDeserializingCallbacks(value, reader.Context);
+
+                if (this.IsValueType == false)
+                {
+                    this.RegisterReferenceID(value, reader);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Provides the actual implementation for serializing a value of type <see cref="T" />.
+        /// </summary>
+        /// <param name="value">The value to serialize.</param>
+        /// <param name="writer">The writer to serialize with.</param>
+        protected override void SerializeImplementation(ref object value, IDataWriter writer)
+        {
+            if (this.ISerializableConstructor != null)
+            {
+                var serializable = value as ISerializable;
+                var info = new SerializationInfo(value.GetType(), writer.Context.FormatterConverter);
+
+                try
+                {
+                    serializable.GetObjectData(info, writer.Context.StreamingContext);
+                }
+                catch (Exception ex)
+                {
+                    writer.Context.Config.DebugContext.LogException(ex);
+                }
+
+                this.WriteSerializationInfo(info, writer);
+            }
+            else
+            {
+                this.ReflectionFormatter.Serialize(value, writer);
+            }
+        }
+
+        private SerializationInfo ReadSerializationInfo(IDataReader reader)
+        {
+            string name;
+            EntryType entry = reader.PeekEntry(out name);
+
+            if (entry == EntryType.StartOfArray)
+            {
+                try
+                {
+                    long length;
+                    reader.EnterArray(out length);
+
+                    SerializationInfo info = new SerializationInfo(this.SerializedType, reader.Context.FormatterConverter);
+
+                    for (int i = 0; i < length; i++)
+                    {
+                        Type type = null;
+                        entry = reader.PeekEntry(out name);
+
+                        if (entry == EntryType.String && name == "type")
+                        {
+                            string typeName;
+                            reader.ReadString(out typeName);
+                            type = reader.Context.Binder.BindToType(typeName, reader.Context.Config.DebugContext);
+                        }
+
+                        if (type == null)
+                        {
+                            reader.SkipEntry();
+                            continue;
+                        }
+
+                        entry = reader.PeekEntry(out name);
+
+                        var readerWriter = Serializer.Get(type);
+                        object value = readerWriter.ReadValueWeak(reader);
+                        info.AddValue(name, value);
+                    }
+
+                    return info;
+                }
+                finally
+                {
+                    reader.ExitArray();
+                }
+            }
+
+            return null;
+        }
+
+        private void WriteSerializationInfo(SerializationInfo info, IDataWriter writer)
+        {
+            try
+            {
+                writer.BeginArrayNode(info.MemberCount);
+
+                foreach (var entry in info)
+                {
+                    try
+                    {
+                        writer.WriteString("type", writer.Context.Binder.BindToName(entry.ObjectType, writer.Context.Config.DebugContext));
+                        var readerWriter = Serializer.Get(entry.ObjectType);
+                        readerWriter.WriteValueWeak(entry.Name, entry.Value, writer);
+                    }
+                    catch (Exception ex)
+                    {
+                        writer.Context.Config.DebugContext.LogException(ex);
+                    }
+                }
+            }
+            finally
+            {
+                writer.EndArrayNode();
+            }
+        }
+    }
 }

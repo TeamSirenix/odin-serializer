@@ -18,7 +18,7 @@
 
 using OdinSerializer;
 
-[assembly: RegisterFormatter(typeof(MethodInfoFormatter<>))]
+[assembly: RegisterFormatter(typeof(MethodInfoFormatter<>), weakFallback: typeof(WeakMethodInfoFormatter))]
 
 namespace OdinSerializer
 {
@@ -31,7 +31,7 @@ namespace OdinSerializer
     /// Custom formatter for MethodInfo, since Unity Mono's MethodInfo ISerializable implementation will often crash if the method no longer exists upon deserialization.
     /// </summary>
     /// <seealso cref="BaseFormatter{T}" />
-    public sealed class MethodInfoFormatter<T> : BaseFormatter<T>
+    public class MethodInfoFormatter<T> : BaseFormatter<T>
         where T : MethodInfo
     {
         private static readonly Serializer<string> StringSerializer = Serializer.Get<string>();
@@ -55,21 +55,9 @@ namespace OdinSerializer
                 // We have legacy ISerializable data for the MethodInfo, since in no case will data written by this formatter ever start with an array.
                 // In this case, get the proper legacy formatter for this type and read the data using that.
 
-                IFormatter<T> serializableFormatter;
-
-                try
-                {
-                    serializableFormatter = (IFormatter<T>)Activator.CreateInstance(typeof(SerializableFormatter<>).MakeGenericType(typeof(T)));
-                }
-                catch (Exception)
-                {
-                    reader.Context.Config.DebugContext.LogWarning("MethodInfo with legacy ISerializable data serialized was read in a context where a SerializableFormatter<T> formatter for the type could not be instantiated, likely in an IL2CPP build. This means legacy data cannot be read properly - please reserialize all data in your project to ensure no legacy MethodInfo data is included in your build, as this case is not AOT-supported by default.");
-
-                    value = null;
-                    return;
-                }
-
-                value = serializableFormatter.Deserialize(reader);
+                IFormatter serializableFormatter;
+                serializableFormatter = new WeakSerializableFormatter(typeof(T));
+                value = (T)(object)serializableFormatter.Deserialize(reader);
                 return;
             }
 
@@ -297,5 +285,9 @@ namespace OdinSerializer
         {
             return null;
         }
+    }
+
+    public class WeakMethodInfoFormatter : MethodInfoFormatter<MethodInfo>
+    {
     }
 }

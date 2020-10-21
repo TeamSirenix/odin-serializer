@@ -30,20 +30,28 @@ namespace OdinSerializer
     /// </summary>
     /// <typeparam name="T"></typeparam>
     /// <seealso cref="BaseFormatter{T}" />
-    public sealed class DelegateFormatter<T> : BaseFormatter<T> where T : class
+    public class DelegateFormatter<T> : BaseFormatter<T> where T : class
     {
         private static readonly Serializer<object> ObjectSerializer = Serializer.Get<object>();
         private static readonly Serializer<string> StringSerializer = Serializer.Get<string>();
         private static readonly Serializer<Type> TypeSerializer = Serializer.Get<Type>();
         private static readonly Serializer<Type[]> TypeArraySerializer = Serializer.Get<Type[]>();
         private static readonly Serializer<Delegate[]> DelegateArraySerializer = Serializer.Get<Delegate[]>();
+       
+        public readonly Type DelegateType;
 
-        static DelegateFormatter()
+        public DelegateFormatter() : this(typeof(T))
         {
-            if (typeof(Delegate).IsAssignableFrom(typeof(T)) == false)
+        }
+
+        public DelegateFormatter(Type delegateType)
+        {
+            if (typeof(Delegate).IsAssignableFrom(delegateType) == false)
             {
-                throw new ArgumentException("The type " + typeof(T) + " is not a delegate.");
+                throw new ArgumentException("The type " + delegateType + " is not a delegate.");
             }
+
+            this.DelegateType = delegateType;
         }
 
         /// <summary>
@@ -56,7 +64,7 @@ namespace OdinSerializer
             string name;
             EntryType entry;
 
-            Type delegateType = typeof(T);
+            Type delegateType = this.DelegateType;
             Type declaringType = null;
             object target = null;
             string methodName = null;
@@ -147,7 +155,7 @@ namespace OdinSerializer
                     }
                     catch (InvalidCastException)
                     {
-                        reader.Context.Config.DebugContext.LogWarning("Could not cast recombined delegate of type " + combinedDelegate.GetType().GetNiceFullName() + " to expected delegate type " + typeof(T).GetNiceFullName() + ".");
+                        reader.Context.Config.DebugContext.LogWarning("Could not cast recombined delegate of type " + combinedDelegate.GetType().GetNiceFullName() + " to expected delegate type " + this.DelegateType.GetNiceFullName() + ".");
                     }
                 }
 
@@ -377,6 +385,13 @@ namespace OdinSerializer
         protected override T GetUninitializedObject()
         {
             return null;
+        }
+    }
+
+    public class WeakDelegateFormatter : DelegateFormatter<Delegate>
+    {
+        public WeakDelegateFormatter(Type delegateType) : base(delegateType)
+        {
         }
     }
 }

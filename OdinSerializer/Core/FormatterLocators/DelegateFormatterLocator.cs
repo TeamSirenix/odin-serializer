@@ -22,6 +22,7 @@ using OdinSerializer;
 
 namespace OdinSerializer
 {
+    using Utilities;
     using System;
 
     internal class DelegateFormatterLocator : IFormatterLocator
@@ -34,7 +35,15 @@ namespace OdinSerializer
                 return false;
             }
 
-            formatter = (IFormatter)Activator.CreateInstance(typeof(DelegateFormatter<>).MakeGenericType(type));
+            if (EmitUtilities.CanEmit)
+            {
+                formatter = (IFormatter)Activator.CreateInstance(typeof(DelegateFormatter<>).MakeGenericType(type));
+            }
+            else
+            {
+                formatter = new WeakDelegateFormatter(type);
+            }
+
             return true;
         }
     }

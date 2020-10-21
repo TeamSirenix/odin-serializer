@@ -22,6 +22,7 @@ using OdinSerializer;
 
 namespace OdinSerializer
 {
+    using Sirenix.Serialization.Utilities;
     using System;
 
     internal class GenericCollectionFormatterLocator : IFormatterLocator
@@ -35,7 +36,15 @@ namespace OdinSerializer
                 return false;
             }
 
-            formatter = (IFormatter)Activator.CreateInstance(typeof(GenericCollectionFormatter<,>).MakeGenericType(type, elementType));
+            if (EmitUtilities.CanEmit)
+            {
+                formatter = (IFormatter)Activator.CreateInstance(typeof(GenericCollectionFormatter<,>).MakeGenericType(type, elementType));
+            }
+            else
+            {
+                formatter = new WeakGenericCollectionFormatter(type, elementType);
+            }
+
             return true;
         }
     }

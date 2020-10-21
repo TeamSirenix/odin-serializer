@@ -34,15 +34,18 @@ namespace OdinSerializer
 
     public static class FormatterLocator
     {
-        private static readonly object LOCK = new object();
+        private static readonly object StrongFormatters_LOCK = new object();
+        private static readonly object WeakFormatters_LOCK = new object();
 
         private static readonly Dictionary<Type, IFormatter> FormatterInstances = new Dictionary<Type, IFormatter>(FastTypeComparer.Instance);
-        private static readonly DoubleLookupDictionary<Type, ISerializationPolicy, IFormatter> TypeFormatterMap = new DoubleLookupDictionary<Type, ISerializationPolicy, IFormatter>(FastTypeComparer.Instance, ReferenceEqualityComparer<ISerializationPolicy>.Default);
+        private static readonly DoubleLookupDictionary<Type, ISerializationPolicy, IFormatter> StrongTypeFormatterMap = new DoubleLookupDictionary<Type, ISerializationPolicy, IFormatter>(FastTypeComparer.Instance, ReferenceEqualityComparer<ISerializationPolicy>.Default);
+        private static readonly DoubleLookupDictionary<Type, ISerializationPolicy, IFormatter> WeakTypeFormatterMap = new DoubleLookupDictionary<Type, ISerializationPolicy, IFormatter>(FastTypeComparer.Instance, ReferenceEqualityComparer<ISerializationPolicy>.Default);
 
         private struct FormatterInfo
         {
             public Type FormatterType;
             public Type TargetType;
+            public Type WeakFallbackType;
             public bool AskIfCanFormatTypes;
             public int Priority;
         }
@@ -117,6 +120,7 @@ namespace OdinSerializer
                         FormatterInfos.Add(new FormatterInfo()
                         {
                             FormatterType = attr.FormatterType,
+                            WeakFallbackType = attr.WeakFallback,
                             TargetType = attr.FormatterType.GetArgumentsOfInheritedOpenGenericInterface(typeof(IFormatter<>))[0],
                             AskIfCanFormatTypes = typeof(IAskIfCanFormatTypes).IsAssignableFrom(attr.FormatterType),
                             Priority = attr.Priority
@@ -222,7 +226,7 @@ namespace OdinSerializer
         /// </returns>
         public static IFormatter<T> GetFormatter<T>(ISerializationPolicy policy)
         {
-            return (IFormatter<T>)GetFormatter(typeof(T), policy);
+            return (IFormatter<T>)GetFormatter(typeof(T), policy, false);
         }
 
         /// <summary>
@@ -236,6 +240,23 @@ namespace OdinSerializer
         /// <exception cref="System.ArgumentNullException">The type argument is null.</exception>
         public static IFormatter GetFormatter(Type type, ISerializationPolicy policy)
         {
+            return GetFormatter(type, policy, true);
+        }
+
+        /// <summary>
+        /// Gets a formatter for a given type.
+        /// </summary>
+        /// <param name="type">The type to get a formatter for.</param>
+        /// <param name="policy">The serialization policy to use if a formatter has to be emitted. If null, <see cref="SerializationPolicies.Strict"/> is used.</param>
+        /// <param name="allowWeakFallbackFormatters">Whether to allow the use of weak fallback formatters which do not implement the strongly typed <see cref="IFormatter{T}"/>, but which conversely do not need to have had AOT support generated.</param>
+        /// <returns>
+        /// A formatter for the given type.
+        /// </returns>
+        /// <exception cref="System.ArgumentNullException">The type argument is null.</exception>
+        public static IFormatter GetFormatter(Type type, ISerializationPolicy policy, bool allowWeakFallbackFormatters)
+        {
+            IFormatter result;
+
             if (type == null)
             {
                 throw new ArgumentNullException("type");
@@ -246,18 +267,19 @@ namespace OdinSerializer
                 policy = SerializationPolicies.Strict;
             }
 
-            IFormatter result;
+            var lockObj = allowWeakFallbackFormatters ? WeakFormatters_LOCK : StrongFormatters_LOCK;
+            var formatterMap = allowWeakFallbackFormatters ? WeakTypeFormatterMap : StrongTypeFormatterMap;
 
-            lock (LOCK)
+            lock (lockObj)
             {
-                if (TypeFormatterMap.TryGetInnerValue(type, policy, out result) == false)
+                if (formatterMap.TryGetInnerValue(type, policy, out result) == false)
                 {
                     // System.ExecutionEngineException is marked obsolete in .NET 4.6.
                     // That's all very good for .NET, but Unity still uses it, and that means we use it as well!
 #pragma warning disable 618
                     try
                     {
-                        result = CreateFormatter(type, policy);
+                        result = CreateFormatter(type, policy, allowWeakFallbackFormatters);
                     }
                     catch (TargetInvocationException ex)
                     {
@@ -286,7 +308,7 @@ namespace OdinSerializer
                         LogAOTError(type, ex);
                     }
 
-                    TypeFormatterMap.AddInner(type, policy, result);
+                    formatterMap.AddInner(type, policy, result);
 #pragma warning restore 618
                 }
             }
@@ -470,7 +492,7 @@ namespace OdinSerializer
             return formatters;
         }
 
-        private static IFormatter CreateFormatter(Type type, ISerializationPolicy policy)
+        private static IFormatter CreateFormatter(Type type, ISerializationPolicy policy, bool allowWeakFormatters)
         {
             if (FormatterUtilities.IsPrimitiveType(type))
             {
@@ -514,6 +536,8 @@ namespace OdinSerializer
                 var info = FormatterInfos[i];
 
                 Type formatterType = null;
+                Type weakFallbackType = null;
+                Type[] genericFormatterArgs = null;
 
                 if (type == info.TargetType)
                 {
@@ -525,7 +549,7 @@ namespace OdinSerializer
 
                     if (info.FormatterType.TryInferGenericParameters(out inferredArgs, type))
                     {
-                        formatterType = info.FormatterType.GetGenericTypeDefinition().MakeGenericType(inferredArgs);
+                        genericFormatterArgs = inferredArgs;
                     }
                 }
                 else if (type.IsGenericType && info.FormatterType.IsGenericType && info.TargetType.IsGenericType && type.GetGenericTypeDefinition() == info.TargetType.GetGenericTypeDefinition())
@@ -534,13 +558,66 @@ namespace OdinSerializer
 
                     if (info.FormatterType.AreGenericConstraintsSatisfiedBy(args))
                     {
-                        formatterType = info.FormatterType.GetGenericTypeDefinition().MakeGenericType(args);
+                        genericFormatterArgs = args;
                     }
+                }
+
+                if (formatterType == null && genericFormatterArgs != null)
+                {
+                    formatterType = info.FormatterType.GetGenericTypeDefinition().MakeGenericType(genericFormatterArgs);
+                    weakFallbackType = info.WeakFallbackType;
                 }
 
                 if (formatterType != null)
                 {
-                    var instance = GetFormatterInstance(formatterType);
+                    IFormatter instance = null;
+
+                    bool aotError = false;
+                    Exception aotEx = null;
+
+                    try
+                    {
+                        instance = GetFormatterInstance(formatterType);
+                    }
+#pragma warning disable 618
+                    catch (TargetInvocationException ex)
+                    {
+                        aotError = true;
+                        aotEx = ex;
+                    }
+                    catch (TypeInitializationException ex)
+                    {
+                        aotError = true;
+                        aotEx = ex;
+                    }
+                    catch (ExecutionEngineException ex)
+                    {
+                        aotError = true;
+                        aotEx = ex;
+                    }
+#pragma warning restore 618
+
+                    if (aotError && !EmitUtilities.CanEmit && allowWeakFormatters)
+                    {
+                        if (weakFallbackType != null)
+                        {
+                            instance = (IFormatter)Activator.CreateInstance(weakFallbackType, type);
+                        }
+
+                        if (instance == null)
+                        {
+                            string argsStr = "";
+
+                            for (int j = 0; j < genericFormatterArgs.Length; j++)
+                            {
+                                if (j > 0) argsStr = argsStr + ", ";
+                                argsStr = argsStr + genericFormatterArgs[j].GetNiceFullName();
+                            }
+
+                            Debug.LogError("No AOT support was generated for serialization formatter type '" + info.FormatterType.GetNiceFullName() + "' for the generic arguments <" + argsStr + ">, and no weak fallback formatter was specified.");
+                            throw aotEx;
+                        }
+                    }
 
                     if (instance == null) continue;
 
@@ -599,7 +676,28 @@ namespace OdinSerializer
             }
 
             // Finally, we fall back to a reflection-based formatter if nothing else has been found
-            return (IFormatter)Activator.CreateInstance(typeof(ReflectionFormatter<>).MakeGenericType(type));
+            try
+            {
+                return (IFormatter)Activator.CreateInstance(typeof(ReflectionFormatter<>).MakeGenericType(type));
+            }
+
+            catch (TargetInvocationException ex)
+            {
+                if (allowWeakFormatters) return new WeakReflectionFormatter(type);
+                throw ex;
+            }
+            catch (TypeInitializationException ex)
+            {
+                if (allowWeakFormatters) return new WeakReflectionFormatter(type);
+                throw ex;
+            }
+#pragma warning disable CS0618 // Type or member is obsolete
+            catch (ExecutionEngineException ex)
+#pragma warning restore CS0618 // Type or member is obsolete
+            {
+                if (allowWeakFormatters) return new WeakReflectionFormatter(type);
+                throw ex;
+            }
         }
 
         private static IFormatter GetFormatterInstance(Type type)

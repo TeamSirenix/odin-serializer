@@ -18,13 +18,15 @@
 
 using OdinSerializer;
 
-[assembly: RegisterFormatter(typeof(StackFormatter<,>))]
+[assembly: RegisterFormatter(typeof(StackFormatter<,>), weakFallback: typeof(WeakStackFormatter))]
 
 namespace OdinSerializer
 {
     using Utilities;
     using System;
+    using System.Collections;
     using System.Collections.Generic;
+    using System.Reflection;
 
     /// <summary>
     /// Custom generic formatter for the generic type definition <see cref="Stack{T}"/> and types derived from it.
@@ -146,6 +148,132 @@ namespace OdinSerializer
                         try
                         {
                             TSerializer.WriteValue(list[i], writer);
+                        }
+                        catch (Exception ex)
+                        {
+                            writer.Context.Config.DebugContext.LogException(ex);
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                writer.EndArrayNode();
+            }
+        }
+    }
+
+    public class WeakStackFormatter : WeakBaseFormatter
+    {
+        private readonly object List_LOCK = new object();
+        private readonly List<object> List = new List<object>();
+
+        private readonly Serializer ElementSerializer;
+        private readonly bool IsPlainStack;
+        private readonly MethodInfo PushMethod;
+
+        public WeakStackFormatter(Type serializedType) : base(serializedType)
+        {
+            var args = serializedType.GetArgumentsOfInheritedOpenGenericClass(typeof(Stack<>));
+            this.ElementSerializer = Serializer.Get(args[0]);
+            this.IsPlainStack = serializedType.IsGenericType && serializedType.GetGenericTypeDefinition() == typeof(Stack<>);
+
+            if (this.PushMethod == null)
+            {
+                throw new SerializationAbortException("Can't serialize type '" + serializedType.GetNiceFullName() + "' because no proper Push method was found.");
+            }
+        }
+
+        protected override object GetUninitializedObject()
+        {
+            return null;
+        }
+
+        protected override void DeserializeImplementation(ref object value, IDataReader reader)
+        {
+            string name;
+            var entry = reader.PeekEntry(out name);
+
+            if (entry == EntryType.StartOfArray)
+            {
+                try
+                {
+                    long length;
+                    reader.EnterArray(out length);
+
+                    if (IsPlainStack)
+                    {
+                        value = Activator.CreateInstance(this.SerializedType, (int)length);
+                    }
+                    else
+                    {
+                        value = Activator.CreateInstance(this.SerializedType);
+                    }
+
+                    // We must remember to register the stack reference ourselves, since we return null in GetUninitializedObject
+                    this.RegisterReferenceID(value, reader);
+
+                    var pushParams = new object[1];
+
+                    // There aren't any OnDeserializing callbacks on stacks.
+                    // Hence we don't invoke this.InvokeOnDeserializingCallbacks(value, reader, context);
+                    for (int i = 0; i < length; i++)
+                    {
+                        if (reader.PeekEntry(out name) == EntryType.EndOfArray)
+                        {
+                            reader.Context.Config.DebugContext.LogError("Reached end of array after " + i + " elements, when " + length + " elements were expected.");
+                            break;
+                        }
+
+                        pushParams[0] = this.ElementSerializer.ReadValueWeak(reader);
+                        PushMethod.Invoke(value, pushParams);
+
+                        if (reader.IsInArrayNode == false)
+                        {
+                            // Something has gone wrong
+                            reader.Context.Config.DebugContext.LogError("Reading array went wrong. Data dump: " + reader.GetDataDump());
+                            break;
+                        }
+                    }
+                }
+                finally
+                {
+                    reader.ExitArray();
+                }
+            }
+            else
+            {
+                reader.SkipEntry();
+            }
+        }
+
+        /// <summary>
+        /// Provides the actual implementation for serializing a value of type <see cref="T" />.
+        /// </summary>
+        /// <param name="value">The value to serialize.</param>
+        /// <param name="writer">The writer to serialize with.</param>
+        protected override void SerializeImplementation(ref object value, IDataWriter writer)
+        {
+            try
+            {
+                ICollection collection = (ICollection)value;
+
+                writer.BeginArrayNode(collection.Count);
+
+                lock (List_LOCK)
+                {
+                    List.Clear();
+
+                    foreach (var element in collection)
+                    {
+                        List.Add(element);
+                    }
+
+                    for (int i = List.Count - 1; i >= 0; i--)
+                    {
+                        try
+                        {
+                            this.ElementSerializer.WriteValueWeak(List[i], writer);
                         }
                         catch (Exception ex)
                         {

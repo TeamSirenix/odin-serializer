@@ -19,7 +19,9 @@ namespace OdinSerializer
 {
     using OdinSerializer.Utilities;
     using System;
+    using System.Collections;
     using System.Collections.Generic;
+    using System.Reflection;
 
     /// <summary>
     /// Utility class for the <see cref="GenericCollectionFormatter{TCollection, TElement}"/> class.
@@ -172,6 +174,135 @@ namespace OdinSerializer
                 foreach (var element in value)
                 {
                     valueReaderWriter.WriteValue(element, writer);
+                }
+            }
+            finally
+            {
+                writer.EndArrayNode();
+            }
+        }
+    }
+
+    public sealed class WeakGenericCollectionFormatter : WeakBaseFormatter
+    {
+        private readonly Serializer ValueReaderWriter;
+        private readonly Type ElementType;
+        private readonly PropertyInfo CountProperty;
+        private readonly MethodInfo AddMethod;
+
+        public WeakGenericCollectionFormatter(Type collectionType, Type elementType) : base(collectionType)
+        {
+            this.ElementType = elementType;
+            this.CountProperty = collectionType.GetProperty("Count", BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic);
+            this.AddMethod = collectionType.GetMethod("Add", BindingFlags.Public | BindingFlags.Instance | BindingFlags.NonPublic, null, new Type[] { elementType }, null);
+
+            if (this.AddMethod == null)
+            {
+                throw new ArgumentException("Cannot treat the type " + collectionType.Name + " as a generic collection since it has no accessible Add method.");
+            }
+
+            if (this.CountProperty == null || this.CountProperty.PropertyType != typeof(int))
+            {
+                throw new ArgumentException("Cannot treat the type " + collectionType.Name + " as a generic collection since it has no accessible Count property.");
+            }
+
+            Type e;
+
+            if (GenericCollectionFormatter.CanFormat(collectionType, out e) == false)
+            {
+                throw new ArgumentException("Cannot treat the type " + collectionType.Name + " as a generic collection.");
+            }
+
+            if (e != elementType)
+            {
+                throw new ArgumentException("Type " + elementType.Name + " is not the element type of the generic collection type " + collectionType.Name + ".");
+            }
+        }
+
+        /// <summary>
+        /// Gets a new object of type <see cref="T" />.
+        /// </summary>
+        /// <returns>
+        /// A new object of type <see cref="T" />.
+        /// </returns>
+        protected override object GetUninitializedObject()
+        {
+            return Activator.CreateInstance(this.SerializedType);
+        }
+
+        /// <summary>
+        /// Provides the actual implementation for deserializing a value of type <see cref="T" />.
+        /// </summary>
+        /// <param name="value">The uninitialized value to serialize into. This value will have been created earlier using <see cref="BaseFormatter{T}.GetUninitializedObject" />.</param>
+        /// <param name="reader">The reader to deserialize with.</param>
+        protected override void DeserializeImplementation(ref object value, IDataReader reader)
+        {
+            string name;
+            var entry = reader.PeekEntry(out name);
+
+            if (entry == EntryType.StartOfArray)
+            {
+                try
+                {
+                    long length;
+                    reader.EnterArray(out length);
+
+                    for (int i = 0; i < length; i++)
+                    {
+                        if (reader.PeekEntry(out name) == EntryType.EndOfArray)
+                        {
+                            reader.Context.Config.DebugContext.LogError("Reached end of array after " + i + " elements, when " + length + " elements were expected.");
+                            break;
+                        }
+
+                        var addParams = new object[1];
+
+                        try
+                        {
+                            addParams[0] = ValueReaderWriter.ReadValueWeak(reader);
+                            AddMethod.Invoke(value, addParams);
+                        }
+                        catch (Exception ex)
+                        {
+                            reader.Context.Config.DebugContext.LogException(ex);
+                        }
+
+                        if (reader.IsInArrayNode == false)
+                        {
+                            reader.Context.Config.DebugContext.LogError("Reading array went wrong. Data dump: " + reader.GetDataDump());
+                            break;
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    reader.Context.Config.DebugContext.LogException(ex);
+                }
+                finally
+                {
+                    reader.ExitArray();
+                }
+            }
+            else
+            {
+                reader.SkipEntry();
+            }
+        }
+
+        /// <summary>
+        /// Provides the actual implementation for serializing a value of type <see cref="T" />.
+        /// </summary>
+        /// <param name="value">The value to serialize.</param>
+        /// <param name="writer">The writer to serialize with.</param>
+        protected override void SerializeImplementation(ref object value, IDataWriter writer)
+        {
+            try
+            {
+                writer.BeginArrayNode((int)CountProperty.GetValue(value, null));
+
+                foreach (var element in (IEnumerable)value)
+                {
+                    ValueReaderWriter.WriteValueWeak(element, writer);
                 }
             }
             finally

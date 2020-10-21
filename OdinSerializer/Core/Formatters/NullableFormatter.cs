@@ -18,7 +18,7 @@
 
 using OdinSerializer;
 
-[assembly: RegisterFormatter(typeof(NullableFormatter<>))]
+[assembly: RegisterFormatter(typeof(NullableFormatter<>), weakFallback: typeof(WeakNullableFormatter))]
 
 namespace OdinSerializer
 {
@@ -84,6 +84,50 @@ namespace OdinSerializer
             {
                 writer.WriteNull(null);
             }
+        }
+    }
+
+    public sealed class WeakNullableFormatter : WeakBaseFormatter
+    {
+        private readonly Serializer ValueSerializer;
+
+        public WeakNullableFormatter(Type nullableType) : base(nullableType)
+        {
+            var args = nullableType.GetGenericArguments();
+            this.ValueSerializer = Serializer.Get(args[0]);
+        }
+
+        protected override void DeserializeImplementation(ref object value, IDataReader reader)
+        {
+            string name;
+            var entry = reader.PeekEntry(out name);
+
+            if (entry == EntryType.Null)
+            {
+                value = null;
+                reader.ReadNull();
+            }
+            else
+            {
+                value = this.ValueSerializer.ReadValueWeak(reader);
+            }
+        }
+
+        protected override void SerializeImplementation(ref object value, IDataWriter writer)
+        {
+            if (value != null)
+            {
+                this.ValueSerializer.WriteValueWeak(value, writer);
+            }
+            else
+            {
+                writer.WriteNull(null);
+            }
+        }
+
+        protected override object GetUninitializedObject()
+        {
+            return null;
         }
     }
 }

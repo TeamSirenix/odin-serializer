@@ -36,7 +36,15 @@ namespace OdinSerializer
             if ((step == FormatterLocationStep.BeforeRegisteredFormatters && type.IsDefined<AlwaysFormatsSelfAttribute>())
                 || step == FormatterLocationStep.AfterRegisteredFormatters)
             {
-                formatter = (IFormatter)Activator.CreateInstance(typeof(SelfFormatterFormatter<>).MakeGenericType(type));
+                if (EmitUtilities.CanEmit)
+                {
+                    formatter = (IFormatter)Activator.CreateInstance(typeof(SelfFormatterFormatter<>).MakeGenericType(type));
+                }
+                else
+                {
+                    formatter = new WeakSelfFormatterFormatter(type);
+                }
+
                 return true;
             }
 

@@ -24,7 +24,6 @@ namespace OdinSerializer
     using System.Collections.Generic;
     using System.IO;
     using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
 
     /// <summary>
     /// Writes data to a stream that can be read by a <see cref="BinaryDataReader"/>.

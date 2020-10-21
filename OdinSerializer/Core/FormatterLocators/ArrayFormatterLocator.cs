@@ -22,6 +22,7 @@ using OdinSerializer;
 
 namespace OdinSerializer
 {
+    using Utilities;
     using System;
 
     internal class ArrayFormatterLocator : IFormatterLocator
@@ -34,20 +35,43 @@ namespace OdinSerializer
                 return false;
             }
 
+            var elementType = type.GetElementType();
+
             if (type.GetArrayRank() == 1)
             {
-                if (FormatterUtilities.IsPrimitiveArrayType(type.GetElementType()))
+                if (FormatterUtilities.IsPrimitiveArrayType(elementType))
                 {
-                    formatter = (IFormatter)Activator.CreateInstance(typeof(PrimitiveArrayFormatter<>).MakeGenericType(type.GetElementType()));
+                    if (EmitUtilities.CanEmit)
+                    {
+                        formatter = (IFormatter)Activator.CreateInstance(typeof(PrimitiveArrayFormatter<>).MakeGenericType(elementType));
+                    }
+                    else
+                    {
+                        formatter = new WeakPrimitiveArrayFormatter(type, elementType);
+                    }
                 }
                 else
                 {
-                    formatter = (IFormatter)Activator.CreateInstance(typeof(ArrayFormatter<>).MakeGenericType(type.GetElementType()));
+                    if (EmitUtilities.CanEmit)
+                    {
+                        formatter = (IFormatter)Activator.CreateInstance(typeof(ArrayFormatter<>).MakeGenericType(elementType));
+                    }
+                    else
+                    {
+                        formatter = new WeakArrayFormatter(type, elementType);
+                    }
                 }
             }
             else
             {
-                formatter = (IFormatter)Activator.CreateInstance(typeof(MultiDimensionalArrayFormatter<,>).MakeGenericType(type, type.GetElementType()));
+                if (EmitUtilities.CanEmit)
+                {
+                    formatter = (IFormatter)Activator.CreateInstance(typeof(MultiDimensionalArrayFormatter<,>).MakeGenericType(type, type.GetElementType()));
+                }
+                else
+                {
+                    formatter = new WeakMultiDimensionalArrayFormatter(type, elementType);
+                }
             }
 
             return true;

@@ -18,6 +18,8 @@
 
 namespace OdinSerializer
 {
+    using System;
+
     /// <summary>
     /// Formatter for types that implement the <see cref="ISelfFormatter"/> interface.
     /// </summary>
@@ -39,6 +41,29 @@ namespace OdinSerializer
         protected override void SerializeImplementation(ref T value, IDataWriter writer)
         {
             value.Serialize(writer);
+        }
+    }
+
+    public sealed class WeakSelfFormatterFormatter : WeakBaseFormatter
+    {
+        public WeakSelfFormatterFormatter(Type serializedType) : base(serializedType)
+        {
+        }
+
+        /// <summary>
+        /// Calls <see cref="ISelfFormatter.Deserialize" />  on the value to deserialize.
+        /// </summary>
+        protected override void DeserializeImplementation(ref object value, IDataReader reader)
+        {
+            ((ISelfFormatter)value).Deserialize(reader);
+        }
+
+        /// <summary>
+        /// Calls <see cref="ISelfFormatter.Serialize" />  on the value to deserialize.
+        /// </summary>
+        protected override void SerializeImplementation(ref object value, IDataWriter writer)
+        {
+            ((ISelfFormatter)value).Serialize(writer);
         }
     }
 }
