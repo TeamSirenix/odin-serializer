@@ -32,6 +32,17 @@ namespace OdinSerializer
         private static MethodInfo PrefabUtility_GetPrefabParent_Method = typeof(PrefabUtility).GetMethod("GetPrefabParent", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(UnityEngine.Object) }, null);
         private static MethodInfo PrefabUtility_GetCorrespondingObjectFromSource_Method = typeof(PrefabUtility).GetMethod("GetCorrespondingObjectFromSource", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(UnityEngine.Object) }, null);
         private static MethodInfo PrefabUtility_GetPrefabType_Method = typeof(PrefabUtility).GetMethod("GetPrefabType", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(UnityEngine.Object) }, null);
+        private static MethodInfo PrefabUtility_ApplyPropertyOverride_Method;
+
+        static OdinPrefabSerializationEditorUtility()
+        {
+            Type interactionModeEnum = typeof(UnityEditor.Editor).Assembly.GetType("UnityEditor.InteractionMode");
+
+            if (interactionModeEnum != null)
+            {
+                PrefabUtility_ApplyPropertyOverride_Method = typeof(PrefabUtility).GetMethod("ApplyPropertyOverride", BindingFlags.Public | BindingFlags.Static, null, new Type[] { typeof(SerializedProperty), typeof(string), interactionModeEnum }, null);
+            }
+        }
 
         public static bool HasNewPrefabWorkflow
         {
@@ -43,6 +54,14 @@ namespace OdinSerializer
                 }
 
                 return hasNewPrefabWorkflow.Value;
+            }
+        }
+
+        public static bool HasApplyPropertyOverride
+        {
+            get
+            {
+                return PrefabUtility_ApplyPropertyOverride_Method != null;
             }
         }
 
@@ -65,6 +84,13 @@ namespace OdinSerializer
             {
                 return false;
             }
+        }
+
+        public static void ApplyPropertyOverride(SerializedProperty instanceProperty, string assetPath)
+        {
+            //PrefabUtility.ApplyPropertyOverride(instanceProperty, assetPath, InteractionMode.AutomatedAction);
+            if (!HasApplyPropertyOverride) throw new NotSupportedException("PrefabUtility.ApplyPropertyOverride doesn't exist in this version of Unity");
+            PrefabUtility_ApplyPropertyOverride_Method.Invoke(null, new object[] { instanceProperty, assetPath, 0 });
         }
 
         public static bool ObjectIsPrefabInstance(UnityEngine.Object unityObject)
