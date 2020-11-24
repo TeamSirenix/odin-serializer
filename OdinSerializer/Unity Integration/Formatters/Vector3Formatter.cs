@@ -16,6 +16,8 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+#if !DISABLE_UNITY
+
 using OdinSerializer;
 
 [assembly: RegisterFormatter(typeof(Vector3Formatter))]
@@ -57,3 +59,5 @@ namespace OdinSerializer
         }
     }
 }
+
+#endif

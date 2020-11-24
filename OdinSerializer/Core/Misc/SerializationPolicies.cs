@@ -21,7 +21,6 @@ namespace OdinSerializer
     using System;
     using System.Reflection;
     using System.Runtime.CompilerServices;
-    using UnityEngine;
 
     /// <summary>
     /// Contains a set of default implementations of the <see cref="ISerializationPolicy"/> interface.
@@ -146,7 +145,11 @@ namespace OdinSerializer
                                     return true;
                                 }
 
-                                return member.IsDefined<SerializeField>(false) || member.IsDefined<OdinSerializeAttribute>(false) || (UnitySerializationUtility.SerializeReferenceAttributeType != null && member.IsDefined(UnitySerializationUtility.SerializeReferenceAttributeType, false));
+                                return
+#if !DISABLE_UNITY
+                                    member.IsDefined<UnityEngine.SerializeField>(false) || (UnitySerializationUtility.SerializeReferenceAttributeType != null && member.IsDefined(UnitySerializationUtility.SerializeReferenceAttributeType, false)) ||
+#endif
+                                    member.IsDefined<OdinSerializeAttribute>(false);
                             });
                         }
                     }
@@ -191,7 +194,11 @@ namespace OdinSerializer
                                     return true;
                                 }
 
-                                return member.IsDefined<SerializeField>(false) || member.IsDefined<OdinSerializeAttribute>(false) || (UnitySerializationUtility.SerializeReferenceAttributeType != null && member.IsDefined(UnitySerializationUtility.SerializeReferenceAttributeType, false));
+                                return 
+#if !DISABLE_UNITY
+                                    member.IsDefined<UnityEngine.SerializeField>(false) || (UnitySerializationUtility.SerializeReferenceAttributeType != null && member.IsDefined(UnitySerializationUtility.SerializeReferenceAttributeType, false)) ||
+#endif
+                                    member.IsDefined<OdinSerializeAttribute>(false);
                             });
                         }
                     }

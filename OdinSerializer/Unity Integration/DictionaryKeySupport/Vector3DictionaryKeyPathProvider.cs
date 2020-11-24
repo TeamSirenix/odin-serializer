@@ -16,6 +16,8 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+#if !DISABLE_UNITY
+
 using OdinSerializer;
 
 [assembly: RegisterDictionaryKeyPathProvider(typeof(Vector3DictionaryKeyPathProvider))]
@@ -70,3 +72,5 @@ namespace OdinSerializer
         }
     }
 }
+
+#endif

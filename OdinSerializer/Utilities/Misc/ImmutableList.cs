@@ -20,7 +20,6 @@ namespace OdinSerializer.Utilities
     using System;
     using System.Collections;
     using System.Collections.Generic;
-    using UnityEngine;
 
     /// <summary>
     /// Interface for immutable list.
@@ -46,7 +45,9 @@ namespace OdinSerializer.Utilities
     [Serializable]
     public sealed class ImmutableList : IImmutableList<object>
     {
-        [SerializeField]
+#if !DISABLE_UNITY
+        [UnityEngine.SerializeField]
+#endif
         private IList innerList;
 
         /// <summary>
@@ -255,7 +256,9 @@ namespace OdinSerializer.Utilities
     [Serializable]
     public sealed class ImmutableList<T> : IImmutableList<T>
     {
-        [SerializeField]
+#if !DISABLE_UNITY
+        [UnityEngine.SerializeField]
+#endif
         private IList<T> innerList;
 
         /// <summary>

@@ -16,6 +16,7 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+#if !DISABLE_UNITY
 #if UNITY_EDITOR
 
 namespace OdinSerializer.Editor
@@ -24,11 +25,9 @@ namespace OdinSerializer.Editor
     using System;
     using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
     using System.Reflection;
     using System.Reflection.Emit;
     using UnityEditor;
-    using UnityEditor.SceneManagement;
     using UnityEngine;
     using UnityEngine.Scripting;
 
@@ -467,4 +466,5 @@ namespace OdinSerializer.Editor
     }
 }
 
+#endif
 #endif

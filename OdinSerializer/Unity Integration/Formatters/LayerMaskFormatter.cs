@@ -16,6 +16,8 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+#if !DISABLE_UNITY
+
 using OdinSerializer;
 
 [assembly: RegisterFormatter(typeof(LayerMaskFormatter))]
@@ -53,3 +55,5 @@ namespace OdinSerializer
         }
     }
 }
+
+#endif

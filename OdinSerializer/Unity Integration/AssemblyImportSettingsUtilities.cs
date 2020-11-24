@@ -16,6 +16,7 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+#if !DISABLE_UNITY
 #if UNITY_EDITOR
 
 namespace OdinSerializer.Utilities.Editor
@@ -287,4 +288,5 @@ namespace OdinSerializer.Utilities.Editor
     }
 }
 
+#endif
 #endif

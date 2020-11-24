@@ -16,6 +16,8 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+#if !DISABLE_UNITY
+
 using OdinSerializer;
 
 [assembly: RegisterFormatter(typeof(GradientAlphaKeyFormatter))]
@@ -55,3 +57,5 @@ namespace OdinSerializer
         }
     }
 }
+
+#endif

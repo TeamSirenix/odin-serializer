@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+	<OutputPath>bin\Release Disable Unity JIT Core\</OutputPath>
+    <DefineConstants>DISABLE_UNITY;CAN_EMIT;NET_CORE</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+	<DocumentationFile>bin\Release Disable Unity JIT\OdinSerializer.xml</DocumentationFile>
+    <Optimize>true</Optimize>
+	<AppDesignerFolder>Properties</AppDesignerFolder>
+	<GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+    <AssemblyName>OdinSerializer</AssemblyName>
+  </PropertyGroup>
+  
+  <ItemGroup>
+	<None Remove="**" />
+	<Compile Remove="**" />
+	<Content Remove="**" />
+	<Compile Include="**/*.cs" />
+	<Compile Remove="bin/**" />
+	<Compile Remove="obj/**" />
+	<PackageReference Include="System.Reflection.Emit" Version="4.3.0" />
+  </ItemGroup>
+
+</Project>

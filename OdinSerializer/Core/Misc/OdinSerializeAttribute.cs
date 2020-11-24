@@ -24,7 +24,9 @@ namespace OdinSerializer
     /// Indicates that an instance field or auto-property should be serialized by Odin.
     /// </summary>
     /// <seealso cref="System.Attribute" />
+#if !DISABLE_UNITY
     [JetBrains.Annotations.MeansImplicitUse]
+#endif
     [AttributeUsage(AttributeTargets.Field | AttributeTargets.Property)]
     public class OdinSerializeAttribute : Attribute
     {

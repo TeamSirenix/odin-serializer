@@ -25,13 +25,12 @@ namespace OdinSerializer
     using System.Linq;
     using System.Reflection;
     using System.Runtime.Serialization;
-    using UnityEngine;
 
     /// <summary>
     /// Provides an array of utility methods which are commonly used by serialization formatters.
     /// </summary>
 
-#if UNITY_EDITOR
+#if UNITY_EDITOR && !DISABLE_UNITY
 
     [UnityEditor.InitializeOnLoad]
 #endif
@@ -59,21 +58,23 @@ namespace OdinSerializer
             typeof(Guid)
         };
 
+#if !DISABLE_UNITY
         private static readonly FieldInfo UnityObjectRuntimeErrorStringField;
 
         private const string UnityObjectRuntimeErrorString =
 @"The variable nullValue of {0} has not been assigned.
 You probably need to assign the nullValue variable of the {0} script in the inspector.";
+#endif
 
         static FormatterUtilities()
         {
             // The required field is missing in Unity builds
-#if UNITY_EDITOR
+#if UNITY_EDITOR && !DISABLE_UNITY
             UnityObjectRuntimeErrorStringField = typeof(UnityEngine.Object).GetField("m_UnityRuntimeErrorString", Flags.InstanceAnyVisibility);
 
             if (UnityObjectRuntimeErrorStringField == null)
             {
-                Debug.LogWarning("A change in Unity has hindered the Serialization system's ability to create proper fake Unity null values; the UnityEngine.Object.m_UnityRuntimeErrorString field has been renamed or removed.");
+                Logging.LogWarning("A change in Unity has hindered the Serialization system's ability to create proper fake Unity null values; the UnityEngine.Object.m_UnityRuntimeErrorString field has been renamed or removed.");
             }
 #endif
         }
@@ -134,6 +135,7 @@ You probably need to assign the nullValue variable of the {0} script in the insp
             return result;
         }
 
+#if !DISABLE_UNITY
         /// <summary>
         /// Creates a fake Unity null value of a given type, for the given <see cref="UnityEngine.Object"/>-derived owning type.
         /// <para />
@@ -174,6 +176,7 @@ You probably need to assign the nullValue variable of the {0} script in the insp
 
             return nullValue;
         }
+#endif
 
         /// <summary>
         /// Determines whether a given type is a primitive type to the serialization system.
@@ -288,6 +291,9 @@ You probably need to assign the nullValue variable of the {0} script in the insp
         {
             var map = GetSerializableMembers(type, policy).ToDictionary(n => n.Name, n => n);
 
+#if !DISABLE_UNITY
+            // Note that we will need some of the below code if we ever want to add our own non-Unity-based name remapping attribute.
+
             foreach (var member in map.Values.ToList())
             {
                 var serializedAsAttributes = member.GetAttributes<UnityEngine.Serialization.FormerlySerializedAsAttribute>();
@@ -300,6 +306,7 @@ You probably need to assign the nullValue variable of the {0} script in the insp
                     }
                 }
             }
+#endif
 
             return map;
         }

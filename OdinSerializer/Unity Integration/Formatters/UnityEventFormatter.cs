@@ -16,6 +16,8 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+#if !DISABLE_UNITY
+
 using OdinSerializer;
 
 [assembly: RegisterFormatter(typeof(UnityEventFormatter<>), weakFallback: typeof(WeakUnityEventFormatter))] 
@@ -56,3 +58,5 @@ namespace OdinSerializer
         }
     }
 }
+
+#endif

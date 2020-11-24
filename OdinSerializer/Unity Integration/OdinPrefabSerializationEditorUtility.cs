@@ -16,6 +16,8 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+#if !DISABLE_UNITY
+
 //#define PREFAB_DEBUG
 #if UNITY_EDITOR
 namespace OdinSerializer
@@ -153,4 +155,6 @@ namespace OdinSerializer
         }
     }
 }
+
+#endif
 #endif

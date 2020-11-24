@@ -16,6 +16,8 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+#if !DISABLE_UNITY
+
 namespace OdinSerializer.Utilities
 {
     using System;
@@ -24,7 +26,7 @@ namespace OdinSerializer.Utilities
     /// <summary>
     /// Extends various Unity classes.
     /// </summary>
-    public static class UnityExtensions
+    internal static class UnityExtensions
     {
         private static readonly ValueGetter<UnityEngine.Object, IntPtr> UnityObjectCachedPtrFieldGetter;
 
@@ -65,3 +67,5 @@ namespace OdinSerializer.Utilities
         }
     }
 }
+
+#endif

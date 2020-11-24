@@ -21,13 +21,12 @@ namespace OdinSerializer
     using System;
     using System.Collections.Generic;
     using System.Reflection;
-    using UnityEngine;
     using Utilities;
 
     /// <summary>
     /// Utility class for locating and caching formatters for all non-primitive types.
     /// </summary>
-#if UNITY_EDITOR
+#if UNITY_EDITOR && !DISABLE_UNITY
 
     [UnityEditor.InitializeOnLoad]
 #endif
@@ -149,7 +148,7 @@ namespace OdinSerializer
                         }
                         catch (Exception ex)
                         {
-                            Debug.LogException(new Exception("Exception was thrown while instantiating FormatterLocator of type " + attr.FormatterLocatorType.FullName + ".", ex));
+                            Logging.LogException(new Exception("Exception was thrown while instantiating FormatterLocator of type " + attr.FormatterLocatorType.FullName + ".", ex));
                         }
                     }
                 }
@@ -157,21 +156,21 @@ namespace OdinSerializer
                 {
                     if (ass.GetName().Name == "OdinSerializer")
                     {
-                        Debug.LogError("A TypeLoadException occurred when FormatterLocator tried to load types from assembly '" + ass.FullName + "'. No serialization formatters in this assembly will be found. Serialization will be utterly broken.");
+                        Logging.LogError("A TypeLoadException occurred when FormatterLocator tried to load types from assembly '" + ass.FullName + "'. No serialization formatters in this assembly will be found. Serialization will be utterly broken.");
                     }
                 }
                 catch (ReflectionTypeLoadException)
                 {
                     if (ass.GetName().Name == "OdinSerializer")
                     {
-                        Debug.LogError("A ReflectionTypeLoadException occurred when FormatterLocator tried to load types from assembly '" + ass.FullName + "'. No serialization formatters in this assembly will be found. Serialization will be utterly broken.");
+                        Logging.LogError("A ReflectionTypeLoadException occurred when FormatterLocator tried to load types from assembly '" + ass.FullName + "'. No serialization formatters in this assembly will be found. Serialization will be utterly broken.");
                     }
                 }
                 catch (MissingMemberException)
                 {
                     if (ass.GetName().Name == "OdinSerializer")
                     {
-                        Debug.LogError("A ReflectionTypeLoadException occurred when FormatterLocator tried to load types from assembly '" + ass.FullName + "'. No serialization formatters in this assembly will be found. Serialization will be utterly broken.");
+                        Logging.LogError("A ReflectionTypeLoadException occurred when FormatterLocator tried to load types from assembly '" + ass.FullName + "'. No serialization formatters in this assembly will be found. Serialization will be utterly broken.");
                     }
                 }
             }
@@ -342,7 +341,7 @@ namespace OdinSerializer
         {
             var types = new List<string>(GetAllPossibleMissingAOTTypes(type)).ToArray();
 
-            Debug.LogError("Creating a serialization formatter for the type '" + type.GetNiceFullName() + "' failed due to missing AOT support. \n\n" +
+            Logging.LogError("Creating a serialization formatter for the type '" + type.GetNiceFullName() + "' failed due to missing AOT support. \n\n" +
                 " Please use Odin's AOT generation feature to generate an AOT dll before building, and MAKE SURE that all of the following " +
                 "types were automatically added to the supported types list after a scan (if they were not, please REPORT AN ISSUE with the details of which exact types the scan is missing " +
                 "and ADD THEM MANUALLY): \n\n" + string.Join("\n", types) + "\n\nIF ALL THE TYPES ARE IN THE SUPPORT LIST AND YOU STILL GET THIS ERROR, PLEASE REPORT AN ISSUE." +
@@ -407,7 +406,7 @@ namespace OdinSerializer
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogException(new Exception("Exception was thrown while calling FormatterLocator " + FormatterLocators[i].GetType().FullName + ".", ex));
+                    Logging.LogException(new Exception("Exception was thrown while calling FormatterLocator " + FormatterLocators[i].GetType().FullName + ".", ex));
                 }
             }
 
@@ -483,7 +482,7 @@ namespace OdinSerializer
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogException(new Exception("Exception was thrown while calling FormatterLocator " + FormatterLocators[i].GetType().FullName + ".", ex));
+                    Logging.LogException(new Exception("Exception was thrown while calling FormatterLocator " + FormatterLocators[i].GetType().FullName + ".", ex));
                 }
             }
 
@@ -526,7 +525,7 @@ namespace OdinSerializer
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogException(new Exception("Exception was thrown while calling FormatterLocator " + FormatterLocators[i].GetType().FullName + ".", ex));
+                    Logging.LogException(new Exception("Exception was thrown while calling FormatterLocator " + FormatterLocators[i].GetType().FullName + ".", ex));
                 }
             }
 
@@ -657,7 +656,7 @@ namespace OdinSerializer
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogException(new Exception("Exception was thrown while calling FormatterLocator " + FormatterLocators[i].GetType().FullName + ".", ex));
+                    Logging.LogException(new Exception("Exception was thrown while calling FormatterLocator " + FormatterLocators[i].GetType().FullName + ".", ex));
                 }
             }
 
@@ -672,7 +671,7 @@ namespace OdinSerializer
 
             if (EmitUtilities.CanEmit)
             {
-                Debug.LogWarning("Fallback to reflection for type " + type.Name + " when emit is possible on this platform.");
+                Logging.LogWarning("Fallback to reflection for type " + type.Name + " when emit is possible on this platform.");
             }
 
             // Finally, we fall back to a reflection-based formatter if nothing else has been found
@@ -726,7 +725,7 @@ namespace OdinSerializer
                 }
                 catch (Exception ex)
                 {
-                    Debug.LogException(new Exception("Exception was thrown while instantiating formatter '" + type.GetNiceFullName() + "'.", ex));
+                    Logging.LogException(new Exception("Exception was thrown while instantiating formatter '" + type.GetNiceFullName() + "'.", ex));
                 }
             }
             return formatter;

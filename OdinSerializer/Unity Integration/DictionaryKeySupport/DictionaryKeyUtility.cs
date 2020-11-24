@@ -16,6 +16,8 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+#if !DISABLE_UNITY
+
 namespace OdinSerializer
 {
     using System.Globalization;
@@ -465,3 +467,5 @@ namespace OdinSerializer
         }
     }
 }
+
+#endif

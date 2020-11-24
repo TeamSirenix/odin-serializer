@@ -16,6 +16,8 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+#if !DISABLE_UNITY
+
 using OdinSerializer;
 
 [assembly: RegisterFormatter(typeof(KeyframeFormatter))]
@@ -119,3 +121,5 @@ namespace OdinSerializer
         }
     }
 }
+
+#endif

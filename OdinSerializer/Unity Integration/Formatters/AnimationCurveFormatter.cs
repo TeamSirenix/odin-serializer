@@ -16,6 +16,8 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+#if !DISABLE_UNITY
+
 using OdinSerializer;
 
 [assembly: RegisterFormatter(typeof(AnimationCurveFormatter))]
@@ -71,3 +73,5 @@ namespace OdinSerializer
         }
     }
 }
+
+#endif

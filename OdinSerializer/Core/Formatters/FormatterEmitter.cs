@@ -27,7 +27,6 @@ namespace OdinSerializer
     using System.Collections.Generic;
     using System.Linq;
     using System.Reflection;
-    using UnityEngine;
 
 #if CAN_EMIT
 
@@ -135,7 +134,7 @@ namespace OdinSerializer
         public static IFormatter GetEmittedFormatter(Type type, ISerializationPolicy policy)
         {
 #if !CAN_EMIT
-        Debug.LogError("Cannot use Reflection.Emit on the current platform. The FormatterEmitter class is currently disabled. Check whether emitting is currently possible with EmitUtilities.CanEmit.");
+        Logging.LogError("Cannot use Reflection.Emit on the current platform. The FormatterEmitter class is currently disabled. Check whether emitting is currently possible with EmitUtilities.CanEmit.");
         return null;
 #else
             if (type == null)
@@ -164,8 +163,8 @@ namespace OdinSerializer
                         }
                         catch (Exception ex)
                         {
-                            Debug.LogError("The following error occurred while emitting a formatter for the type " + type.Name);
-                            Debug.LogException(ex);
+                            Logging.LogError("The following error occurred while emitting a formatter for the type " + type.Name);
+                            Logging.LogException(ex);
                         }
 
                         Formatters.AddInner(policy, type, result);
@@ -192,7 +191,11 @@ namespace OdinSerializer
                 assemblyName.ProcessorArchitecture = ProcessorArchitecture.MSIL;
                 assemblyName.VersionCompatibility = System.Configuration.Assemblies.AssemblyVersionCompatibility.SameDomain;
 
+#if NET_CORE
+                runtimeEmittedAssembly = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
+#else
                 runtimeEmittedAssembly = AppDomain.CurrentDomain.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
+#endif
             }
 
             if (runtimeEmittedModule == null)
@@ -206,7 +209,11 @@ namespace OdinSerializer
                 emitSymbolInfo = false;
 #endif
 
+#if NET_CORE
+                runtimeEmittedModule = runtimeEmittedAssembly.DefineDynamicModule(RUNTIME_EMITTED_ASSEMBLY_NAME);
+#else
                 runtimeEmittedModule = runtimeEmittedAssembly.DefineDynamicModule(RUNTIME_EMITTED_ASSEMBLY_NAME, emitSymbolInfo);
+#endif
             }
         }
 

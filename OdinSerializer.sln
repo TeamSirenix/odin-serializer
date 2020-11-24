@@ -5,10 +5,14 @@ VisualStudioVersion = 15.0.27130.2027
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OdinSerializer", "OdinSerializer\OdinSerializer.csproj", "{F1111936-6086-412C-AB26-D7D8D3448A2A}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OdinSerializerNetCore", "OdinSerializer\OdinSerializerNetCore.csproj", "{FD3CE04D-302F-42A1-A070-C3E5229E5272}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug Editor|Any CPU = Debug Editor|Any CPU
 		Release AOT|Any CPU = Release AOT|Any CPU
+		Release Disable Unity AOT|Any CPU = Release Disable Unity AOT|Any CPU
+		Release Disable Unity JIT|Any CPU = Release Disable Unity JIT|Any CPU
 		Release Editor|Any CPU = Release Editor|Any CPU
 		Release JIT|Any CPU = Release JIT|Any CPU
 	EndGlobalSection
@@ -17,6 +21,10 @@ Global
 		{F1111936-6086-412C-AB26-D7D8D3448A2A}.Debug Editor|Any CPU.Build.0 = Debug Editor|Any CPU
 		{F1111936-6086-412C-AB26-D7D8D3448A2A}.Release AOT|Any CPU.ActiveCfg = Release AOT|Any CPU
 		{F1111936-6086-412C-AB26-D7D8D3448A2A}.Release AOT|Any CPU.Build.0 = Release AOT|Any CPU
+		{F1111936-6086-412C-AB26-D7D8D3448A2A}.Release Disable Unity AOT|Any CPU.ActiveCfg = Release Disable Unity AOT|Any CPU
+		{F1111936-6086-412C-AB26-D7D8D3448A2A}.Release Disable Unity AOT|Any CPU.Build.0 = Release Disable Unity AOT|Any CPU
+		{F1111936-6086-412C-AB26-D7D8D3448A2A}.Release Disable Unity JIT|Any CPU.ActiveCfg = Release Disable Unity JIT|Any CPU
+		{F1111936-6086-412C-AB26-D7D8D3448A2A}.Release Disable Unity JIT|Any CPU.Build.0 = Release Disable Unity JIT|Any CPU
 		{F1111936-6086-412C-AB26-D7D8D3448A2A}.Release Editor|Any CPU.ActiveCfg = Release Editor|Any CPU
 		{F1111936-6086-412C-AB26-D7D8D3448A2A}.Release Editor|Any CPU.Build.0 = Release Editor|Any CPU
 		{F1111936-6086-412C-AB26-D7D8D3448A2A}.Release JIT|Any CPU.ActiveCfg = Release JIT|Any CPU

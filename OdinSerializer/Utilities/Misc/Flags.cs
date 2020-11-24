@@ -18,11 +18,7 @@
 
 namespace OdinSerializer.Utilities
 {
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
     using System.Reflection;
-    using System.Text;
 
     /// <summary>
     /// This class encapsulates common <see cref="BindingFlags"/> combinations.

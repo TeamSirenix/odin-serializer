@@ -16,6 +16,8 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+#if !DISABLE_UNITY
+
 namespace OdinSerializer
 {
     using UnityEngine;
@@ -61,3 +63,5 @@ namespace OdinSerializer
         }
     }
 }
+
+#endif

@@ -15,7 +15,10 @@
 // limitations under the License.
 // </copyright>
 //-----------------------------------------------------------------------
-namespace OdinSerializer.Utilities
+
+#if !DISABLE_UNITY
+
+namespace OdinSerializer
 {
     using UnityEngine;
 
@@ -26,7 +29,7 @@ namespace OdinSerializer.Utilities
 
     [UnityEditor.InitializeOnLoad]
 #endif
-    public static class UnityVersion
+    internal static class UnityVersion
     {
         static UnityVersion()
         {
@@ -79,3 +82,5 @@ namespace OdinSerializer.Utilities
         public static readonly int Minor;
     }
 }
+
+#endif

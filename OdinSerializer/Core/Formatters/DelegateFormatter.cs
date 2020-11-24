@@ -275,6 +275,7 @@ namespace OdinSerializer
             {
                 Type targetType = methodInfo.DeclaringType;
 
+#if !DISABLE_UNITY
                 if (typeof(UnityEngine.Object).IsAssignableFrom(targetType))
                 {
                     if ((target as UnityEngine.Object) == null)
@@ -284,6 +285,7 @@ namespace OdinSerializer
                     }
                 }
                 else
+#endif
                 {
                     if (object.ReferenceEquals(target, null))
                     {

@@ -12,7 +12,9 @@
     <TargetFrameworkVersion>v3.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <TargetFrameworkProfile>Unity Subset v3.5</TargetFrameworkProfile>
+    <!--
     <ProjectTypeGuids>{E097FAD1-6243-4DAD-9C02-E9B9EFC3FFC1};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
+	-->
   </PropertyGroup>
   <PropertyGroup>
     <RunPostBuildEvent>Always</RunPostBuildEvent>
@@ -68,8 +70,34 @@
     <DebugType>pdbonly</DebugType>
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release Disable Unity JIT|AnyCPU'">
+    <OutputPath>bin\Release Disable Unity JIT\</OutputPath>
+    <NoWarn>CS1723, CS1723, CS1574, CS1584, CS1658</NoWarn>
+    <DefineConstants>DISABLE_UNITY;CAN_EMIT</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DocumentationFile>bin\Release Disable Unity JIT\OdinSerializer.xml</DocumentationFile>
+    <Optimize>true</Optimize>
+    <LangVersion>4</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <DebugType>pdbonly</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release Disable Unity AOT|AnyCPU'">
+    <OutputPath>bin\Release Disable Unity AOT\</OutputPath>
+    <NoWarn>CS1723, CS1723, CS1574, CS1584, CS1658</NoWarn>
+    <DefineConstants>DISABLE_UNITY</DefineConstants>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <DocumentationFile>bin\Release Disable Unity AOT\OdinSerializer.xml</DocumentationFile>
+    <Optimize>true</Optimize>
+    <LangVersion>4</LangVersion>
+    <ErrorReport>prompt</ErrorReport>
+    <DebugType>pdbonly</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(Configuration.Contains(`Disable Unity`))' != 'true'">
     <Reference Include="UnityEditor">
       <HintPath>..\Libraries\Unity\UnityEditor.dll</HintPath>
       <Private>False</Private>
@@ -93,7 +121,7 @@
   </ItemGroup>
   <ItemGroup />
   <Import Project="..\Libraries\MSBuild\15.0\Bin\Microsoft.CSharp.targets" />
-  <PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration.Contains(`Disable Unity`))' != 'true'">
     <PostBuildEvent>call "$(SolutionDir)Libraries\PDB2MDB\pdb2mdb.exe" "$(TargetPath)"
 call del /a "$(TargetDir)*.pdb*"</PostBuildEvent>
   </PropertyGroup>

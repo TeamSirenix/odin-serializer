@@ -16,6 +16,8 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+#if !DISABLE_UNITY
+
 using OdinSerializer;
 
 [assembly: RegisterFormatter(typeof(ColorFormatter))]
@@ -59,3 +61,5 @@ namespace OdinSerializer
         }
     }
 }
+
+#endif

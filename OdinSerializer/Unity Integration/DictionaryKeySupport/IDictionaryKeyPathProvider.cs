@@ -16,6 +16,8 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+#if !DISABLE_UNITY
+
 namespace OdinSerializer
 {
     /// <summary>
@@ -73,3 +75,5 @@ namespace OdinSerializer
         int Compare(T x, T y);
     }
 }
+
+#endif

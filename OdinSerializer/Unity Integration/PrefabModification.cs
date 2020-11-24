@@ -15,6 +15,9 @@
 // limitations under the License.
 // </copyright>
 //-----------------------------------------------------------------------
+
+#if !DISABLE_UNITY
+
 namespace OdinSerializer
 {
     using System;
@@ -654,3 +657,5 @@ namespace OdinSerializer
         }
     }
 }
+
+#endif

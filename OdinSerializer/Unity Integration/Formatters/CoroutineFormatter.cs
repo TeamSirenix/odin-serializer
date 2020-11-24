@@ -16,6 +16,8 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+#if !DISABLE_UNITY
+
 using OdinSerializer;
 
 [assembly: RegisterFormatter(typeof(CoroutineFormatter))]
@@ -79,3 +81,5 @@ namespace OdinSerializer
         }
     }
 }
+
+#endif

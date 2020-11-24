@@ -16,6 +16,8 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
+#if !DISABLE_UNITY
+
 namespace OdinSerializer
 {
     /// <summary>
@@ -29,3 +31,5 @@ namespace OdinSerializer
         bool OdinSerializesUnityFields { get; }
     }
 }
+
+#endif
