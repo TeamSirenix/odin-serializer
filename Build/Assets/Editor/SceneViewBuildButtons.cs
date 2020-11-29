@@ -75,7 +75,11 @@ namespace OdinSerializer.Utilities.Editor
         [InitializeOnLoadMethod]
         private static void Init()
         {
+#if UNITY_2019_1_OR_NEWER
+            SceneView.duringSceneGui += DrawButtons;
+#else
             SceneView.onSceneGUIDelegate += DrawButtons;
+#endif
         }
 
         private static string GetReleaseBuildNumber()
