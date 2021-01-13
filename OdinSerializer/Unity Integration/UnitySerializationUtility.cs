@@ -155,6 +155,11 @@ namespace OdinSerializer
             typeof(Coroutine)
         };
 
+        private static readonly HashSet<string> UnityNeverSerializesTypeNames = new HashSet<string>()
+        {
+            "UnityEngine.AnimationState"
+        };
+
 #if UNITY_EDITOR
 
         /// <summary>
@@ -398,13 +403,18 @@ namespace OdinSerializer
 
         private static bool GuessIfUnityWillSerializePrivate(Type type)
         {
-            if (UnityNeverSerializesTypes.Contains(type))
+            if (UnityNeverSerializesTypes.Contains(type) || UnityNeverSerializesTypeNames.Contains(type.FullName))
             {
                 return false;
             }
 
-            if (typeof(UnityEngine.Object).IsAssignableFrom(type) && type.GetGenericArguments().Length == 0)
+            if (typeof(UnityEngine.Object).IsAssignableFrom(type))
             {
+                if (type.IsGenericType)
+                {
+                    return UnityVersion.IsVersionOrGreater(2020, 1);
+                }
+
                 // Unity will always serialize all of its own special objects
                 // Except when they have generic type arguments.
                 return true;
