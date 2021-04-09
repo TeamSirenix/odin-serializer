@@ -340,7 +340,7 @@ namespace OdinSerializer
         {
             FieldInfo fieldInfo = member as FieldInfo;
 
-            if (fieldInfo == null || fieldInfo.IsStatic)
+            if (fieldInfo == null || fieldInfo.IsStatic || fieldInfo.IsInitOnly)
             {
                 return false;
             }
