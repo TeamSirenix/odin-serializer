@@ -203,7 +203,14 @@ namespace OdinSerializer
         /// <param name="writer">The writer to use.</param>
         public static void SerializeValue<T>(T value, IDataWriter writer)
         {
-            Serializer.Get<T>().WriteValue(value, writer);
+            if (EmitUtilities.CanEmit)
+            {
+                Serializer.Get<T>().WriteValue(value, writer);
+            }
+            else
+            {
+                Serializer.Get(typeof(T)).WriteValueWeak(value, writer);
+            }
             writer.FlushToStream();
         }
 
@@ -219,7 +226,14 @@ namespace OdinSerializer
             using (var unityResolver = Cache<UnityReferenceResolver>.Claim())
             {
                 writer.Context.IndexReferenceResolver = unityResolver.Value;
-                Serializer.Get<T>().WriteValue(value, writer);
+                if (EmitUtilities.CanEmit)
+                {
+                    Serializer.Get<T>().WriteValue(value, writer);
+                }
+                else
+                {
+                    Serializer.Get(typeof(T)).WriteValueWeak(value, writer);
+                }
                 writer.FlushToStream();
                 unityObjects = unityResolver.Value.GetReferencedUnityObjects();
             }
@@ -437,7 +451,7 @@ namespace OdinSerializer
         /// <returns>The deserialized value.</returns>
         public static object DeserializeValueWeak(IDataReader reader)
         {
-            return Serializer.Get<object>().ReadValueWeak(reader);
+            return Serializer.Get(typeof(object)).ReadValueWeak(reader);
         }
 
         /// <summary>
@@ -454,7 +468,7 @@ namespace OdinSerializer
             {
                 unityResolver.Value.SetReferencedUnityObjects(referencedUnityObjects);
                 reader.Context.IndexReferenceResolver = unityResolver.Value;
-                return Serializer.Get<object>().ReadValueWeak(reader);
+                return Serializer.Get(typeof(object)).ReadValueWeak(reader);
             }
         }
 
@@ -466,7 +480,14 @@ namespace OdinSerializer
         /// <returns>The deserialized value.</returns>
         public static T DeserializeValue<T>(IDataReader reader)
         {
-            return Serializer.Get<T>().ReadValue(reader);
+            if (EmitUtilities.CanEmit)
+            {
+                return Serializer.Get<T>().ReadValue(reader);
+            }
+            else
+            {
+                return (T)Serializer.Get(typeof(T)).ReadValueWeak(reader);
+            }
         }
 
         /// <summary>
@@ -484,7 +505,15 @@ namespace OdinSerializer
             {
                 unityResolver.Value.SetReferencedUnityObjects(referencedUnityObjects);
                 reader.Context.IndexReferenceResolver = unityResolver.Value;
-                return Serializer.Get<T>().ReadValue(reader);
+
+                if (EmitUtilities.CanEmit)
+                {
+                    return Serializer.Get<T>().ReadValue(reader);
+                }
+                else
+                {
+                    return (T)Serializer.Get(typeof(T)).ReadValueWeak(reader);
+                }
             }
         }
 
