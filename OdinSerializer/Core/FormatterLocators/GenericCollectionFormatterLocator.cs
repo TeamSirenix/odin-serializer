@@ -22,7 +22,7 @@ using OdinSerializer;
 
 namespace OdinSerializer
 {
-    using Sirenix.Serialization.Utilities;
+    using Utilities;
     using System;
 
     internal class GenericCollectionFormatterLocator : IFormatterLocator
