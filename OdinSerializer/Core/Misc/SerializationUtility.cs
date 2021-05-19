@@ -209,7 +209,17 @@ namespace OdinSerializer
             }
             else
             {
-                Serializer.Get(typeof(T)).WriteValueWeak(value, writer);
+                var serializer = Serializer.Get(typeof(T));
+                var strong = serializer as Serializer<T>;
+
+                if (strong != null)
+                {
+                    strong.WriteValue(value, writer);
+                }
+                else
+                {
+                    serializer.WriteValueWeak(value, writer);
+                }
             }
             writer.FlushToStream();
         }
@@ -232,7 +242,17 @@ namespace OdinSerializer
                 }
                 else
                 {
-                    Serializer.Get(typeof(T)).WriteValueWeak(value, writer);
+                    var serializer = Serializer.Get(typeof(T));
+                    var strong = serializer as Serializer<T>;
+
+                    if (strong != null)
+                    {
+                        strong.WriteValue(value, writer);
+                    }
+                    else
+                    {
+                        serializer.WriteValueWeak(value, writer);
+                    }
                 }
                 writer.FlushToStream();
                 unityObjects = unityResolver.Value.GetReferencedUnityObjects();
@@ -486,7 +506,17 @@ namespace OdinSerializer
             }
             else
             {
-                return (T)Serializer.Get(typeof(T)).ReadValueWeak(reader);
+                var serializer = Serializer.Get(typeof(T));
+                var strong = serializer as Serializer<T>;
+
+                if (strong != null)
+                {
+                    return strong.ReadValue(reader);
+                }
+                else
+                {
+                    return (T)serializer.ReadValueWeak(reader);
+                }
             }
         }
 
@@ -512,7 +542,17 @@ namespace OdinSerializer
                 }
                 else
                 {
-                    return (T)Serializer.Get(typeof(T)).ReadValueWeak(reader);
+                    var serializer = Serializer.Get(typeof(T));
+                    var strong = serializer as Serializer<T>;
+
+                    if (strong != null)
+                    {
+                        return strong.ReadValue(reader);
+                    }
+                    else
+                    {
+                        return (T)serializer.ReadValueWeak(reader);
+                    }
                 }
             }
         }
