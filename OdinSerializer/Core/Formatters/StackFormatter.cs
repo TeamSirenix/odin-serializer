@@ -22,6 +22,7 @@ using OdinSerializer;
 
 namespace OdinSerializer
 {
+    using Utilities;
     using System;
     using System.Collections.Generic;
 
@@ -34,8 +35,6 @@ namespace OdinSerializer
         where TStack : Stack<TValue>, new()
     {
         private static readonly Serializer<TValue> TSerializer = Serializer.Get<TValue>();
-        private static readonly object List_LOCK = new object();
-        private static readonly List<TValue> List = new List<TValue>();
         private static readonly bool IsPlainStack = typeof(TStack) == typeof(Stack<TValue>);
 
         static StackFormatter()
@@ -132,20 +131,21 @@ namespace OdinSerializer
             {
                 writer.BeginArrayNode(value.Count);
 
-                lock (List_LOCK)
+                using (var listCache = Cache<List<TValue>>.Claim())
                 {
-                    List.Clear();
+                    var list = listCache.Value;
+                    list.Clear();
 
                     foreach (var element in value)
                     {
-                        List.Add(element);
+                        list.Add(element);
                     }
 
-                    for (int i = List.Count - 1; i >= 0; i--)
+                    for (int i = list.Count - 1; i >= 0; i--)
                     {
                         try
                         {
-                            TSerializer.WriteValue(List[i], writer);
+                            TSerializer.WriteValue(list[i], writer);
                         }
                         catch (Exception ex)
                         {
