@@ -84,7 +84,7 @@ namespace OdinSerializer
                         // Filter out various core .NET libraries and Unity engine assemblies
                         continue;
                     }
-                    else if (ass.GetName().Name == FormatterEmitter.PRE_EMITTED_ASSEMBLY_NAME || ass.IsDefined(typeof(EmittedAssemblyAttribute), true))
+                    else if (ass.GetName().Name == FormatterEmitter.PRE_EMITTED_ASSEMBLY_NAME || ass.SafeIsDefined(typeof(EmittedAssemblyAttribute), true))
                     {
                         // Only include pre-emitted formatters if we are on an AOT platform.
                         // Pre-emitted formatters will not work in newer .NET runtimes due to
