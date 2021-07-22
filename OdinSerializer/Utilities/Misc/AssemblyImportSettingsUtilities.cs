@@ -83,7 +83,7 @@ namespace OdinSerializer.Utilities.Editor
         {
             // Different methods required for getting the current scripting backend from different versions of the Unity Editor.
             getPropertyIntMethod = typeof(PlayerSettings).GetMethod("GetPropertyInt", Flags.StaticPublic, null, new Type[] { typeof(string), typeof(BuildTargetGroup) }, null);
-            getScriptingBackendMethod = typeof(PlayerSettings).GetMethod("GetScriptingBackend", Flags.StaticPublic);
+            getScriptingBackendMethod = typeof(PlayerSettings).GetMethod("GetScriptingBackend", Flags.StaticPublic, null, new Type[] { typeof(BuildTargetGroup) }, null);
 
             // Diffferent methods required for getting the current api level from different versions of the Unity Editor.
             getApiCompatibilityLevelMethod = typeof(PlayerSettings).GetMethod("GetApiCompatibilityLevel", Flags.StaticPublic, null, new Type[] { typeof(BuildTargetGroup) }, null);
