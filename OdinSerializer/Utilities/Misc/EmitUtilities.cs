@@ -1002,7 +1002,7 @@ namespace OdinSerializer.Utilities
             DynamicMethod getterMethod = new DynamicMethod(methodName, typeof(PropType), new Type[0], true);
             ILGenerator gen = getterMethod.GetILGenerator();
 
-            gen.Emit(OpCodes.Callvirt, getMethod);
+            gen.Emit(OpCodes.Call, getMethod);
 
             var returnType = propertyInfo.GetReturnType();
             if (returnType.IsValueType && !typeof(PropType).IsValueType)
