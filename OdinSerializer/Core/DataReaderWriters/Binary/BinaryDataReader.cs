@@ -437,9 +437,9 @@ namespace OdinSerializer
             }
             else if (this.peekedBinaryEntryType == BinaryEntryType.NamedStartOfStructNode || this.peekedBinaryEntryType == BinaryEntryType.UnnamedStartOfStructNode)
             {
-                this.MarkEntryContentConsumed();
                 type = this.ReadTypeEntry();
                 this.PushNode(this.peekedEntryName, -1, type);
+                this.MarkEntryContentConsumed();
                 return true;
             }
             else
