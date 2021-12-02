@@ -294,6 +294,7 @@ namespace OdinSerializer
         {
             this.ArrayRank = arrayType.GetArrayRank();
             this.ElementType = elementType;
+            this.ValueReaderWriter = Serializer.Get(elementType);
         }
 
         /// <summary>
