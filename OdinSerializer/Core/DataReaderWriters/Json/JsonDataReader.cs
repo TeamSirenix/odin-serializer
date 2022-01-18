@@ -589,9 +589,13 @@ namespace OdinSerializer
             {
                 id = this.peekedEntryContent;
 
-                if (id.StartsWith(JsonConfig.EXTERNAL_STRING_REF_SIG))
+                if (id.StartsWith(JsonConfig.EXTERNAL_STRING_REF_SIG_OLD))
                 {
-                    id = id.Substring(JsonConfig.EXTERNAL_STRING_REF_SIG.Length + 1);
+                    id = id.Substring(JsonConfig.EXTERNAL_STRING_REF_SIG_OLD.Length + 1);
+                }
+                else if (id.StartsWith(JsonConfig.EXTERNAL_STRING_REF_SIG_FIXED))
+                {
+                    id = id.Substring(JsonConfig.EXTERNAL_STRING_REF_SIG_FIXED.Length + 2, id.Length - (JsonConfig.EXTERNAL_STRING_REF_SIG_FIXED.Length + 3));
                 }
 
                 this.MarkEntryConsumed();

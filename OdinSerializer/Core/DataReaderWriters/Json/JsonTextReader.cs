@@ -451,10 +451,20 @@ namespace OdinSerializer
                         return;
                     }
 
-                    if (string.Equals(name, JsonConfig.EXTERNAL_STRING_REF_SIG, StringComparison.InvariantCulture))
+                    if (string.Equals(name, JsonConfig.EXTERNAL_STRING_REF_SIG_OLD, StringComparison.InvariantCulture))
                     {
-                        // It's an external guid reference without a name
+                        // It's an external guid reference without a name, of the old broken kind
                         // The content is the whole buffer
+                        name = null;
+                        valueContent = new string(this.buffer, 0, this.bufferIndex + 1);
+                        entry = EntryType.ExternalReferenceByString;
+                        return;
+                    }
+
+                    if (string.Equals(name, JsonConfig.EXTERNAL_STRING_REF_SIG_FIXED, StringComparison.InvariantCulture))
+                    {
+                        // It's an external guid reference without a name, of the new non-broken kind
+                        // The content is the buffer, unquoted and unescaped
                         name = null;
                         valueContent = new string(this.buffer, 0, this.bufferIndex + 1);
                         entry = EntryType.ExternalReferenceByString;
@@ -531,7 +541,12 @@ namespace OdinSerializer
                             entry = EntryType.ExternalReferenceByGuid;
                             return;
                         }
-                        else if (valueContent.StartsWith(JsonConfig.EXTERNAL_STRING_REF_SIG, StringComparison.InvariantCulture))
+                        else if (valueContent.StartsWith(JsonConfig.EXTERNAL_STRING_REF_SIG_OLD, StringComparison.InvariantCulture))
+                        {
+                            entry = EntryType.ExternalReferenceByString;
+                            return;
+                        }
+                        else if (valueContent.StartsWith(JsonConfig.EXTERNAL_STRING_REF_SIG_FIXED, StringComparison.InvariantCulture))
                         {
                             entry = EntryType.ExternalReferenceByString;
                             return;

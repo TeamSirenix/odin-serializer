@@ -69,8 +69,13 @@ namespace OdinSerializer
         public const string EXTERNAL_GUID_REF_SIG = "$guidref";
 
         /// <summary>
-        /// The beginning of the content of an external reference by string entry.
+        /// The beginning of the content of an external reference by string entry. This is an old entry using an invalid data format where the ref string is dumped inline without escaping.
         /// </summary>
-        public const string EXTERNAL_STRING_REF_SIG = "$strref";
+        public const string EXTERNAL_STRING_REF_SIG_OLD = "$strref";
+
+        /// <summary>
+        /// The beginning of the content of an external reference by string entry. This is a new entry using the valid format where the ref string is written as an escaped string.
+        /// </summary>
+        public const string EXTERNAL_STRING_REF_SIG_FIXED = "$fstrref";
     }
 }

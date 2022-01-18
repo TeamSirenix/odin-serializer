@@ -448,7 +448,12 @@ namespace OdinSerializer
                 throw new ArgumentNullException("id");
             }
 
-            this.WriteEntry(name, JsonConfig.EXTERNAL_STRING_REF_SIG + ":" + id);
+            this.WriteEntry(name, JsonConfig.EXTERNAL_STRING_REF_SIG_FIXED);
+            this.EnsureBufferSpace(id.Length + 3);
+            this.buffer[this.bufferIndex++] = (byte)':';
+            this.buffer[this.bufferIndex++] = (byte)'"';
+            this.Buffer_WriteString_WithEscape(id);
+            this.buffer[this.bufferIndex++] = (byte)'"';
         }
 
         /// <summary>
