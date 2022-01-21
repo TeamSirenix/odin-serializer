@@ -37,6 +37,7 @@ namespace OdinSerializer
         /// The reader's or writer's serialization binder.
         /// </value>
         [Obsolete("Use the Binder member on the writer's SerializationContext/DeserializationContext instead.", error: false)]
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public TwoWaySerializationBinder Binder
         {
             get

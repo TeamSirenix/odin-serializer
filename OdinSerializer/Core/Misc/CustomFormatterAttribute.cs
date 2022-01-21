@@ -26,6 +26,7 @@ namespace OdinSerializer
     /// <seealso cref="System.Attribute" />
     [AttributeUsage(AttributeTargets.Class)]
     [Obsolete("Use a RegisterFormatterAttribute applied to the containing assembly instead.", true)]
+    [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
     public class CustomFormatterAttribute : Attribute
     {
         /// <summary>

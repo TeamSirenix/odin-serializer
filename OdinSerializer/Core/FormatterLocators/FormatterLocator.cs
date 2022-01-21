@@ -205,6 +205,7 @@ namespace OdinSerializer
         /// This can be used to hook into and extend the serialization system's formatter resolution logic.
         /// </summary>
         [Obsolete("Use the new IFormatterLocator interface instead, and register your custom locator with the RegisterFormatterLocator assembly attribute.", true)]
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         public static event Func<Type, IFormatter> FormatterResolve
         {
             add { throw new NotSupportedException(); }

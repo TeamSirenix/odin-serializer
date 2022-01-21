@@ -46,6 +46,7 @@ namespace OdinSerializer
         /// The base stream of the writer.
         /// </value>
         [Obsolete("Data readers and writers don't necessarily have streams any longer, so this API has been made obsolete. Using this property may result in NotSupportedExceptions being thrown.", false)]
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         Stream Stream { get; set; }
 
         /// <summary>
