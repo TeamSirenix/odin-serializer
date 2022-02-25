@@ -43,6 +43,11 @@ namespace OdinSerializer
     public static class FormatterEmitter
     {
         /// <summary>
+        /// Used for generating unique formatter helper type names.
+        /// </summary>
+        private static int helperFormatterNameId;
+
+        /// <summary>
         /// The name of the pre-generated assembly that contains pre-emitted formatters for use on AOT platforms where emitting is not supported. Note that this assembly is not always present.
         /// </summary>
         public const string PRE_EMITTED_ASSEMBLY_NAME = "OdinSerializer.AOTGenerated";
@@ -290,6 +295,7 @@ namespace OdinSerializer
             return result;
         }
 
+
         private static IFormatter CreateGenericFormatter(Type formattedType, ModuleBuilder moduleBuilder, ISerializationPolicy policy)
         {
             Dictionary<string, MemberInfo> serializableMembers = FormatterUtilities.GetSerializableMembersMap(formattedType, policy);
@@ -299,7 +305,10 @@ namespace OdinSerializer
                 return (IFormatter)Activator.CreateInstance(typeof(EmptyTypeFormatter<>).MakeGenericType(formattedType));
             }
 
-            string helperTypeName = moduleBuilder.Name + "." + formattedType.GetCompilableNiceFullName() + "___" + formattedType.Assembly.GetName().Name + "___FormatterHelper___" + Guid.NewGuid().ToString();
+            string helperTypeName = moduleBuilder.Name + "." + 
+                formattedType.GetCompilableNiceFullName() + "___" + 
+                formattedType.Assembly.GetName().Name + "___FormatterHelper___" + 
+                System.Threading.Interlocked.Increment(ref helperFormatterNameId);
 
             Dictionary<Type, MethodInfo> serializerReadMethods;
             Dictionary<Type, MethodInfo> serializerWriteMethods;
