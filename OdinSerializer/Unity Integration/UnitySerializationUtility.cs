@@ -54,7 +54,46 @@ namespace OdinSerializer
         private static readonly Assembly HashSet_Assembly = typeof(HashSet<>).Assembly;
         private static readonly Assembly LinkedList_Assembly = typeof(LinkedList<>).Assembly;
 
+
 #if UNITY_EDITOR        
+        private static bool isDoingDomainReload;
+
+        [UnityEditor.InitializeOnLoadMethod]
+        private static void SubscribeToDomainReloadEvents()
+        {
+            var AssemblyReloadEvents_Type = TwoWaySerializationBinder.Default.BindToType("UnityEditor.AssemblyReloadEvents");
+
+            if (AssemblyReloadEvents_Type == null) return;
+
+            var AssemblyReloadEvents_beforeAssemblyReload_Event = AssemblyReloadEvents_Type.GetEvent("beforeAssemblyReload");
+            var AssemblyReloadEvents_afterAssemblyReload_Event = AssemblyReloadEvents_Type.GetEvent("afterAssemblyReload");
+            var AssemblyReloadEvents_AssemblyReloadCallback_Type = AssemblyReloadEvents_Type.GetNestedType("AssemblyReloadCallback");
+
+            if (AssemblyReloadEvents_beforeAssemblyReload_Event == null || AssemblyReloadEvents_afterAssemblyReload_Event == null || AssemblyReloadEvents_AssemblyReloadCallback_Type == null)
+            {
+                return;
+            }
+
+            var UnitySerializationUtility_OnBeforeAssemblyReload_Method = typeof(UnitySerializationUtility).GetMethod("OnBeforeAssemblyReload", Flags.StaticAnyVisibility);
+            var UnitySerializationUtility_OnAfterAssemblyReload_Method = typeof(UnitySerializationUtility).GetMethod("OnAfterAssemblyReload", Flags.StaticAnyVisibility);
+
+            var onBeforeDelegate = Delegate.CreateDelegate(AssemblyReloadEvents_AssemblyReloadCallback_Type, UnitySerializationUtility_OnBeforeAssemblyReload_Method);
+            var onAfterDelegate = Delegate.CreateDelegate(AssemblyReloadEvents_AssemblyReloadCallback_Type, UnitySerializationUtility_OnAfterAssemblyReload_Method);
+
+            AssemblyReloadEvents_beforeAssemblyReload_Event.AddEventHandler(null, onBeforeDelegate);
+            AssemblyReloadEvents_afterAssemblyReload_Event.AddEventHandler(null, onAfterDelegate);
+        }
+
+        private static void OnBeforeAssemblyReload()
+        {
+            isDoingDomainReload = true;
+        }
+
+        private static void OnAfterAssemblyReload()
+        {
+            isDoingDomainReload = false;
+        }
+
         /// <summary>
         /// From the new scriptable build pipeline package
         /// </summary>
@@ -611,7 +650,7 @@ namespace OdinSerializer
                 // that supports special prefab serialization, we enter a special bail-out case.
                 //
 
-                if (!pretendIsPlayer)
+                if (!pretendIsPlayer && !isDoingDomainReload) // Recently some Unity versions started breaking if the prefab API was accessed during a domain reload, so no prefab stuff for domain reloads!
                 {
                     UnityEngine.Object prefab = null;
                     SerializationData prefabData = default(SerializationData);
