@@ -151,84 +151,98 @@ namespace OdinSerializer
                         {
                             char[] readValue;
                             reader.ReadPrimitiveArray<char>(out readValue);
+                            value = readValue;
                         }
                         break;
                     case PrimitiveArrayType.PrimitiveArray_sbyte:
                         {
                             sbyte[] readValue;
                             reader.ReadPrimitiveArray<sbyte>(out readValue);
+                            value = readValue;
                         }
                         break;
                     case PrimitiveArrayType.PrimitiveArray_short:
                         {
                             short[] readValue;
                             reader.ReadPrimitiveArray<short>(out readValue);
+                            value = readValue;
                         }
                         break;
                     case PrimitiveArrayType.PrimitiveArray_int:
                         {
                             int[] readValue;
                             reader.ReadPrimitiveArray<int>(out readValue);
+                            value = readValue;
                         }
                         break;
                     case PrimitiveArrayType.PrimitiveArray_long:
                         {
                             long[] readValue;
                             reader.ReadPrimitiveArray<long>(out readValue);
+                            value = readValue;
                         }
                         break;
                     case PrimitiveArrayType.PrimitiveArray_byte:
                         {
                             byte[] readValue;
                             reader.ReadPrimitiveArray<byte>(out readValue);
+                            value = readValue;
                         }
                         break;
                     case PrimitiveArrayType.PrimitiveArray_ushort:
                         {
                             ushort[] readValue;
                             reader.ReadPrimitiveArray<ushort>(out readValue);
+                            value = readValue;
                         }
                         break;
                     case PrimitiveArrayType.PrimitiveArray_uint:
                         {
                             uint[] readValue;
                             reader.ReadPrimitiveArray<uint>(out readValue);
+                            value = readValue;
                         }
                         break;
                     case PrimitiveArrayType.PrimitiveArray_ulong:
                         {
                             ulong[] readValue;
                             reader.ReadPrimitiveArray<ulong>(out readValue);
+                            value = readValue;
                         }
                         break;
                     case PrimitiveArrayType.PrimitiveArray_decimal:
                         {
                             decimal[] readValue;
                             reader.ReadPrimitiveArray<decimal>(out readValue);
+                            value = readValue;
                         }
                         break;
                     case PrimitiveArrayType.PrimitiveArray_bool:
                         {
                             bool[] readValue;
                             reader.ReadPrimitiveArray<bool>(out readValue);
+                            value = readValue;
                         }
                         break;
                     case PrimitiveArrayType.PrimitiveArray_float:
                         {
                             float[] readValue;
                             reader.ReadPrimitiveArray<float>(out readValue);
+                            value = readValue;
                         }
                         break;
                     case PrimitiveArrayType.PrimitiveArray_double:
                         {
                             double[] readValue;
                             reader.ReadPrimitiveArray<double>(out readValue);
+                            value = readValue;
                         }
                         break;
                     case PrimitiveArrayType.PrimitiveArray_Guid:
                         {
                             Guid[] readValue;
                             reader.ReadPrimitiveArray<Guid>(out readValue);
+                            value = readValue;
                         }
                         break;
                     default:
