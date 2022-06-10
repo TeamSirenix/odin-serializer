@@ -39,6 +39,8 @@ namespace OdinSerializer.Utilities
         private static readonly Dictionary<Type, Type> GenericConstraintsSatisfactionInferredParameters = new Dictionary<Type, Type>();
         private static readonly Dictionary<Type, Type> GenericConstraintsSatisfactionResolvedMap = new Dictionary<Type, Type>();
         private static readonly HashSet<Type> GenericConstraintsSatisfactionProcessedParams = new HashSet<Type>();
+        private static readonly HashSet<Type> GenericConstraintsSatisfactionTypesToCheck = new HashSet<Type>();
+        private static readonly List<Type> GenericConstraintsSatisfactionTypesToCheck_ToAdd = new List<Type>();
 
         private static readonly Type GenericListInterface = typeof(IList<>);
         private static readonly Type GenericCollectionInterface = typeof(ICollection<>);
@@ -1609,6 +1611,9 @@ namespace OdinSerializer.Utilities
         /// <exception cref="System.ArgumentException">The genericTypeDefinition parameter must be a generic type definition.</exception>
         public static bool TryInferGenericParameters(this Type genericTypeDefinition, out Type[] inferredParams, params Type[] knownParameters)
         {
+            // NOTE: When modifying this method, also remember to modify Sirenix.Utilities.TypeExtensions.TryInferGenericParameters
+            // and GenericParameterInferenceTypeMatcher.TryInferGenericParameters!
+
             if (genericTypeDefinition == null)
             {
                 throw new ArgumentNullException("genericTypeDefinition");
@@ -1628,6 +1633,17 @@ namespace OdinSerializer.Utilities
             {
                 Dictionary<Type, Type> matches = GenericConstraintsSatisfactionInferredParameters;
                 matches.Clear();
+
+                HashSet<Type> typesToCheck = GenericConstraintsSatisfactionTypesToCheck;
+                typesToCheck.Clear();
+
+                List<Type> typesToCheck_ToAdd = GenericConstraintsSatisfactionTypesToCheck_ToAdd;
+                typesToCheck_ToAdd.Clear();
+
+                for (int i = 0; i < knownParameters.Length; i++)
+                {
+                    typesToCheck.Add(knownParameters[i]);
+                }
 
                 Type[] definitions = genericTypeDefinition.GetGenericArguments();
 
@@ -1677,15 +1693,15 @@ namespace OdinSerializer.Utilities
                     return true;
                 }
 
-                foreach (var type in definitions)
+                foreach (var typeArg in definitions)
                 {
-                    if (matches.ContainsKey(type)) continue;
+                    //if (matches.ContainsKey(type)) continue;
 
-                    var constraints = type.GetGenericParameterConstraints();
+                    var constraints = typeArg.GetGenericParameterConstraints();
 
                     foreach (var constraint in constraints)
                     {
-                        foreach (var parameter in knownParameters)
+                        foreach (var parameter in typesToCheck)
                         {
                             if (!constraint.IsGenericType)
                             {
@@ -1714,16 +1730,25 @@ namespace OdinSerializer.Utilities
                                 continue;
                             }
 
-                            matches[type] = parameter;
+                            matches[typeArg] = parameter;
+                            typesToCheck_ToAdd.Add(parameter);
 
                             for (int i = 0; i < constraintParams.Length; i++)
                             {
                                 if (constraintParams[i].IsGenericParameter)
                                 {
                                     matches[constraintParams[i]] = paramParams[i];
+                                    typesToCheck_ToAdd.Add(paramParams[i]);
                                 }
                             }
                         }
+
+                        foreach (var type in typesToCheck_ToAdd)
+                        {
+                            typesToCheck.Add(type);
+                        }
+
+                        typesToCheck_ToAdd.Clear();
                     }
                 }
 
