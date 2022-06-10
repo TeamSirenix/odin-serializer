@@ -85,9 +85,6 @@ namespace OdinSerializer
         private static readonly object NAMETOTYPE_LOCK = new object();
         private static readonly Dictionary<string, Type> typeMap = new Dictionary<string, Type>();
 
-        private static readonly List<string> genericArgNamesList = new List<string>();
-        private static readonly List<Type> genericArgTypesList = new List<Type>();
-
         private static readonly object ASSEMBLY_REGISTER_QUEUE_LOCK = new object();
         private static readonly List<Assembly> assembliesQueuedForRegister = new List<Assembly>();
         private static readonly List<AssemblyLoadEventArgs> assemblyLoadEventsQueuedForRegister = new List<AssemblyLoadEventArgs>();
@@ -476,37 +473,41 @@ namespace OdinSerializer
             {
                 if (!type.IsGenericType) return null;
 
-                List<Type> args = genericArgTypesList;
-                args.Clear();
-
-                for (int i = 0; i < genericArgNames.Count; i++)
+                using (var argsCache = Cache<List<Type>>.Claim())
                 {
-                    Type arg = this.BindToType(genericArgNames[i], debugContext);
-                    if (arg == null) return null;
-                    args.Add(arg);
-                }
+                    List<Type> args = argsCache.Value;
+                    args.Clear();
 
-                var argsArray = args.ToArray();
-
-                if (!type.AreGenericConstraintsSatisfiedBy(argsArray))
-                {
-                    if (debugContext != null)
+                    for (int i = 0; i < genericArgNames.Count; i++)
                     {
-                        string argsStr = "";
-
-                        foreach (var arg in args)
-                        {
-                            if (argsStr != "") argsStr += ", ";
-                            argsStr += arg.GetNiceFullName();
-                        }
-
-                        debugContext.LogWarning("Deserialization type lookup failure: The generic type arguments '" + argsStr + "' do not satisfy the generic constraints of generic type definition '" + type.GetNiceFullName() + "'. All this parsed from the full type name string: '" + typeName + "'");
+                        Type arg = this.BindToType(genericArgNames[i], debugContext);
+                        if (arg == null) return null;
+                        args.Add(arg);
                     }
 
-                    return null;
-                }
+                    var argsArray = args.ToArray();
 
-                type = type.MakeGenericType(argsArray);
+                    if (!type.AreGenericConstraintsSatisfiedBy(argsArray))
+                    {
+                        if (debugContext != null)
+                        {
+                            string argsStr = "";
+
+                            foreach (var arg in argsArray)
+                            {
+                                if (argsStr != "") argsStr += ", ";
+                                argsStr += arg.GetNiceFullName();
+                            }
+
+                            debugContext.LogWarning("Deserialization type lookup failure: The generic type arguments '" + argsStr + "' do not satisfy the generic constraints of generic type definition '" + type.GetNiceFullName() + "'. All this parsed from the full type name string: '" + typeName + "'");
+                        }
+
+                        return null;
+                    }
+
+                    type = type.MakeGenericType(argsArray);
+                    args.Clear();
+                }
             }
 
             if (isArray)
@@ -566,8 +567,7 @@ namespace OdinSerializer
                             actualTypeName = typeName.Substring(0, i);
                             isGeneric = true;
                             parsingGenericArguments = true;
-                            genericArgNames = genericArgNamesList;
-                            genericArgNames.Clear();
+                            genericArgNames = new List<string>();
                         }
                         else if (isGeneric && ReadGenericArg(typeName, ref i, out argName))
                         {
