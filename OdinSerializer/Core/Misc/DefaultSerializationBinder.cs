@@ -512,7 +512,14 @@ namespace OdinSerializer
 
             if (isArray)
             {
-                type = type.MakeArrayType(arrayRank);
+                if (arrayRank == 1)
+                {
+                    type = type.MakeArrayType();
+                }
+                else
+                {
+                    type = type.MakeArrayType(arrayRank);
+                }
             }
 
             return type;
