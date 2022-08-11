@@ -27,7 +27,7 @@ namespace OdinSerializer
 
     internal class DelegateFormatterLocator : IFormatterLocator
     {
-        public bool TryGetFormatter(Type type, FormatterLocationStep step, ISerializationPolicy policy, out IFormatter formatter)
+        public bool TryGetFormatter(Type type, FormatterLocationStep step, ISerializationPolicy policy, bool allowWeakFallbackFormatters, out IFormatter formatter)
         {
             if (!typeof(Delegate).IsAssignableFrom(type))
             {
@@ -35,13 +35,19 @@ namespace OdinSerializer
                 return false;
             }
 
-            if (EmitUtilities.CanEmit)
+            try
             {
                 formatter = (IFormatter)Activator.CreateInstance(typeof(DelegateFormatter<>).MakeGenericType(type));
             }
-            else
+            catch (Exception ex)
             {
-                formatter = new WeakDelegateFormatter(type);
+#pragma warning disable CS0618 // Type or member is obsolete
+                if (allowWeakFallbackFormatters && (ex is ExecutionEngineException || ex.GetBaseException() is ExecutionEngineException))
+#pragma warning restore CS0618 // Type or member is obsolete
+                {
+                    formatter = new WeakDelegateFormatter(type);
+                }
+                else throw;
             }
 
             return true;

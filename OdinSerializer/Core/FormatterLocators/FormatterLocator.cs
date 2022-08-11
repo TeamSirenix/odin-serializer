@@ -386,7 +386,7 @@ namespace OdinSerializer
                 try
                 {
                     IFormatter result;
-                    if (FormatterLocators[i].LocatorInstance.TryGetFormatter(type, FormatterLocationStep.BeforeRegisteredFormatters, policy, out result))
+                    if (FormatterLocators[i].LocatorInstance.TryGetFormatter(type, FormatterLocationStep.BeforeRegisteredFormatters, policy, true, out result))
                     {
                         formatters.Add(result);
                     }
@@ -462,7 +462,7 @@ namespace OdinSerializer
                 try
                 {
                     IFormatter result;
-                    if (FormatterLocators[i].LocatorInstance.TryGetFormatter(type, FormatterLocationStep.AfterRegisteredFormatters, policy, out result))
+                    if (FormatterLocators[i].LocatorInstance.TryGetFormatter(type, FormatterLocationStep.AfterRegisteredFormatters, policy, true, out result))
                     {
                         formatters.Add(result);
                     }
@@ -505,7 +505,7 @@ namespace OdinSerializer
                 try
                 {
                     IFormatter result;
-                    if (FormatterLocators[i].LocatorInstance.TryGetFormatter(type, FormatterLocationStep.BeforeRegisteredFormatters, policy, out result))
+                    if (FormatterLocators[i].LocatorInstance.TryGetFormatter(type, FormatterLocationStep.BeforeRegisteredFormatters, policy, allowWeakFormatters, out result))
                     {
                         return result;
                     }
@@ -636,7 +636,7 @@ namespace OdinSerializer
                 try
                 {
                     IFormatter result;
-                    if (FormatterLocators[i].LocatorInstance.TryGetFormatter(type, FormatterLocationStep.AfterRegisteredFormatters, policy, out result))
+                    if (FormatterLocators[i].LocatorInstance.TryGetFormatter(type, FormatterLocationStep.AfterRegisteredFormatters, policy, allowWeakFormatters, out result))
                     {
                         return result;
                     }

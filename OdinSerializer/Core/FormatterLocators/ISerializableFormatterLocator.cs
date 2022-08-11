@@ -28,7 +28,7 @@ namespace OdinSerializer
 
     internal class ISerializableFormatterLocator : IFormatterLocator
     {
-        public bool TryGetFormatter(Type type, FormatterLocationStep step, ISerializationPolicy policy, out IFormatter formatter)
+        public bool TryGetFormatter(Type type, FormatterLocationStep step, ISerializationPolicy policy, bool allowWeakFallbackFormatters, out IFormatter formatter)
         {
             if (step != FormatterLocationStep.AfterRegisteredFormatters || !typeof(ISerializable).IsAssignableFrom(type))
             {
@@ -36,13 +36,19 @@ namespace OdinSerializer
                 return false;
             }
 
-            if (EmitUtilities.CanEmit)
+            try
             {
                 formatter = (IFormatter)Activator.CreateInstance(typeof(SerializableFormatter<>).MakeGenericType(type));
             }
-            else
+            catch (Exception ex)
             {
-                formatter = new WeakSerializableFormatter(type);
+#pragma warning disable CS0618 // Type or member is obsolete
+                if (allowWeakFallbackFormatters && (ex is ExecutionEngineException || ex.GetBaseException() is ExecutionEngineException))
+#pragma warning restore CS0618 // Type or member is obsolete
+                {
+                    formatter = new WeakSerializableFormatter(type);
+                }
+                else throw;
             }
 
             return true;

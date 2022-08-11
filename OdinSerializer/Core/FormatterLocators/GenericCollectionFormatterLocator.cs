@@ -27,7 +27,7 @@ namespace OdinSerializer
 
     internal class GenericCollectionFormatterLocator : IFormatterLocator
     {
-        public bool TryGetFormatter(Type type, FormatterLocationStep step, ISerializationPolicy policy, out IFormatter formatter)
+        public bool TryGetFormatter(Type type, FormatterLocationStep step, ISerializationPolicy policy, bool allowWeakFallbackFormatters, out IFormatter formatter)
         {
             Type elementType;
             if (step != FormatterLocationStep.AfterRegisteredFormatters || !GenericCollectionFormatter.CanFormat(type, out elementType))
@@ -36,13 +36,19 @@ namespace OdinSerializer
                 return false;
             }
 
-            if (EmitUtilities.CanEmit)
+            try
             {
                 formatter = (IFormatter)Activator.CreateInstance(typeof(GenericCollectionFormatter<,>).MakeGenericType(type, elementType));
             }
-            else
+            catch (Exception ex)
             {
-                formatter = new WeakGenericCollectionFormatter(type, elementType);
+#pragma warning disable CS0618 // Type or member is obsolete
+                if (allowWeakFallbackFormatters && (ex is ExecutionEngineException || ex.GetBaseException() is ExecutionEngineException))
+#pragma warning restore CS0618 // Type or member is obsolete
+                {
+                    formatter = new WeakGenericCollectionFormatter(type, elementType);
+                }
+                else throw;
             }
 
             return true;
