@@ -158,8 +158,31 @@ namespace OdinSerializer.Editor
                 supportSerializedTypes.Add(typeof(DateTimeFormatter));
             }
 
-            //var endPoint = il.DefineLabel();
-            //il.Emit(OpCodes.Br, endPoint);
+            // Now we aggressively figure out extra types to support that this type will probably need
+            {
+                var allTypesToSupport = new HashSet<Type>(supportSerializedTypes);
+
+                // Look at members and static serializer fields in all formatters to find types to support
+                foreach (var typeToSupport in supportSerializedTypes)
+                {
+                    RecursivelyAddExtraTypesToSupport(typeToSupport, allTypesToSupport);
+                }
+
+                // Supplement with a hard-coded search for static serializer fields in all defined weak formatters,
+                // as the above will often not find those.
+                foreach (var loadedAssembly in AppDomain.CurrentDomain.GetAssemblies())
+                {
+                    foreach (var loadedType in loadedAssembly.SafeGetTypes())
+                    {
+                        if (!loadedType.IsAbstract && typeof(WeakBaseFormatter).IsAssignableFrom(loadedType))
+                        {
+                            GatherExtraTypesToSupportFromStaticFormatterFields(loadedType, allTypesToSupport);
+                        }
+                    }
+                }
+
+                supportSerializedTypes = allTypesToSupport.ToList();
+            }
 
             foreach (var serializedType in supportSerializedTypes)
             {
@@ -230,6 +253,17 @@ namespace OdinSerializer.Editor
                         {
                             il.Emit(OpCodes.Newobj, formatterConstructor);
                             il.Emit(OpCodes.Pop);
+                        }
+                        else
+                        {
+                            formatterConstructor = formatter.GetType().GetConstructor(new Type[] { typeof(Type) });
+
+                            if (formatterConstructor != null)
+                            {
+                                il.Emit(OpCodes.Ldnull);
+                                il.Emit(OpCodes.Newobj, formatterConstructor);
+                                il.Emit(OpCodes.Pop);
+                            }
                         }
                     }
 
@@ -378,6 +412,51 @@ namespace OdinSerializer.Editor
             }
 
             AssetDatabase.SaveAssets();
+        }
+
+        private static void RecursivelyAddExtraTypesToSupport(Type typeToSupport, HashSet<Type> allTypesToSupport)
+        {
+            var serializedMembers = FormatterUtilities.GetSerializableMembers(typeToSupport, SerializationPolicies.Unity);
+
+            // Gather all members that would normally be serialized in this type
+            foreach (var member in serializedMembers)
+            {
+                var memberType = member.GetReturnType();
+
+                if (allTypesToSupport.Add(memberType))
+                {
+                    RecursivelyAddExtraTypesToSupport(memberType, allTypesToSupport);
+                }
+            }
+
+            // Gather all types referenced by static serializer references
+            var formatters = FormatterLocator.GetAllCompatiblePredefinedFormatters(typeToSupport, SerializationPolicies.Unity);
+
+            foreach (var formatter in formatters)
+            {
+                GatherExtraTypesToSupportFromStaticFormatterFields(formatter.GetType(), allTypesToSupport);
+            }
+        }
+
+        private static void GatherExtraTypesToSupportFromStaticFormatterFields(Type formatterType, HashSet<Type> allTypesToSupport)
+        {
+            var staticFormatterFields = formatterType.GetFields(BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly | BindingFlags.Static);
+
+            foreach (var field in staticFormatterFields)
+            {
+                var parameters = field.FieldType.GetArgumentsOfInheritedOpenGenericClass(typeof(Serializer<>));
+
+                if (parameters != null)
+                {
+                    foreach (var parameterType in parameters)
+                    {
+                        if (allTypesToSupport.Add(parameterType))
+                        {
+                            RecursivelyAddExtraTypesToSupport(parameterType, allTypesToSupport);
+                        }
+                    }
+                }
+            }
         }
     }
 }
