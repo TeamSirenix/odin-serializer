@@ -416,6 +416,8 @@ namespace OdinSerializer.Editor
 
         private static void RecursivelyAddExtraTypesToSupport(Type typeToSupport, HashSet<Type> allTypesToSupport)
         {
+            if (FormatterUtilities.IsPrimitiveType(typeToSupport)) return;
+
             var serializedMembers = FormatterUtilities.GetSerializableMembers(typeToSupport, SerializationPolicies.Unity);
 
             // Gather all members that would normally be serialized in this type
@@ -428,6 +430,8 @@ namespace OdinSerializer.Editor
                     RecursivelyAddExtraTypesToSupport(memberType, allTypesToSupport);
                 }
             }
+
+            if (typeof(UnityEngine.Object).IsAssignableFrom(typeToSupport)) return;
 
             // Gather all types referenced by static serializer references
             var formatters = FormatterLocator.GetAllCompatiblePredefinedFormatters(typeToSupport, SerializationPolicies.Unity);
