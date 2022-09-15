@@ -425,6 +425,8 @@ namespace OdinSerializer.Editor
             {
                 var memberType = member.GetReturnType();
 
+                if (!AOTSupportScanner.AllowRegisterType(memberType)) continue;
+
                 if (allTypesToSupport.Add(memberType))
                 {
                     RecursivelyAddExtraTypesToSupport(memberType, allTypesToSupport);

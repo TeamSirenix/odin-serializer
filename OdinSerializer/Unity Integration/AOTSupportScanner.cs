@@ -657,7 +657,7 @@ namespace OdinSerializer.Editor
             this.RegisterType(type);
         }
 
-        private static bool AllowRegisterType(Type type)
+        public static bool AllowRegisterType(Type type)
         {
             if (IsEditorOnlyAssembly(type.Assembly))
                 return false;
