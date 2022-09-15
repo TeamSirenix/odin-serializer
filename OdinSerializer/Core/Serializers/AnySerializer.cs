@@ -142,18 +142,18 @@ namespace OdinSerializer
                                     }
                                     else if (this.AllowDeserializeInvalidData || reader.Context.Config.AllowDeserializeInvalidData)
                                     {
-                                        context.Config.DebugContext.LogWarning("Can't cast serialized type " + serializedType.Name + " into expected type " + expectedType.Name + ". Attempting to deserialize with possibly invalid data. Value may be lost or corrupted for node '" + name + "'.");
+                                        context.Config.DebugContext.LogWarning("Can't cast serialized type " + serializedType.GetNiceFullName() + " into expected type " + expectedType.GetNiceFullName() + ". Attempting to deserialize with possibly invalid data. Value may be lost or corrupted for node '" + name + "'.");
                                         return GetBaseFormatter(context.Config.SerializationPolicy).Deserialize(reader);
                                     }
                                     else
                                     {
-                                        context.Config.DebugContext.LogWarning("Can't cast serialized type " + serializedType.Name + " into expected type " + expectedType.Name + ". Value lost for node '" + name + "'.");
+                                        context.Config.DebugContext.LogWarning("Can't cast serialized type " + serializedType.GetNiceFullName() + " into expected type " + expectedType.GetNiceFullName() + ". Value lost for node '" + name + "'.");
                                         return Activator.CreateInstance(this.SerializedType);
                                     }
                                 }
                                 else if (this.AllowDeserializeInvalidData || reader.Context.Config.AllowDeserializeInvalidData)
                                 {
-                                    context.Config.DebugContext.LogWarning("Expected complex struct value " + expectedType.Name + " but the serialized type could not be resolved. Attempting to deserialize with possibly invalid data. Value may be lost or corrupted for node '" + name + "'.");
+                                    context.Config.DebugContext.LogWarning("Expected complex struct value " + expectedType.GetNiceFullName() + " but the serialized type could not be resolved. Attempting to deserialize with possibly invalid data. Value may be lost or corrupted for node '" + name + "'.");
                                     return GetBaseFormatter(context.Config.SerializationPolicy).Deserialize(reader);
                                 }
                                 else
@@ -210,7 +210,7 @@ namespace OdinSerializer
 
                                 if (!object.ReferenceEquals(value, null) && !this.SerializedType.IsAssignableFrom(value.GetType()))
                                 {
-                                    context.Config.DebugContext.LogWarning("Can't cast external reference type " + value.GetType().Name + " into expected type " + this.SerializedType.Name + ". Value lost for node '" + name + "'.");
+                                    context.Config.DebugContext.LogWarning("Can't cast external reference type " + value.GetType().GetNiceFullName() + " into expected type " + this.SerializedType.GetNiceFullName() + ". Value lost for node '" + name + "'.");
                                     return null;
                                 }
 
@@ -226,7 +226,7 @@ namespace OdinSerializer
 
                                 if (!object.ReferenceEquals(value, null) && !this.SerializedType.IsAssignableFrom(value.GetType()))
                                 {
-                                    context.Config.DebugContext.LogWarning("Can't cast external reference type " + value.GetType().Name + " into expected type " + this.SerializedType.Name + ". Value lost for node '" + name + "'.");
+                                    context.Config.DebugContext.LogWarning("Can't cast external reference type " + value.GetType().GetNiceFullName() + " into expected type " + this.SerializedType.GetNiceFullName() + ". Value lost for node '" + name + "'.");
                                     return null;
                                 }
 
@@ -242,7 +242,7 @@ namespace OdinSerializer
 
                                 if (!object.ReferenceEquals(value, null) && !this.SerializedType.IsAssignableFrom(value.GetType()))
                                 {
-                                    context.Config.DebugContext.LogWarning("Can't cast external reference type " + value.GetType().Name + " into expected type " + this.SerializedType.Name + ". Value lost for node '" + name + "'.");
+                                    context.Config.DebugContext.LogWarning("Can't cast external reference type " + value.GetType().GetNiceFullName() + " into expected type " + this.SerializedType.GetNiceFullName() + ". Value lost for node '" + name + "'.");
                                     return null;
                                 }
 
@@ -258,7 +258,7 @@ namespace OdinSerializer
 
                                 if (!object.ReferenceEquals(value, null) && !this.SerializedType.IsAssignableFrom(value.GetType()))
                                 {
-                                    context.Config.DebugContext.LogWarning("Can't cast internal reference type " + value.GetType().Name + " into expected type " + this.SerializedType.Name + ". Value lost for node '" + name + "'.");
+                                    context.Config.DebugContext.LogWarning("Can't cast internal reference type " + value.GetType().GetNiceFullName() + " into expected type " + this.SerializedType.GetNiceFullName() + ". Value lost for node '" + name + "'.");
                                     return null;
                                 }
 
@@ -345,7 +345,7 @@ namespace OdinSerializer
                                             else if (!this.IsAbstract && (this.AllowDeserializeInvalidData || reader.Context.Config.AllowDeserializeInvalidData))
                                             {
                                                 // We will try to deserialize an instance of T with the invalid data.
-                                                context.Config.DebugContext.LogWarning("Can't cast serialized type " + serializedType.Name + " into expected type " + expectedType.Name + ". Attempting to deserialize with invalid data. Value may be lost or corrupted for node '" + name + "'.");
+                                                context.Config.DebugContext.LogWarning("Can't cast serialized type " + serializedType.GetNiceFullName() + " into expected type " + expectedType.GetNiceFullName() + ". Attempting to deserialize with invalid data. Value may be lost or corrupted for node '" + name + "'.");
                                                 result = GetBaseFormatter(context.Config.SerializationPolicy).Deserialize(reader);
                                                 success = true;
                                             }
@@ -369,7 +369,7 @@ namespace OdinSerializer
                                             if (!success)
                                             {
                                                 // We can't use this
-                                                context.Config.DebugContext.LogWarning("Can't cast serialized type " + serializedType.Name + " into expected type " + expectedType.Name + ". Value lost for node '" + name + "'.");
+                                                context.Config.DebugContext.LogWarning("Can't cast serialized type " + serializedType.GetNiceFullName() + " into expected type " + expectedType.GetNiceFullName() + ". Value lost for node '" + name + "'.");
                                                 result = null;
                                             }
                                         }
