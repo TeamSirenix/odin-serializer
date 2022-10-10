@@ -105,7 +105,7 @@ namespace OdinSerializer.Editor
 
             assembly.SetCustomAttribute(new CustomAttributeBuilder(typeof(EmittedAssemblyAttribute).GetConstructor(new Type[0]), new object[0]));
 
-            // The following is a fix for Unity's crappy Mono runtime that doesn't know how to do this sort
+            // The following is a fix for Unity's Mono runtime that doesn't know how to do this sort
             //  of stuff properly
             //
             // We must manually remove the "Default Dynamic Assembly" module that is automatically defined,
