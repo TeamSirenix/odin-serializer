@@ -106,6 +106,12 @@ namespace OdinSerializer
                     assembliesQueuedForRegister.Add(assembly);
                 }
             }
+
+            lock (ASSEMBLY_LOOKUP_LOCK)
+            {
+                customTypeNameToTypeBindings["System.Reflection.MonoMethod"] = typeof(MethodInfo);
+                customTypeNameToTypeBindings["System.Reflection.MonoMethod, mscorlib"] = typeof(MethodInfo);
+            }
         }
 
         private static void RegisterAllQueuedAssembliesRepeating()
