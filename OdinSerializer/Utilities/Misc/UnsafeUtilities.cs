@@ -129,7 +129,7 @@ namespace OdinSerializer.Utilities.Unsafe
             }
 
             GCHandle toHandle = default(GCHandle);
-            string result = new string(default(char), charLength); // Creaty empty string of required length
+            string result = new string(' ', charLength); // Creaty empty string of required length
 
             try
             {
