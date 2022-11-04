@@ -774,6 +774,8 @@ namespace OdinSerializer
 
         /// <summary>
         /// Creates a deep copy of an object. Returns null if null. All Unity objects references will remain the same - they will not get copied.
+        /// Similarly, strings are not copied, nor are reflection types such as System.Type, or types derived from System.Reflection.MemberInfo,
+        /// System.Reflection.Assembly or System.Reflection.Module.
         /// </summary>
         public static object CreateCopy(object obj)
         {
@@ -794,7 +796,10 @@ namespace OdinSerializer
                 return obj;
             }
 
-            if (type.InheritsFrom(typeof(UnityEngine.Object)))
+            if (type.InheritsFrom(typeof(UnityEngine.Object))
+                || type.InheritsFrom(typeof(System.Reflection.MemberInfo))
+                || type.InheritsFrom(typeof(System.Reflection.Assembly))
+                || type.InheritsFrom(typeof(System.Reflection.Module)))
             {
                 return obj;
             }
