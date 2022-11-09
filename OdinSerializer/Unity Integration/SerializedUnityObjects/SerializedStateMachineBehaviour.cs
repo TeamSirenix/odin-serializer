@@ -15,6 +15,7 @@
 // limitations under the License.
 // </copyright>
 //-----------------------------------------------------------------------
+
 namespace OdinSerializer
 {
     using UnityEngine;
