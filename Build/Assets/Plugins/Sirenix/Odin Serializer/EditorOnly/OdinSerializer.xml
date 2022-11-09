@@ -4,166 +4,6 @@
         <name>OdinSerializer</name>
     </assembly>
     <members>
-        <member name="T:OdinSerializer.MethodInfoFormatter`1">
-            <summary>
-            Custom formatter for MethodInfo, since Unity Mono's MethodInfo ISerializable implementation will often crash if the method no longer exists upon deserialization.
-            </summary>
-            <seealso cref="T:OdinSerializer.BaseFormatter`1" />
-        </member>
-        <member name="M:OdinSerializer.MethodInfoFormatter`1.DeserializeImplementation(`0@,OdinSerializer.IDataReader)">
-            <summary>
-            Provides the actual implementation for deserializing a value of type <see cref="!:T" />.
-            </summary>
-            <param name="value">The uninitialized value to serialize into. This value will have been created earlier using <see cref="M:OdinSerializer.BaseFormatter`1.GetUninitializedObject" />.</param>
-            <param name="reader">The reader to deserialize with.</param>
-        </member>
-        <member name="M:OdinSerializer.MethodInfoFormatter`1.SerializeImplementation(`0@,OdinSerializer.IDataWriter)">
-            <summary>
-            Provides the actual implementation for serializing a value of type <see cref="!:T" />.
-            </summary>
-            <param name="value">The value to serialize.</param>
-            <param name="writer">The writer to serialize with.</param>
-        </member>
-        <member name="M:OdinSerializer.MethodInfoFormatter`1.GetUninitializedObject">
-            <summary>
-            Get an uninitialized object of type <see cref="!:T" />. WARNING: If you override this and return null, the object's ID will not be automatically registered and its OnDeserializing callbacks will not be automatically called, before deserialization begins.
-            You will have to call <see cref="M:OdinSerializer.BaseFormatter`1.RegisterReferenceID(`0,OdinSerializer.IDataReader)" /> and <see cref="M:OdinSerializer.BaseFormatter`1.InvokeOnDeserializingCallbacks(`0,OdinSerializer.DeserializationContext)" /> immediately after creating the object yourself during deserialization.
-            </summary>
-            <returns>
-            An uninitialized object of type <see cref="!:T" />.
-            </returns>
-        </member>
-        <member name="T:OdinSerializer.QueueFormatter`2">
-            <summary>
-            Custom generic formatter for the generic type definition <see cref="T:System.Collections.Generic.Queue`1"/>.
-            </summary>
-            <typeparam name="T">The element type of the formatted queue.</typeparam>
-            <seealso cref="!:BaseFormatter&lt;System.Collections.Generic.Queue&lt;T&gt;&gt;" />
-        </member>
-        <member name="M:OdinSerializer.QueueFormatter`2.GetUninitializedObject">
-            <summary>
-            Returns null.
-            </summary>
-            <returns>
-            A null value.
-            </returns>
-        </member>
-        <member name="M:OdinSerializer.QueueFormatter`2.DeserializeImplementation(`0@,OdinSerializer.IDataReader)">
-            <summary>
-            Provides the actual implementation for deserializing a value of type <see cref="!:T" />.
-            </summary>
-            <param name="value">The uninitialized value to serialize into. This value will have been created earlier using <see cref="M:OdinSerializer.BaseFormatter`1.GetUninitializedObject" />.</param>
-            <param name="reader">The reader to deserialize with.</param>
-        </member>
-        <member name="M:OdinSerializer.QueueFormatter`2.SerializeImplementation(`0@,OdinSerializer.IDataWriter)">
-            <summary>
-            Provides the actual implementation for serializing a value of type <see cref="!:T" />.
-            </summary>
-            <param name="value">The value to serialize.</param>
-            <param name="writer">The writer to serialize with.</param>
-        </member>
-        <member name="T:OdinSerializer.StackFormatter`2">
-            <summary>
-            Custom generic formatter for the generic type definition <see cref="T:System.Collections.Generic.Stack`1"/> and types derived from it.
-            </summary>
-            <typeparam name="T">The element type of the formatted stack.</typeparam>
-            <seealso cref="!:BaseFormatter&lt;System.Collections.Generic.Stack&lt;T&gt;&gt;" />
-        </member>
-        <member name="M:OdinSerializer.StackFormatter`2.GetUninitializedObject">
-            <summary>
-            Returns null.
-            </summary>
-            <returns>
-            A null value.
-            </returns>
-        </member>
-        <member name="M:OdinSerializer.StackFormatter`2.DeserializeImplementation(`0@,OdinSerializer.IDataReader)">
-            <summary>
-            Provides the actual implementation for deserializing a value of type <see cref="!:T" />.
-            </summary>
-            <param name="value">The uninitialized value to serialize into. This value will have been created earlier using <see cref="M:OdinSerializer.BaseFormatter`1.GetUninitializedObject" />.</param>
-            <param name="reader">The reader to deserialize with.</param>
-        </member>
-        <member name="M:OdinSerializer.StackFormatter`2.SerializeImplementation(`0@,OdinSerializer.IDataWriter)">
-            <summary>
-            Provides the actual implementation for serializing a value of type <see cref="!:T" />.
-            </summary>
-            <param name="value">The value to serialize.</param>
-            <param name="writer">The writer to serialize with.</param>
-        </member>
-        <member name="T:OdinSerializer.VersionFormatter">
-            <summary>
-            Custom formatter for the <see cref="T:System.Version"/> type.
-            </summary>
-            <seealso cref="!:MinimalBaseFormatter&lt;System.Version&gt;" />
-        </member>
-        <member name="M:OdinSerializer.VersionFormatter.Read(System.Version@,OdinSerializer.IDataReader)">
-            <summary>
-            Reads into the specified value using the specified reader.
-            </summary>
-            <param name="value">The value to read into.</param>
-            <param name="reader">The reader to use.</param>
-        </member>
-        <member name="M:OdinSerializer.VersionFormatter.Write(System.Version@,OdinSerializer.IDataWriter)">
-            <summary>
-            Writes from the specified value using the specified writer.
-            </summary>
-            <param name="value">The value to write from.</param>
-            <param name="writer">The writer to use.</param>
-        </member>
-        <member name="T:OdinSerializer.AllowDeserializeInvalidDataAttribute">
-            <summary>
-            <para>
-            Applying this attribute to a type indicates that in the case where, when expecting to deserialize an instance of the type
-            or any of its derived types, but encountering an incompatible, uncastable type in the data being read, the serializer
-            should attempt to deserialize an instance of the expected type using the stored, possibly invalid data.
-            </para>
-            <para>
-            This is equivalent to the <see cref="F:OdinSerializer.SerializationConfig.AllowDeserializeInvalidData"/> option, expect type-specific instead
-            of global.
-            </para>
-            </summary>
-        </member>
-        <member name="T:OdinSerializer.ArchitectureInfo">
-            <summary>
-            This class gathers info about the current architecture for the purpose of determinining
-            the unaligned read/write capabilities that we have to work with.
-            </summary>
-        </member>
-        <member name="F:OdinSerializer.ArchitectureInfo.Architecture_Supports_All_Unaligned_ReadWrites">
-            <summary>
-            This will be false on some ARM architectures, such as ARMv7.
-            In these cases, we will have to perform slower but safer int-by-int read/writes of data.
-            <para />
-            Since this value will never change at runtime, performance hits from checking this 
-            everywhere should hopefully be negligible, since branch prediction from speculative
-            execution will always predict it correctly.
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.Editor.AOTSupportUtilities.ScanProjectForSerializedTypes(System.Collections.Generic.List{System.Type}@,System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Collections.Generic.List{System.String})">
-            <summary>
-            Scans the project's build scenes and resources, plus their dependencies, for serialized types to support. Progress bars are shown during the scan.
-            </summary>
-            <param name="serializedTypes">The serialized types to support.</param>
-            <param name="scanBuildScenes">Whether to scan the project's build scenes.</param>
-            <param name="scanAllAssetBundles">Whether to scan all the project's asset bundles.</param>
-            <param name="scanPreloadedAssets">Whether to scan the project's preloaded assets.</param>
-            <param name="scanResources">Whether to scan the project's resources.</param>
-            <param name="resourcesToScan">An optional list of the resource paths to scan. Only has an effect if the scanResources argument is true. All the resources will be scanned if null.</param>
-            <returns>true if the scan succeeded, false if the scan failed or was cancelled</returns>
-        </member>
-        <member name="M:OdinSerializer.Editor.AOTSupportUtilities.GenerateDLL(System.String,System.String,System.Collections.Generic.List{System.Type},System.Boolean)">
-            <summary>
-            Generates an AOT DLL, using the given parameters.
-            </summary>
-        </member>
-        <member name="T:OdinSerializer.IOverridesSerializationPolicy">
-            <summary>
-            Indicates that an Odin-serialized Unity object provides its own serialization policy rather than using the default policy.
-            <para/>
-            Note that THE VALUES RETURNED BY THIS INTERFACE WILL OVERRIDE THE PARAMETERS PASSED TO <see cref="M:OdinSerializer.UnitySerializationUtility.SerializeUnityObject(UnityEngine.Object,OdinSerializer.SerializationData@,System.Boolean,OdinSerializer.SerializationContext)"/> and <see cref="M:OdinSerializer.UnitySerializationUtility.DeserializeUnityObject(UnityEngine.Object,OdinSerializer.SerializationData@,OdinSerializer.DeserializationContext)"/>.
-            </summary>
-        </member>
         <member name="T:OdinSerializer.Utilities.Editor.OdinAssemblyImportSettings">
             <summary>
             Defines how an assembly's import settings should be configured.
@@ -816,6 +656,7 @@
              <remarks>
              <para>Note that in the special case of the type <see cref="T:UnityEngine.Quaternion"/>, a special equality comparer is returned that only checks whether all the Quaternion components are equal.</para>
              <para>This is because, by default, Quaternion's equality operator is broken when operating on invalid quaternions; "default(Quaternion) == default(Quaternion)" evaluates to false, and this causes a multitude of problems.</para>
+             <para>Special delegates are also returned for float and double, that consider float.NaN to be equal to float.NaN, and double.NaN to be equal to double.NaN.</para>
              </remarks>
         </member>
         <member name="M:OdinSerializer.Utilities.TypeExtensions.GetAttribute``1(System.Type,System.Boolean)">
@@ -2375,63 +2216,39 @@
             Blindly mem-copies a given number of bytes from the memory location of one object to another. WARNING: This method is ridiculously dangerous. Only use if you know what you're doing.
             </summary>
         </member>
-        <member name="T:OdinSerializer.CustomLogger">
+        <member name="T:OdinSerializer.GlobalSerializationConfig">
             <summary>
-            A helper class for quickly and easily defining custom loggers.
-            </summary>
-            <seealso cref="T:OdinSerializer.ILogger" />
-        </member>
-        <member name="M:OdinSerializer.CustomLogger.#ctor(System.Action{System.String},System.Action{System.String},System.Action{System.Exception})">
-            <summary>
-            Creates a new custom logger using a set of given delegates.
+            Contains global configuration options for the serialization system.
             </summary>
         </member>
-        <member name="M:OdinSerializer.CustomLogger.LogWarning(System.String)">
+        <member name="P:OdinSerializer.GlobalSerializationConfig.Instance">
             <summary>
-            Logs a warning.
-            </summary>
-            <param name="warning">The warning to log.</param>
-        </member>
-        <member name="M:OdinSerializer.CustomLogger.LogError(System.String)">
-            <summary>
-            Logs an error.
-            </summary>
-            <param name="error">The error to log.</param>
-        </member>
-        <member name="M:OdinSerializer.CustomLogger.LogException(System.Exception)">
-            <summary>
-            Logs an exception.
-            </summary>
-            <param name="exception">The exception to log.</param>
-        </member>
-        <member name="T:OdinSerializer.DataFormat">
-            <summary>
-            Specifies a data format to read and write in.
+            Gets the global configuration instance.
             </summary>
         </member>
-        <member name="F:OdinSerializer.DataFormat.Binary">
+        <member name="P:OdinSerializer.GlobalSerializationConfig.Logger">
             <summary>
-            A custom packed binary format. This format is most efficient and almost allocation-free,
-            but its serialized data is not human-readable.
+            Gets the logger.
             </summary>
         </member>
-        <member name="F:OdinSerializer.DataFormat.JSON">
+        <member name="P:OdinSerializer.GlobalSerializationConfig.EditorSerializationFormat">
             <summary>
-            A JSON format compliant with the json specification found at "http://www.json.org/".
-            <para />
-            This format has rather sluggish performance and allocates frightening amounts of string garbage.
+            Gets the editor serialization format.
             </summary>
         </member>
-        <member name="F:OdinSerializer.DataFormat.Nodes">
+        <member name="P:OdinSerializer.GlobalSerializationConfig.BuildSerializationFormat">
             <summary>
-            A format that does not serialize to a byte stream, but to a list of data nodes in memory
-            which can then be serialized by Unity.
-            <para />
-            This format is highly inefficient, and is primarily used for ensuring that Unity assets
-            are mergeable by individual values when saved in Unity's text format. This makes
-            serialized values more robust and data recovery easier in case of issues.
-            <para />
-            This format is *not* recommended for use in builds.
+            Gets the build serialization format.
+            </summary>
+        </member>
+        <member name="P:OdinSerializer.GlobalSerializationConfig.LoggingPolicy">
+            <summary>
+            Gets the logging policy.
+            </summary>
+        </member>
+        <member name="P:OdinSerializer.GlobalSerializationConfig.ErrorHandlingPolicy">
+            <summary>
+            Gets the error handling policy.
             </summary>
         </member>
         <member name="T:OdinSerializer.BaseDataReader">
@@ -2818,6 +2635,14 @@
             </summary>
             <value>
             The current node depth.
+            </value>
+        </member>
+        <member name="P:OdinSerializer.BaseDataReaderWriter.NodesArray">
+            <summary>
+            Gets the current nodes array. The amount of nodes contained in it is stored in the <see cref="P:OdinSerializer.BaseDataReaderWriter.NodeDepth"/> property. The remainder of the array's length is buffer space.
+            </summary>
+            <value>
+            The current node array.
             </value>
         </member>
         <member name="P:OdinSerializer.BaseDataReaderWriter.CurrentNode">
@@ -4557,9 +4382,14 @@
             The beginning of the content of an external reference by guid entry.
             </summary>
         </member>
-        <member name="F:OdinSerializer.JsonConfig.EXTERNAL_STRING_REF_SIG">
+        <member name="F:OdinSerializer.JsonConfig.EXTERNAL_STRING_REF_SIG_OLD">
             <summary>
-            The beginning of the content of an external reference by string entry.
+            The beginning of the content of an external reference by string entry. This is an old entry using an invalid data format where the ref string is dumped inline without escaping.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.JsonConfig.EXTERNAL_STRING_REF_SIG_FIXED">
+            <summary>
+            The beginning of the content of an external reference by string entry. This is a new entry using the valid format where the ref string is written as an escaped string.
             </summary>
         </member>
         <member name="T:OdinSerializer.JsonDataReader">
@@ -5573,40 +5403,61 @@
             Not yet documented.
             </summary>
         </member>
-        <member name="T:OdinSerializer.DefaultLoggers">
+        <member name="T:OdinSerializer.FormatterLocator">
             <summary>
-            Defines default loggers for serialization and deserialization. This class and all of its loggers are thread safe.
+            Utility class for locating and caching formatters for all non-primitive types.
             </summary>
         </member>
-        <member name="P:OdinSerializer.DefaultLoggers.DefaultLogger">
+        <member name="E:OdinSerializer.FormatterLocator.OnLocatedEmittableFormatterForType">
             <summary>
-            The default logger - usually this is <see cref="P:OdinSerializer.DefaultLoggers.UnityLogger"/>.
+            Editor-only event that fires whenever an emittable formatter has been located.
+            This event is used by the AOT formatter pre-emitter to locate types that need to have formatters pre-emitted.
             </summary>
         </member>
-        <member name="P:OdinSerializer.DefaultLoggers.UnityLogger">
+        <member name="E:OdinSerializer.FormatterLocator.OnLocatedFormatter">
             <summary>
-            Logs messages using Unity's <see cref="T:UnityEngine.Debug"/> class.
+            Editor-only event that fires whenever a formatter has been located.
             </summary>
         </member>
-        <member name="T:OdinSerializer.ErrorHandlingPolicy">
+        <member name="E:OdinSerializer.FormatterLocator.FormatterResolve">
             <summary>
-            The policy for handling errors during serialization and deserialization.
+            This event is invoked before everything else when a formatter is being resolved for a given type. If any invoked delegate returns a valid formatter, that formatter is used and the resolve process stops there.
+            <para />
+            This can be used to hook into and extend the serialization system's formatter resolution logic.
             </summary>
         </member>
-        <member name="F:OdinSerializer.ErrorHandlingPolicy.Resilient">
+        <member name="M:OdinSerializer.FormatterLocator.GetFormatter``1(OdinSerializer.ISerializationPolicy)">
             <summary>
-            Attempts will be made to recover from errors and continue serialization. Data may become invalid.
+            Gets a formatter for the type <see cref="!:T" />.
             </summary>
+            <typeparam name="T">The type to get a formatter for.</typeparam>
+            <param name="policy">The serialization policy to use if a formatter has to be emitted. If null, <see cref="P:OdinSerializer.SerializationPolicies.Strict"/> is used.</param>
+            <returns>
+            A formatter for the type <see cref="!:T" />.
+            </returns>
         </member>
-        <member name="F:OdinSerializer.ErrorHandlingPolicy.ThrowOnErrors">
+        <member name="M:OdinSerializer.FormatterLocator.GetFormatter(System.Type,OdinSerializer.ISerializationPolicy)">
             <summary>
-            Exceptions will be thrown when errors are logged.
+            Gets a formatter for a given type.
             </summary>
+            <param name="type">The type to get a formatter for.</param>
+            <param name="policy">The serialization policy to use if a formatter has to be emitted. If null, <see cref="P:OdinSerializer.SerializationPolicies.Strict"/> is used.</param>
+            <returns>
+            A formatter for the given type.
+            </returns>
+            <exception cref="T:System.ArgumentNullException">The type argument is null.</exception>
         </member>
-        <member name="F:OdinSerializer.ErrorHandlingPolicy.ThrowOnWarningsAndErrors">
+        <member name="M:OdinSerializer.FormatterLocator.GetFormatter(System.Type,OdinSerializer.ISerializationPolicy,System.Boolean)">
             <summary>
-            Exceptions will be thrown when warnings or errors are logged.
+            Gets a formatter for a given type.
             </summary>
+            <param name="type">The type to get a formatter for.</param>
+            <param name="policy">The serialization policy to use if a formatter has to be emitted. If null, <see cref="P:OdinSerializer.SerializationPolicies.Strict"/> is used.</param>
+            <param name="allowWeakFallbackFormatters">Whether to allow the use of weak fallback formatters which do not implement the strongly typed <see cref="T:OdinSerializer.IFormatter`1"/>, but which conversely do not need to have had AOT support generated.</param>
+            <returns>
+            A formatter for the given type.
+            </returns>
+            <exception cref="T:System.ArgumentNullException">The type argument is null.</exception>
         </member>
         <member name="T:OdinSerializer.ArrayFormatter`1">
             <summary>
@@ -5781,6 +5632,62 @@
             <param name="reader">The reader to deserialize with.</param>
         </member>
         <member name="M:OdinSerializer.BaseFormatter`1.SerializeImplementation(`0@,OdinSerializer.IDataWriter)">
+            <summary>
+            Provides the actual implementation for serializing a value of type <see cref="!:T" />.
+            </summary>
+            <param name="value">The value to serialize.</param>
+            <param name="writer">The writer to serialize with.</param>
+        </member>
+        <member name="T:OdinSerializer.WeakBaseFormatter">
+            <summary>
+            Provides common functionality for serializing and deserializing weakly typed values of a given type, and provides automatic support for the following common serialization conventions:
+            <para />
+            <see cref="T:System.Runtime.Serialization.IObjectReference"/>, <see cref="!:ISerializationCallbackReceiver"/>, <see cref="T:System.Runtime.Serialization.OnSerializingAttribute"/>, <see cref="T:System.Runtime.Serialization.OnSerializedAttribute"/>, <see cref="T:System.Runtime.Serialization.OnDeserializingAttribute"/> and <see cref="T:System.Runtime.Serialization.OnDeserializedAttribute"/>.
+            </summary>
+            <seealso cref="T:OdinSerializer.IFormatter" />
+        </member>
+        <member name="M:OdinSerializer.WeakBaseFormatter.Serialize(System.Object,OdinSerializer.IDataWriter)">
+            <summary>
+            Serializes a value using a specified <see cref="T:OdinSerializer.IDataWriter" />.
+            </summary>
+            <param name="value">The value to serialize.</param>
+            <param name="writer">The writer to use.</param>
+        </member>
+        <member name="M:OdinSerializer.WeakBaseFormatter.Deserialize(OdinSerializer.IDataReader)">
+            <summary>
+            Deserializes a value using a specified <see cref="T:OdinSerializer.IDataReader" />.
+            </summary>
+            <param name="reader">The reader to use.</param>
+            <returns>
+            The deserialized value.
+            </returns>
+        </member>
+        <member name="M:OdinSerializer.WeakBaseFormatter.RegisterReferenceID(System.Object,OdinSerializer.IDataReader)">
+            <summary>
+            Registers the given object reference in the deserialization context.
+            <para />
+            NOTE that this method only does anything if <see cref="!:T"/> is not a value type.
+            </summary>
+            <param name="value">The value to register.</param>
+            <param name="reader">The reader which is currently being used.</param>
+        </member>
+        <member name="M:OdinSerializer.WeakBaseFormatter.InvokeOnDeserializingCallbacks(System.Object,OdinSerializer.DeserializationContext)">
+            <summary>
+            Invokes all methods on the object with the [OnDeserializing] attribute.
+            <para />
+            WARNING: This method will not be called automatically if you override GetUninitializedObject and return null! You will have to call it manually after having created the object instance during deserialization.
+            </summary>
+            <param name="value">The value to invoke the callbacks on.</param>
+            <param name="context">The deserialization context.</param>
+        </member>
+        <member name="M:OdinSerializer.WeakBaseFormatter.DeserializeImplementation(System.Object@,OdinSerializer.IDataReader)">
+            <summary>
+            Provides the actual implementation for deserializing a value of type <see cref="!:T" />.
+            </summary>
+            <param name="value">The uninitialized value to serialize into. This value will have been created earlier using <see cref="M:OdinSerializer.BaseFormatter`1.GetUninitializedObject" />.</param>
+            <param name="reader">The reader to deserialize with.</param>
+        </member>
+        <member name="M:OdinSerializer.WeakBaseFormatter.SerializeImplementation(System.Object@,OdinSerializer.IDataWriter)">
             <summary>
             Provides the actual implementation for serializing a value of type <see cref="!:T" />.
             </summary>
@@ -6016,6 +5923,11 @@
             NOTE: Some platforms do not support emitting. Check whether you can emit on the current platform using <see cref="P:OdinSerializer.Utilities.EmitUtilities.CanEmit"/>.
             </summary>
         </member>
+        <member name="F:OdinSerializer.FormatterEmitter.helperFormatterNameId">
+            <summary>
+            Used for generating unique formatter helper type names.
+            </summary>
+        </member>
         <member name="F:OdinSerializer.FormatterEmitter.PRE_EMITTED_ASSEMBLY_NAME">
             <summary>
             The name of the pre-generated assembly that contains pre-emitted formatters for use on AOT platforms where emitting is not supported. Note that this assembly is not always present.
@@ -6118,6 +6030,28 @@
             <param name="value">The value to serialize.</param>
             <param name="writer">The writer to serialize with.</param>
         </member>
+        <member name="M:OdinSerializer.WeakGenericCollectionFormatter.GetUninitializedObject">
+            <summary>
+            Gets a new object of type <see cref="!:T" />.
+            </summary>
+            <returns>
+            A new object of type <see cref="!:T" />.
+            </returns>
+        </member>
+        <member name="M:OdinSerializer.WeakGenericCollectionFormatter.DeserializeImplementation(System.Object@,OdinSerializer.IDataReader)">
+            <summary>
+            Provides the actual implementation for deserializing a value of type <see cref="!:T" />.
+            </summary>
+            <param name="value">The uninitialized value to serialize into. This value will have been created earlier using <see cref="M:OdinSerializer.BaseFormatter`1.GetUninitializedObject" />.</param>
+            <param name="reader">The reader to deserialize with.</param>
+        </member>
+        <member name="M:OdinSerializer.WeakGenericCollectionFormatter.SerializeImplementation(System.Object@,OdinSerializer.IDataWriter)">
+            <summary>
+            Provides the actual implementation for serializing a value of type <see cref="!:T" />.
+            </summary>
+            <param name="value">The value to serialize.</param>
+            <param name="writer">The writer to serialize with.</param>
+        </member>
         <member name="T:OdinSerializer.HashSetFormatter`1">
             <summary>
             Custom generic formatter for the generic type definition <see cref="T:System.Collections.Generic.HashSet`1"/>.
@@ -6141,6 +6075,28 @@
             <param name="reader">The reader to deserialize with.</param>
         </member>
         <member name="M:OdinSerializer.HashSetFormatter`1.SerializeImplementation(System.Collections.Generic.HashSet{`0}@,OdinSerializer.IDataWriter)">
+            <summary>
+            Provides the actual implementation for serializing a value of type <see cref="!:T" />.
+            </summary>
+            <param name="value">The value to serialize.</param>
+            <param name="writer">The writer to serialize with.</param>
+        </member>
+        <member name="M:OdinSerializer.WeakHashSetFormatter.GetUninitializedObject">
+            <summary>
+            Returns null.
+            </summary>
+            <returns>
+            A null value.
+            </returns>
+        </member>
+        <member name="M:OdinSerializer.WeakHashSetFormatter.DeserializeImplementation(System.Object@,OdinSerializer.IDataReader)">
+            <summary>
+            Provides the actual implementation for deserializing a value of type <see cref="!:T" />.
+            </summary>
+            <param name="value">The uninitialized value to serialize into. This value will have been created earlier using <see cref="M:OdinSerializer.BaseFormatter`1.GetUninitializedObject" />.</param>
+            <param name="reader">The reader to deserialize with.</param>
+        </member>
+        <member name="M:OdinSerializer.WeakHashSetFormatter.SerializeImplementation(System.Object@,OdinSerializer.IDataWriter)">
             <summary>
             Provides the actual implementation for serializing a value of type <see cref="!:T" />.
             </summary>
@@ -6251,6 +6207,35 @@
             <param name="value">The value to serialize.</param>
             <param name="writer">The writer to serialize with.</param>
         </member>
+        <member name="T:OdinSerializer.MethodInfoFormatter`1">
+            <summary>
+            Custom formatter for MethodInfo, since Unity Mono's MethodInfo ISerializable implementation will often crash if the method no longer exists upon deserialization.
+            </summary>
+            <seealso cref="T:OdinSerializer.BaseFormatter`1" />
+        </member>
+        <member name="M:OdinSerializer.MethodInfoFormatter`1.DeserializeImplementation(`0@,OdinSerializer.IDataReader)">
+            <summary>
+            Provides the actual implementation for deserializing a value of type <see cref="!:T" />.
+            </summary>
+            <param name="value">The uninitialized value to serialize into. This value will have been created earlier using <see cref="M:OdinSerializer.BaseFormatter`1.GetUninitializedObject" />.</param>
+            <param name="reader">The reader to deserialize with.</param>
+        </member>
+        <member name="M:OdinSerializer.MethodInfoFormatter`1.SerializeImplementation(`0@,OdinSerializer.IDataWriter)">
+            <summary>
+            Provides the actual implementation for serializing a value of type <see cref="!:T" />.
+            </summary>
+            <param name="value">The value to serialize.</param>
+            <param name="writer">The writer to serialize with.</param>
+        </member>
+        <member name="M:OdinSerializer.MethodInfoFormatter`1.GetUninitializedObject">
+            <summary>
+            Get an uninitialized object of type <see cref="!:T" />. WARNING: If you override this and return null, the object's ID will not be automatically registered and its OnDeserializing callbacks will not be automatically called, before deserialization begins.
+            You will have to call <see cref="M:OdinSerializer.BaseFormatter`1.RegisterReferenceID(`0,OdinSerializer.IDataReader)" /> and <see cref="M:OdinSerializer.BaseFormatter`1.InvokeOnDeserializingCallbacks(`0,OdinSerializer.DeserializationContext)" /> immediately after creating the object yourself during deserialization.
+            </summary>
+            <returns>
+            An uninitialized object of type <see cref="!:T" />.
+            </returns>
+        </member>
         <member name="T:OdinSerializer.MinimalBaseFormatter`1">
             <summary>
             Minimal baseline formatter. Doesn't come with all the bells and whistles of any of the other BaseFormatter classes.
@@ -6333,6 +6318,49 @@
             <param name="value">The value to register.</param>
             <param name="reader">The reader which is currently being used.</param>
         </member>
+        <member name="F:OdinSerializer.WeakMinimalBaseFormatter.IsValueType">
+            <summary>
+            Whether the serialized value is a value type.
+            </summary>
+        </member>
+        <member name="P:OdinSerializer.WeakMinimalBaseFormatter.OdinSerializer#IFormatter#SerializedType">
+            <summary>
+            Gets the type that the formatter can serialize.
+            </summary>
+            <value>
+            The type that the formatter can serialize.
+            </value>
+        </member>
+        <member name="M:OdinSerializer.WeakMinimalBaseFormatter.GetUninitializedObject">
+            <summary>
+            Get an uninitialized object of type <see cref="!:T"/>. WARNING: If you override this and return null, the object's ID will not be automatically registered.
+            You will have to call <see cref="!:MinimalBaseFormatter&lt;T&gt;&lt;T&gt;.RegisterReferenceID(T, IDataReader, DeserializationContext)"/> immediately after creating the object yourself during deserialization.
+            </summary>
+            <returns>An uninitialized object of type <see cref="!:T"/>.</returns>
+        </member>
+        <member name="M:OdinSerializer.WeakMinimalBaseFormatter.Read(System.Object@,OdinSerializer.IDataReader)">
+            <summary>
+            Reads into the specified value using the specified reader.
+            </summary>
+            <param name="value">The value to read into.</param>
+            <param name="reader">The reader to use.</param>
+        </member>
+        <member name="M:OdinSerializer.WeakMinimalBaseFormatter.Write(System.Object@,OdinSerializer.IDataWriter)">
+            <summary>
+            Writes from the specified value using the specified writer.
+            </summary>
+            <param name="value">The value to write from.</param>
+            <param name="writer">The writer to use.</param>
+        </member>
+        <member name="M:OdinSerializer.WeakMinimalBaseFormatter.RegisterReferenceID(System.Object,OdinSerializer.IDataReader)">
+            <summary>
+            Registers the given object reference in the deserialization context.
+            <para />
+            NOTE that this method only does anything if the serialized type is not a value type.
+            </summary>
+            <param name="value">The value to register.</param>
+            <param name="reader">The reader which is currently being used.</param>
+        </member>
         <member name="T:OdinSerializer.MultiDimensionalArrayFormatter`2">
             <summary>
             Formatter for all arrays with more than one dimension.
@@ -6357,6 +6385,28 @@
             <param name="reader">The reader to deserialize with.</param>
         </member>
         <member name="M:OdinSerializer.MultiDimensionalArrayFormatter`2.SerializeImplementation(`0@,OdinSerializer.IDataWriter)">
+            <summary>
+            Provides the actual implementation for serializing a value of type <see cref="!:T" />.
+            </summary>
+            <param name="value">The value to serialize.</param>
+            <param name="writer">The writer to serialize with.</param>
+        </member>
+        <member name="M:OdinSerializer.WeakMultiDimensionalArrayFormatter.GetUninitializedObject">
+            <summary>
+            Returns null.
+            </summary>
+            <returns>
+            A null value.
+            </returns>
+        </member>
+        <member name="M:OdinSerializer.WeakMultiDimensionalArrayFormatter.DeserializeImplementation(System.Object@,OdinSerializer.IDataReader)">
+            <summary>
+            Provides the actual implementation for deserializing a value of type <see cref="!:T" />.
+            </summary>
+            <param name="value">The uninitialized value to serialize into. This value will have been created earlier using <see cref="M:OdinSerializer.BaseFormatter`1.GetUninitializedObject" />.</param>
+            <param name="reader">The reader to deserialize with.</param>
+        </member>
+        <member name="M:OdinSerializer.WeakMultiDimensionalArrayFormatter.SerializeImplementation(System.Object@,OdinSerializer.IDataWriter)">
             <summary>
             Provides the actual implementation for serializing a value of type <see cref="!:T" />.
             </summary>
@@ -6418,6 +6468,57 @@
             <param name="value">The value to write from.</param>
             <param name="writer">The writer to use.</param>
         </member>
+        <member name="M:OdinSerializer.WeakPrimitiveArrayFormatter.GetUninitializedObject">
+            <summary>
+            Returns null.
+            </summary>
+            <returns>
+            A null value.
+            </returns>
+        </member>
+        <member name="M:OdinSerializer.WeakPrimitiveArrayFormatter.Read(System.Object@,OdinSerializer.IDataReader)">
+            <summary>
+            Reads into the specified value using the specified reader.
+            </summary>
+            <param name="value">The value to read into.</param>
+            <param name="reader">The reader to use.</param>
+        </member>
+        <member name="M:OdinSerializer.WeakPrimitiveArrayFormatter.Write(System.Object@,OdinSerializer.IDataWriter)">
+            <summary>
+            Writes from the specified value using the specified writer.
+            </summary>
+            <param name="value">The value to write from.</param>
+            <param name="writer">The writer to use.</param>
+        </member>
+        <member name="T:OdinSerializer.QueueFormatter`2">
+            <summary>
+            Custom generic formatter for the generic type definition <see cref="T:System.Collections.Generic.Queue`1"/>.
+            </summary>
+            <typeparam name="T">The element type of the formatted queue.</typeparam>
+            <seealso cref="!:BaseFormatter&lt;System.Collections.Generic.Queue&lt;T&gt;&gt;" />
+        </member>
+        <member name="M:OdinSerializer.QueueFormatter`2.GetUninitializedObject">
+            <summary>
+            Returns null.
+            </summary>
+            <returns>
+            A null value.
+            </returns>
+        </member>
+        <member name="M:OdinSerializer.QueueFormatter`2.DeserializeImplementation(`0@,OdinSerializer.IDataReader)">
+            <summary>
+            Provides the actual implementation for deserializing a value of type <see cref="!:T" />.
+            </summary>
+            <param name="value">The uninitialized value to serialize into. This value will have been created earlier using <see cref="M:OdinSerializer.BaseFormatter`1.GetUninitializedObject" />.</param>
+            <param name="reader">The reader to deserialize with.</param>
+        </member>
+        <member name="M:OdinSerializer.QueueFormatter`2.SerializeImplementation(`0@,OdinSerializer.IDataWriter)">
+            <summary>
+            Provides the actual implementation for serializing a value of type <see cref="!:T" />.
+            </summary>
+            <param name="value">The value to serialize.</param>
+            <param name="writer">The writer to serialize with.</param>
+        </member>
         <member name="T:OdinSerializer.ReflectionFormatter`1">
             <summary>
             Final fallback formatter for all types which have no other formatters. This formatter relies on reflection to work, and is thus comparatively slow and creates more garbage than a custom formatter.
@@ -6452,6 +6553,16 @@
             </summary>
         </member>
         <member name="M:OdinSerializer.SelfFormatterFormatter`1.SerializeImplementation(`0@,OdinSerializer.IDataWriter)">
+            <summary>
+            Calls <see cref="M:OdinSerializer.ISelfFormatter.Serialize(OdinSerializer.IDataWriter)" />  on the value to deserialize.
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.WeakSelfFormatterFormatter.DeserializeImplementation(System.Object@,OdinSerializer.IDataReader)">
+            <summary>
+            Calls <see cref="M:OdinSerializer.ISelfFormatter.Deserialize(OdinSerializer.IDataReader)" />  on the value to deserialize.
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.WeakSelfFormatterFormatter.SerializeImplementation(System.Object@,OdinSerializer.IDataWriter)">
             <summary>
             Calls <see cref="M:OdinSerializer.ISelfFormatter.Serialize(OdinSerializer.IDataWriter)" />  on the value to deserialize.
             </summary>
@@ -6502,6 +6613,65 @@
             <param name="info">The <see cref="T:System.Runtime.Serialization.SerializationInfo" /> to write.</param>
             <param name="writer">The writer to use.</param>
         </member>
+        <member name="M:OdinSerializer.WeakSerializableFormatter.GetUninitializedObject">
+            <summary>
+            Get an uninitialized object of type <see cref="!:T" />. WARNING: If you override this and return null, the object's ID will not be automatically registered and its OnDeserializing callbacks will not be automatically called, before deserialization begins.
+            You will have to call <see cref="!:BaseFormatter&lt;T&gt;.RegisterReferenceID(T, IDataReader, DeserializationContext)" /> and <see cref="!:BaseFormatter&lt;T&gt;.InvokeOnDeserializingCallbacks(T, IDataReader, DeserializationContext)" /> immediately after creating the object yourself during deserialization.
+            </summary>
+            <returns>
+            An uninitialized object of type <see cref="!:T" />.
+            </returns>
+        </member>
+        <member name="M:OdinSerializer.WeakSerializableFormatter.DeserializeImplementation(System.Object@,OdinSerializer.IDataReader)">
+            <summary>
+            Provides the actual implementation for deserializing a value of type <see cref="!:T" />.
+            </summary>
+            <param name="value">The uninitialized value to serialize into. This value will have been created earlier using <see cref="M:OdinSerializer.BaseFormatter`1.GetUninitializedObject" />.</param>
+            <param name="reader">The reader to deserialize with.</param>
+        </member>
+        <member name="M:OdinSerializer.WeakSerializableFormatter.SerializeImplementation(System.Object@,OdinSerializer.IDataWriter)">
+            <summary>
+            Provides the actual implementation for serializing a value of type <see cref="!:T" />.
+            </summary>
+            <param name="value">The value to serialize.</param>
+            <param name="writer">The writer to serialize with.</param>
+        </member>
+        <member name="T:OdinSerializer.StackFormatter`2">
+            <summary>
+            Custom generic formatter for the generic type definition <see cref="T:System.Collections.Generic.Stack`1"/> and types derived from it.
+            </summary>
+            <typeparam name="T">The element type of the formatted stack.</typeparam>
+            <seealso cref="!:BaseFormatter&lt;System.Collections.Generic.Stack&lt;T&gt;&gt;" />
+        </member>
+        <member name="M:OdinSerializer.StackFormatter`2.GetUninitializedObject">
+            <summary>
+            Returns null.
+            </summary>
+            <returns>
+            A null value.
+            </returns>
+        </member>
+        <member name="M:OdinSerializer.StackFormatter`2.DeserializeImplementation(`0@,OdinSerializer.IDataReader)">
+            <summary>
+            Provides the actual implementation for deserializing a value of type <see cref="!:T" />.
+            </summary>
+            <param name="value">The uninitialized value to serialize into. This value will have been created earlier using <see cref="M:OdinSerializer.BaseFormatter`1.GetUninitializedObject" />.</param>
+            <param name="reader">The reader to deserialize with.</param>
+        </member>
+        <member name="M:OdinSerializer.StackFormatter`2.SerializeImplementation(`0@,OdinSerializer.IDataWriter)">
+            <summary>
+            Provides the actual implementation for serializing a value of type <see cref="!:T" />.
+            </summary>
+            <param name="value">The value to serialize.</param>
+            <param name="writer">The writer to serialize with.</param>
+        </member>
+        <member name="M:OdinSerializer.WeakStackFormatter.SerializeImplementation(System.Object@,OdinSerializer.IDataWriter)">
+            <summary>
+            Provides the actual implementation for serializing a value of type <see cref="!:T" />.
+            </summary>
+            <param name="value">The value to serialize.</param>
+            <param name="writer">The writer to serialize with.</param>
+        </member>
         <member name="T:OdinSerializer.TimeSpanFormatter">
             <summary>
             Custom formatter for the <see cref="T:System.TimeSpan"/> type.
@@ -6548,124 +6718,38 @@
             </summary>
             <returns>null.</returns>
         </member>
-        <member name="T:OdinSerializer.GlobalSerializationConfig">
+        <member name="T:OdinSerializer.VersionFormatter">
             <summary>
-            Contains global configuration options for the serialization system.
+            Custom formatter for the <see cref="T:System.Version"/> type.
             </summary>
+            <seealso cref="!:MinimalBaseFormatter&lt;System.Version&gt;" />
         </member>
-        <member name="P:OdinSerializer.GlobalSerializationConfig.Instance">
+        <member name="M:OdinSerializer.VersionFormatter.Read(System.Version@,OdinSerializer.IDataReader)">
             <summary>
-            Gets the global configuration instance.
+            Reads into the specified value using the specified reader.
             </summary>
+            <param name="value">The value to read into.</param>
+            <param name="reader">The reader to use.</param>
         </member>
-        <member name="P:OdinSerializer.GlobalSerializationConfig.Logger">
+        <member name="M:OdinSerializer.VersionFormatter.Write(System.Version@,OdinSerializer.IDataWriter)">
             <summary>
-            Gets the logger.
+            Writes from the specified value using the specified writer.
             </summary>
+            <param name="value">The value to write from.</param>
+            <param name="writer">The writer to use.</param>
         </member>
-        <member name="P:OdinSerializer.GlobalSerializationConfig.EditorSerializationFormat">
+        <member name="T:OdinSerializer.AllowDeserializeInvalidDataAttribute">
             <summary>
-            Gets the editor serialization format.
+            <para>
+            Applying this attribute to a type indicates that in the case where, when expecting to deserialize an instance of the type
+            or any of its derived types, but encountering an incompatible, uncastable type in the data being read, the serializer
+            should attempt to deserialize an instance of the expected type using the stored, possibly invalid data.
+            </para>
+            <para>
+            This is equivalent to the <see cref="F:OdinSerializer.SerializationConfig.AllowDeserializeInvalidData"/> option, expect type-specific instead
+            of global.
+            </para>
             </summary>
-        </member>
-        <member name="P:OdinSerializer.GlobalSerializationConfig.BuildSerializationFormat">
-            <summary>
-            Gets the build serialization format.
-            </summary>
-        </member>
-        <member name="P:OdinSerializer.GlobalSerializationConfig.LoggingPolicy">
-            <summary>
-            Gets the logging policy.
-            </summary>
-        </member>
-        <member name="P:OdinSerializer.GlobalSerializationConfig.ErrorHandlingPolicy">
-            <summary>
-            Gets the error handling policy.
-            </summary>
-        </member>
-        <member name="T:OdinSerializer.ILogger">
-            <summary>
-            Implements methods for logging warnings, errors and exceptions during serialization and deserialization.
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.ILogger.LogWarning(System.String)">
-            <summary>
-            Logs a warning.
-            </summary>
-            <param name="warning">The warning to log.</param>
-        </member>
-        <member name="M:OdinSerializer.ILogger.LogError(System.String)">
-            <summary>
-            Logs an error.
-            </summary>
-            <param name="error">The error to log.</param>
-        </member>
-        <member name="M:OdinSerializer.ILogger.LogException(System.Exception)">
-            <summary>
-            Logs an exception.
-            </summary>
-            <param name="exception">The exception to log.</param>
-        </member>
-        <member name="T:OdinSerializer.LoggingPolicy">
-            <summary>
-            The policy for which level of logging to do during serialization and deserialization.
-            </summary>
-        </member>
-        <member name="F:OdinSerializer.LoggingPolicy.LogErrors">
-            <summary>
-            Log errors.
-            </summary>
-        </member>
-        <member name="F:OdinSerializer.LoggingPolicy.LogWarningsAndErrors">
-            <summary>
-            Log both warnings and errors.
-            </summary>
-        </member>
-        <member name="F:OdinSerializer.LoggingPolicy.Silent">
-            <summary>
-            Log nothing at all. Note: Some extremely severe categories of errors are logged regardless of this setting.
-            </summary>
-        </member>
-        <member name="T:OdinSerializer.CustomSerializationPolicy">
-            <summary>
-            Helper class for quickly and easily implementing the <see cref="T:OdinSerializer.ISerializationPolicy"/> interface.
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.CustomSerializationPolicy.#ctor(System.String,System.Boolean,System.Func{System.Reflection.MemberInfo,System.Boolean})">
-            <summary>
-            Initializes a new instance of the <see cref="T:OdinSerializer.CustomSerializationPolicy"/> class.
-            </summary>
-            <param name="id">The policy ID.</param>
-            <param name="allowNonSerializableTypes">if set to <c>true</c> non serializable types will be allowed.</param>
-            <param name="shouldSerializeFunc">The delegate to use for determining whether members should be serialized.</param>
-            <exception cref="T:System.ArgumentNullException">
-            The id argument or the shouldSerializeFunc argument was null.
-            </exception>
-        </member>
-        <member name="P:OdinSerializer.CustomSerializationPolicy.ID">
-            <summary>
-            Gets the identifier of the policy. This can be stored in the serialization metadata, so the policy used to serialize it can be recovered without knowing the policy at runtime. This ID should preferably be unique.
-            </summary>
-            <value>
-            The identifier of the policy.
-            </value>
-        </member>
-        <member name="P:OdinSerializer.CustomSerializationPolicy.AllowNonSerializableTypes">
-            <summary>
-            Gets a value indicating whether to allow non serializable types. (Types which are not decorated with <see cref="T:System.SerializableAttribute" />.)
-            </summary>
-            <value>
-            <c>true</c> if serializable types are allowed; otherwise, <c>false</c>.
-            </value>
-        </member>
-        <member name="M:OdinSerializer.CustomSerializationPolicy.ShouldSerializeMember(System.Reflection.MemberInfo)">
-            <summary>
-            Gets a value indicating whether a given <see cref="T:System.Reflection.MemberInfo" /> should be serialized or not.
-            </summary>
-            <param name="member">The member to check.</param>
-            <returns>
-              <c>true</c> if the given member should be serialized, otherwise, <c>false</c>.
-            </returns>
         </member>
         <member name="T:OdinSerializer.AlwaysFormatsSelfAttribute">
             <summary>
@@ -6676,6 +6760,80 @@
             is decorated with this attribute, regardless of custom formatters for the derived types.
             </summary>
             <seealso cref="T:System.Attribute" />
+        </member>
+        <member name="T:OdinSerializer.ArchitectureInfo">
+            <summary>
+            This class gathers info about the current architecture for the purpose of determinining
+            the unaligned read/write capabilities that we have to work with.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.ArchitectureInfo.Architecture_Supports_All_Unaligned_ReadWrites">
+            <summary>
+            This will be false on some ARM architectures, such as ARMv7.
+            In these cases, we will have to perform slower but safer int-by-int read/writes of data.
+            <para />
+            Since this value will never change at runtime, performance hits from checking this 
+            everywhere should hopefully be negligible, since branch prediction from speculative
+            execution will always predict it correctly.
+            </summary>
+        </member>
+        <member name="T:OdinSerializer.Buffer`1">
+            <summary>
+            Provides a way of claiming and releasing cached array buffers.
+            </summary>
+            <typeparam name="T">The element type of the array to buffer.</typeparam>
+            <seealso cref="T:System.IDisposable" />
+        </member>
+        <member name="P:OdinSerializer.Buffer`1.Count">
+            <summary>
+            Gets the total element count of the buffered array. This will always be a power of two.
+            </summary>
+            <value>
+            The total element count of the buffered array.
+            </value>
+            <exception cref="T:System.InvalidOperationException">Cannot access a buffer while it is freed.</exception>
+        </member>
+        <member name="P:OdinSerializer.Buffer`1.Array">
+            <summary>
+            Gets the buffered array.
+            </summary>
+            <value>
+            The buffered array.
+            </value>
+            <exception cref="T:System.InvalidOperationException">Cannot access a buffer while it is freed.</exception>
+        </member>
+        <member name="P:OdinSerializer.Buffer`1.IsFree">
+            <summary>
+            Gets a value indicating whether this buffer is free.
+            </summary>
+            <value>
+              <c>true</c> if this buffer is free; otherwise, <c>false</c>.
+            </value>
+        </member>
+        <member name="M:OdinSerializer.Buffer`1.Claim(System.Int32)">
+            <summary>
+            Claims a buffer with the specified minimum capacity. Note: buffers always have a capacity equal to or larger than 256.
+            </summary>
+            <param name="minimumCapacity">The minimum capacity.</param>
+            <returns>A buffer which has a capacity equal to or larger than the specified minimum capacity.</returns>
+            <exception cref="T:System.ArgumentException">Requested size of buffer must be larger than 0.</exception>
+        </member>
+        <member name="M:OdinSerializer.Buffer`1.Free(OdinSerializer.Buffer{`0})">
+            <summary>
+            Frees the specified buffer.
+            </summary>
+            <param name="buffer">The buffer to free.</param>
+            <exception cref="T:System.ArgumentNullException">The buffer argument is null.</exception>
+        </member>
+        <member name="M:OdinSerializer.Buffer`1.Free">
+            <summary>
+            Frees this buffer.
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.Buffer`1.Dispose">
+            <summary>
+            Frees this buffer.
+            </summary>
         </member>
         <member name="T:OdinSerializer.CustomFormatterAttribute">
             <summary>
@@ -6722,6 +6880,121 @@
             <param name="priority">The priority of the formatter. Of all the available custom formatters, the formatter with the highest priority is always chosen.</param>
             <exception cref="T:System.ArgumentNullException"><paramref name="serializedGenericTypeDefinition"/> was null.</exception>
             <exception cref="T:System.ArgumentException">The type given in <paramref name="serializedGenericTypeDefinition"/> is not a generic type definition.</exception>
+        </member>
+        <member name="T:OdinSerializer.CustomLogger">
+            <summary>
+            A helper class for quickly and easily defining custom loggers.
+            </summary>
+            <seealso cref="T:OdinSerializer.ILogger" />
+        </member>
+        <member name="M:OdinSerializer.CustomLogger.#ctor(System.Action{System.String},System.Action{System.String},System.Action{System.Exception})">
+            <summary>
+            Creates a new custom logger using a set of given delegates.
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.CustomLogger.LogWarning(System.String)">
+            <summary>
+            Logs a warning.
+            </summary>
+            <param name="warning">The warning to log.</param>
+        </member>
+        <member name="M:OdinSerializer.CustomLogger.LogError(System.String)">
+            <summary>
+            Logs an error.
+            </summary>
+            <param name="error">The error to log.</param>
+        </member>
+        <member name="M:OdinSerializer.CustomLogger.LogException(System.Exception)">
+            <summary>
+            Logs an exception.
+            </summary>
+            <param name="exception">The exception to log.</param>
+        </member>
+        <member name="T:OdinSerializer.CustomSerializationPolicy">
+            <summary>
+            Helper class for quickly and easily implementing the <see cref="T:OdinSerializer.ISerializationPolicy"/> interface.
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.CustomSerializationPolicy.#ctor(System.String,System.Boolean,System.Func{System.Reflection.MemberInfo,System.Boolean})">
+            <summary>
+            Initializes a new instance of the <see cref="T:OdinSerializer.CustomSerializationPolicy"/> class.
+            </summary>
+            <param name="id">The policy ID.</param>
+            <param name="allowNonSerializableTypes">if set to <c>true</c> non serializable types will be allowed.</param>
+            <param name="shouldSerializeFunc">The delegate to use for determining whether members should be serialized.</param>
+            <exception cref="T:System.ArgumentNullException">
+            The id argument or the shouldSerializeFunc argument was null.
+            </exception>
+        </member>
+        <member name="P:OdinSerializer.CustomSerializationPolicy.ID">
+            <summary>
+            Gets the identifier of the policy. This can be stored in the serialization metadata, so the policy used to serialize it can be recovered without knowing the policy at runtime. This ID should preferably be unique.
+            </summary>
+            <value>
+            The identifier of the policy.
+            </value>
+        </member>
+        <member name="P:OdinSerializer.CustomSerializationPolicy.AllowNonSerializableTypes">
+            <summary>
+            Gets a value indicating whether to allow non serializable types. (Types which are not decorated with <see cref="T:System.SerializableAttribute" />.)
+            </summary>
+            <value>
+            <c>true</c> if serializable types are allowed; otherwise, <c>false</c>.
+            </value>
+        </member>
+        <member name="M:OdinSerializer.CustomSerializationPolicy.ShouldSerializeMember(System.Reflection.MemberInfo)">
+            <summary>
+            Gets a value indicating whether a given <see cref="T:System.Reflection.MemberInfo" /> should be serialized or not.
+            </summary>
+            <param name="member">The member to check.</param>
+            <returns>
+              <c>true</c> if the given member should be serialized, otherwise, <c>false</c>.
+            </returns>
+        </member>
+        <member name="T:OdinSerializer.DataFormat">
+            <summary>
+            Specifies a data format to read and write in.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.DataFormat.Binary">
+            <summary>
+            A custom packed binary format. This format is most efficient and almost allocation-free,
+            but its serialized data is not human-readable.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.DataFormat.JSON">
+            <summary>
+            A JSON format compliant with the json specification found at "http://www.json.org/".
+            <para />
+            This format has rather sluggish performance and allocates frightening amounts of string garbage.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.DataFormat.Nodes">
+            <summary>
+            A format that does not serialize to a byte stream, but to a list of data nodes in memory
+            which can then be serialized by Unity.
+            <para />
+            This format is highly inefficient, and is primarily used for ensuring that Unity assets
+            are mergeable by individual values when saved in Unity's text format. This makes
+            serialized values more robust and data recovery easier in case of issues.
+            <para />
+            This format is *not* recommended for use in builds.
+            </summary>
+        </member>
+        <member name="T:OdinSerializer.DefaultLoggers">
+            <summary>
+            Defines default loggers for serialization and deserialization. This class and all of its loggers are thread safe.
+            </summary>
+        </member>
+        <member name="P:OdinSerializer.DefaultLoggers.DefaultLogger">
+            <summary>
+            The default logger - usually this is <see cref="P:OdinSerializer.DefaultLoggers.UnityLogger"/>.
+            </summary>
+        </member>
+        <member name="P:OdinSerializer.DefaultLoggers.UnityLogger">
+            <summary>
+            Logs messages using Unity's <see cref="T:UnityEngine.Debug"/> class.
+            </summary>
         </member>
         <member name="T:OdinSerializer.BindTypeNameToTypeAttribute">
              <summary>
@@ -7009,6 +7282,26 @@
             Entry contains the string id of an external object in the DeserializationContext.
             </summary>
         </member>
+        <member name="T:OdinSerializer.ErrorHandlingPolicy">
+            <summary>
+            The policy for handling errors during serialization and deserialization.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.ErrorHandlingPolicy.Resilient">
+            <summary>
+            Attempts will be made to recover from errors and continue serialization. Data may become invalid.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.ErrorHandlingPolicy.ThrowOnErrors">
+            <summary>
+            Exceptions will be thrown when errors are logged.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.ErrorHandlingPolicy.ThrowOnWarningsAndErrors">
+            <summary>
+            Exceptions will be thrown when warnings or errors are logged.
+            </summary>
+        </member>
         <member name="T:OdinSerializer.ExcludeDataFromInspectorAttribute">
             <summary>
             <para>
@@ -7016,6 +7309,96 @@
             and such will not cause any performance hits in the inspector.
             </para>
             <para>Note that Odin can still serialize an excluded member - it is merely ignored in the inspector itself.</para>
+            </summary>
+        </member>
+        <member name="T:OdinSerializer.FormatterUtilities">
+            <summary>
+            Provides an array of utility methods which are commonly used by serialization formatters.
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.FormatterUtilities.GetSerializableMembersMap(System.Type,OdinSerializer.ISerializationPolicy)">
+            <summary>
+            Gets a map of all serializable members on the given type. This will also properly map names extracted from <see cref="T:UnityEngine.Serialization.FormerlySerializedAsAttribute"/> and <see cref="T:OdinSerializer.PreviouslySerializedAsAttribute"/> to their corresponding members.
+            </summary>
+            <param name="type">The type to get a map for.</param>
+            <param name="policy">The serialization policy to use. If null, <see cref="P:OdinSerializer.SerializationPolicies.Strict"/> is used.</param>
+            <returns>A map of all serializable members on the given type.</returns>
+        </member>
+        <member name="M:OdinSerializer.FormatterUtilities.GetSerializableMembers(System.Type,OdinSerializer.ISerializationPolicy)">
+            <summary>
+            Gets an array of all serializable members on the given type.
+            </summary>
+            <param name="type">The type to get serializable members for.</param>
+            <param name="policy">The serialization policy to use. If null, <see cref="P:OdinSerializer.SerializationPolicies.Strict"/> is used.</param>
+            <returns>An array of all serializable members on the given type.</returns>
+        </member>
+        <member name="M:OdinSerializer.FormatterUtilities.CreateUnityNull(System.Type,System.Type)">
+            <summary>
+            Creates a fake Unity null value of a given type, for the given <see cref="T:UnityEngine.Object"/>-derived owning type.
+            <para />
+            Unity uses these kinds of values to indicate missing object references.
+            </summary>
+            <param name="nullType">Type of the null value.</param>
+            <param name="owningType">Type of the owning value. This is the value which changes the <see cref="T:UnityEngine.MissingReferenceException"/> which you get.</param>
+            <returns>A fake Unity null value of a given type.</returns>
+            <exception cref="T:System.ArgumentNullException">The nullType or owningType parameter is null.</exception>
+            <exception cref="T:System.ArgumentException">
+            The type given in the nullType parameter is not a Unity object.
+            or
+            The type given in the owningType parameter is not a Unity object.
+            </exception>
+        </member>
+        <member name="M:OdinSerializer.FormatterUtilities.IsPrimitiveType(System.Type)">
+            <summary>
+            Determines whether a given type is a primitive type to the serialization system.
+            <para />
+            The following criteria are checked: type.IsPrimitive or type.IsEnum, or type is a <see cref="T:System.Decimal"/>, <see cref="T:System.String"/> or <see cref="T:System.Guid"/>.
+            </summary>
+            <param name="type">The type to check.</param>
+            <returns><c>true</c> if the given type is a primitive type; otherwise, <c>false</c>.</returns>
+        </member>
+        <member name="M:OdinSerializer.FormatterUtilities.IsPrimitiveArrayType(System.Type)">
+            <summary>
+            Determines whether a given type is a primitive array type. Namely, arrays with primitive array types as elements are primitive arrays.
+            <para />
+            The following types are primitive array types: <see cref="T:System.Char"/>, <see cref="T:System.SByte"/>, <see cref="T:System.Int16"/>, <see cref="T:System.Int32"/>, <see cref="T:System.Int64"/>, <see cref="T:System.Byte"/>, <see cref="T:System.UInt16"/>, <see cref="T:System.UInt32"/>, <see cref="T:System.UInt64"/>, <see cref="T:System.Decimal"/>, <see cref="T:System.Boolean"/>, <see cref="T:System.Single"/>, <see cref="T:System.Double"/> and <see cref="T:System.Guid"/>.
+            </summary>
+            <param name="type">The type to check.</param>
+            <returns><c>true</c> if the given type is a primitive array type; otherwise, <c>false</c>.</returns>
+        </member>
+        <member name="M:OdinSerializer.FormatterUtilities.GetContainedType(System.Reflection.MemberInfo)">
+            <summary>
+            Gets the type contained in the given <see cref="T:System.Reflection.MemberInfo"/>. Currently only <see cref="T:System.Reflection.FieldInfo"/> and <see cref="T:System.Reflection.PropertyInfo"/> is supported.
+            </summary>
+            <param name="member">The <see cref="T:System.Reflection.MemberInfo"/> to get the contained type of.</param>
+            <returns>The type contained in the given <see cref="T:System.Reflection.MemberInfo"/>.</returns>
+            <exception cref="T:System.ArgumentException">Can't get the contained type of the given <see cref="T:System.Reflection.MemberInfo"/> type.</exception>
+        </member>
+        <member name="M:OdinSerializer.FormatterUtilities.GetMemberValue(System.Reflection.MemberInfo,System.Object)">
+            <summary>
+            Gets the value contained in a given <see cref="T:System.Reflection.MemberInfo"/>. Currently only <see cref="T:System.Reflection.FieldInfo"/> and <see cref="T:System.Reflection.PropertyInfo"/> is supported.
+            </summary>
+            <param name="member">The <see cref="T:System.Reflection.MemberInfo"/> to get the value of.</param>
+            <param name="obj">The instance to get the value from.</param>
+            <returns>The value contained in the given <see cref="T:System.Reflection.MemberInfo"/>.</returns>
+            <exception cref="T:System.ArgumentException">Can't get the value of the given <see cref="T:System.Reflection.MemberInfo"/> type.</exception>
+        </member>
+        <member name="M:OdinSerializer.FormatterUtilities.SetMemberValue(System.Reflection.MemberInfo,System.Object,System.Object)">
+            <summary>
+            Sets the value of a given MemberInfo. Currently only <see cref="T:System.Reflection.FieldInfo"/> and <see cref="T:System.Reflection.PropertyInfo"/> is supported.
+            </summary>
+            <param name="member">The <see cref="T:System.Reflection.MemberInfo"/> to set the value of.</param>
+            <param name="obj">The object to set the value on.</param>
+            <param name="value">The value to set.</param>
+            <exception cref="T:System.ArgumentException">
+            Property has no setter
+            or
+            Can't set the value of the given <see cref="T:System.Reflection.MemberInfo"/> type.
+            </exception>
+        </member>
+        <member name="M:OdinSerializer.FormatterUtilities.GetPrivateMemberAlias(System.Reflection.MemberInfo,System.String,System.String)">
+            <summary>
+            Gets an aliased version of a member, with the declaring type name included in the member name, so that there are no conflicts with private fields and properties with the same name in different classes in the same inheritance hierarchy.
             </summary>
         </member>
         <member name="T:OdinSerializer.IExternalGuidReferenceResolver">
@@ -7097,6 +7480,29 @@
             <param name="id">The string which references the value.</param>
             <returns><c>true</c> if the value can be referenced; otherwise, <c>false</c>.</returns>
         </member>
+        <member name="T:OdinSerializer.ILogger">
+            <summary>
+            Implements methods for logging warnings, errors and exceptions during serialization and deserialization.
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.ILogger.LogWarning(System.String)">
+            <summary>
+            Logs a warning.
+            </summary>
+            <param name="warning">The warning to log.</param>
+        </member>
+        <member name="M:OdinSerializer.ILogger.LogError(System.String)">
+            <summary>
+            Logs an error.
+            </summary>
+            <param name="error">The error to log.</param>
+        </member>
+        <member name="M:OdinSerializer.ILogger.LogException(System.Exception)">
+            <summary>
+            Logs an exception.
+            </summary>
+            <param name="exception">The exception to log.</param>
+        </member>
         <member name="T:OdinSerializer.ISelfFormatter">
             <summary>
             Specifies that a type is capable of serializing itself using an <see cref="T:OdinSerializer.IDataWriter"/> and an
@@ -7148,6 +7554,26 @@
             </summary>
             <param name="member">The member to check.</param>
             <returns><c>true</c> if the given member should be serialized, otherwise, <c>false</c>.</returns>
+        </member>
+        <member name="T:OdinSerializer.LoggingPolicy">
+            <summary>
+            The policy for which level of logging to do during serialization and deserialization.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.LoggingPolicy.LogErrors">
+            <summary>
+            Log errors.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.LoggingPolicy.LogWarningsAndErrors">
+            <summary>
+            Log both warnings and errors.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.LoggingPolicy.Silent">
+            <summary>
+            Log nothing at all. Note: Some extremely severe categories of errors are logged regardless of this setting.
+            </summary>
         </member>
         <member name="T:OdinSerializer.NodeInfo">
             <summary>
@@ -7230,6 +7656,77 @@
             A hash code for this instance, suitable for use in hashing algorithms and data structures like a hash table.
             </returns>
         </member>
+        <member name="T:OdinSerializer.OdinSerializeAttribute">
+            <summary>
+            Indicates that an instance field or auto-property should be serialized by Odin.
+            </summary>
+            <seealso cref="T:System.Attribute" />
+        </member>
+        <member name="T:OdinSerializer.PrefabModification">
+            <summary>
+            An Odin-serialized prefab modification, containing all the information necessary to apply the modification.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.PrefabModification.ModificationType">
+            <summary>
+            The type of modification to be made.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.PrefabModification.Path">
+            <summary>
+            The deep reflection path at which to make the modification.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.PrefabModification.ReferencePaths">
+            <summary>
+            A list of all deep reflection paths in the target object where the value referenced by this modification was also located.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.PrefabModification.ModifiedValue">
+            <summary>
+            The modified value to set.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.PrefabModification.NewLength">
+            <summary>
+            The new list length to set.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.PrefabModification.DictionaryKeysAdded">
+            <summary>
+            The dictionary keys to add.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.PrefabModification.DictionaryKeysRemoved">
+            <summary>
+            The dictionary keys to remove.
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.PrefabModification.Apply(UnityEngine.Object)">
+            <summary>
+            Applies the modification to the given Object.
+            </summary>
+        </member>
+        <member name="T:OdinSerializer.PrefabModificationType">
+            <summary>
+            Types of prefab modification that can be applied.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.PrefabModificationType.Value">
+            <summary>
+            A value has been changed at a given path.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.PrefabModificationType.ListLength">
+            <summary>
+            A list length has been changed at a given path.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.PrefabModificationType.Dictionary">
+            <summary>
+            A dictionary has been changed at a given path.
+            </summary>
+        </member>
         <member name="T:OdinSerializer.PreviouslySerializedAsAttribute">
              <summary>
              Indicates that an instance field or auto-property was previously serialized with a different name, so that values serialized with the old name will be properly deserialized into this member.
@@ -7248,6 +7745,183 @@
             Initializes a new instance of the <see cref="T:OdinSerializer.PreviouslySerializedAsAttribute"/> class.
             </summary>
             <param name="name">The former name.</param>
+        </member>
+        <member name="T:OdinSerializer.ProperBitConverter">
+            <summary>
+            Corresponds to the .NET <see cref="T:System.BitConverter"/> class, but works only with buffers and so never allocates garbage.
+            <para />
+            This class always writes and reads bytes in a little endian format, regardless of system architecture.
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.ProperBitConverter.BytesToHexString(System.Byte[],System.Boolean)">
+            <summary>
+            Converts a byte array into a hexadecimal string.
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.ProperBitConverter.HexStringToBytes(System.String)">
+            <summary>
+            Converts a hexadecimal string into a byte array.
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.ProperBitConverter.ToInt16(System.Byte[],System.Int32)">
+            <summary>
+            Reads two bytes from a buffer and converts them into a <see cref="T:System.Int16"/> value.
+            </summary>
+            <param name="buffer">The buffer to read from.</param>
+            <param name="index">The index to start reading at.</param>
+            <returns>The converted value.</returns>
+        </member>
+        <member name="M:OdinSerializer.ProperBitConverter.ToUInt16(System.Byte[],System.Int32)">
+            <summary>
+            Reads two bytes from a buffer and converts them into a <see cref="T:System.UInt16"/> value.
+            </summary>
+            <param name="buffer">The buffer to read from.</param>
+            <param name="index">The index to start reading at.</param>
+            <returns>The converted value.</returns>
+        </member>
+        <member name="M:OdinSerializer.ProperBitConverter.ToInt32(System.Byte[],System.Int32)">
+            <summary>
+            Reads four bytes from a buffer and converts them into an <see cref="T:System.Int32"/> value.
+            </summary>
+            <param name="buffer">The buffer to read from.</param>
+            <param name="index">The index to start reading at.</param>
+            <returns>The converted value.</returns>
+        </member>
+        <member name="M:OdinSerializer.ProperBitConverter.ToUInt32(System.Byte[],System.Int32)">
+            <summary>
+            Reads four bytes from a buffer and converts them into an <see cref="T:System.UInt32"/> value.
+            </summary>
+            <param name="buffer">The buffer to read from.</param>
+            <param name="index">The index to start reading at.</param>
+            <returns>The converted value.</returns>
+        </member>
+        <member name="M:OdinSerializer.ProperBitConverter.ToInt64(System.Byte[],System.Int32)">
+            <summary>
+            Reads eight bytes from a buffer and converts them into a <see cref="T:System.Int64"/> value.
+            </summary>
+            <param name="buffer">The buffer to read from.</param>
+            <param name="index">The index to start reading at.</param>
+            <returns>The converted value.</returns>
+        </member>
+        <member name="M:OdinSerializer.ProperBitConverter.ToUInt64(System.Byte[],System.Int32)">
+            <summary>
+            Reads eight bytes from a buffer and converts them into an <see cref="T:System.UInt64"/> value.
+            </summary>
+            <param name="buffer">The buffer to read from.</param>
+            <param name="index">The index to start reading at.</param>
+            <returns>The converted value.</returns>
+        </member>
+        <member name="M:OdinSerializer.ProperBitConverter.ToSingle(System.Byte[],System.Int32)">
+            <summary>
+            Reads four bytes from a buffer and converts them into an <see cref="T:System.Single"/> value.
+            </summary>
+            <param name="buffer">The buffer to read from.</param>
+            <param name="index">The index to start reading at.</param>
+            <returns>The converted value.</returns>
+        </member>
+        <member name="M:OdinSerializer.ProperBitConverter.ToDouble(System.Byte[],System.Int32)">
+            <summary>
+            Reads eight bytes from a buffer and converts them into an <see cref="T:System.Double"/> value.
+            </summary>
+            <param name="buffer">The buffer to read from.</param>
+            <param name="index">The index to start reading at.</param>
+            <returns>The converted value.</returns>
+        </member>
+        <member name="M:OdinSerializer.ProperBitConverter.ToDecimal(System.Byte[],System.Int32)">
+            <summary>
+            Reads sixteen bytes from a buffer and converts them into a <see cref="T:System.Decimal"/> value.
+            </summary>
+            <param name="buffer">The buffer to read from.</param>
+            <param name="index">The index to start reading at.</param>
+            <returns>The converted value.</returns>
+        </member>
+        <member name="M:OdinSerializer.ProperBitConverter.ToGuid(System.Byte[],System.Int32)">
+            <summary>
+            Reads sixteen bytes from a buffer and converts them into a <see cref="T:System.Guid"/> value.
+            </summary>
+            <param name="buffer">The buffer to read from.</param>
+            <param name="index">The index to start reading at.</param>
+            <returns>The converted value.</returns>
+        </member>
+        <member name="M:OdinSerializer.ProperBitConverter.GetBytes(System.Byte[],System.Int32,System.Int16)">
+            <summary>
+            Turns a <see cref="T:System.Int16"/> value into two bytes and writes those bytes to a given buffer.
+            </summary>
+            <param name="buffer">The buffer to write to.</param>
+            <param name="index">The index to start writing at.</param>
+            <param name="value">The value to write.</param>
+        </member>
+        <member name="M:OdinSerializer.ProperBitConverter.GetBytes(System.Byte[],System.Int32,System.UInt16)">
+            <summary>
+            Turns an <see cref="T:System.UInt16"/> value into two bytes and writes those bytes to a given buffer.
+            </summary>
+            <param name="buffer">The buffer to write to.</param>
+            <param name="index">The index to start writing at.</param>
+            <param name="value">The value to write.</param>
+        </member>
+        <member name="M:OdinSerializer.ProperBitConverter.GetBytes(System.Byte[],System.Int32,System.Int32)">
+            <summary>
+            Turns an <see cref="T:System.Int32"/> value into four bytes and writes those bytes to a given buffer.
+            </summary>
+            <param name="buffer">The buffer to write to.</param>
+            <param name="index">The index to start writing at.</param>
+            <param name="value">The value to write.</param>
+        </member>
+        <member name="M:OdinSerializer.ProperBitConverter.GetBytes(System.Byte[],System.Int32,System.UInt32)">
+            <summary>
+            Turns an <see cref="T:System.UInt32"/> value into four bytes and writes those bytes to a given buffer.
+            </summary>
+            <param name="buffer">The buffer to write to.</param>
+            <param name="index">The index to start writing at.</param>
+            <param name="value">The value to write.</param>
+        </member>
+        <member name="M:OdinSerializer.ProperBitConverter.GetBytes(System.Byte[],System.Int32,System.Int64)">
+            <summary>
+            Turns a <see cref="T:System.Int64"/> value into eight bytes and writes those bytes to a given buffer.
+            </summary>
+            <param name="buffer">The buffer to write to.</param>
+            <param name="index">The index to start writing at.</param>
+            <param name="value">The value to write.</param>
+        </member>
+        <member name="M:OdinSerializer.ProperBitConverter.GetBytes(System.Byte[],System.Int32,System.UInt64)">
+            <summary>
+            Turns an <see cref="T:System.UInt64"/> value into eight bytes and writes those bytes to a given buffer.
+            </summary>
+            <param name="buffer">The buffer to write to.</param>
+            <param name="index">The index to start writing at.</param>
+            <param name="value">The value to write.</param>
+        </member>
+        <member name="M:OdinSerializer.ProperBitConverter.GetBytes(System.Byte[],System.Int32,System.Single)">
+            <summary>
+            Turns a <see cref="T:System.Single"/> value into four bytes and writes those bytes to a given buffer.
+            </summary>
+            <param name="buffer">The buffer to write to.</param>
+            <param name="index">The index to start writing at.</param>
+            <param name="value">The value to write.</param>
+        </member>
+        <member name="M:OdinSerializer.ProperBitConverter.GetBytes(System.Byte[],System.Int32,System.Double)">
+            <summary>
+            Turns a <see cref="T:System.Double"/> value into eight bytes and writes those bytes to a given buffer.
+            </summary>
+            <param name="buffer">The buffer to write to.</param>
+            <param name="index">The index to start writing at.</param>
+            <param name="value">The value to write.</param>
+        </member>
+        <member name="M:OdinSerializer.ProperBitConverter.GetBytes(System.Byte[],System.Int32,System.Decimal)">
+            <summary>
+            Turns a <see cref="T:System.Decimal"/> value into sixteen bytes and writes those bytes to a given buffer.
+            </summary>
+            <param name="buffer">The buffer to write to.</param>
+            <param name="index">The index to start writing at.</param>
+            <param name="value">The value to write.</param>
+        </member>
+        <member name="M:OdinSerializer.ProperBitConverter.GetBytes(System.Byte[],System.Int32,System.Guid)">
+            <summary>
+            Turns a <see cref="T:System.Guid"/> value into sixteen bytes and writes those bytes to a given buffer.
+            </summary>
+            <param name="buffer">The buffer to write to.</param>
+            <param name="index">The index to start writing at.</param>
+            <param name="value">The value to write.</param>
         </member>
         <member name="T:OdinSerializer.SerializationAbortException">
             <summary>
@@ -7485,43 +8159,6 @@
             This allows complete reuse of a serialization context, with all of its internal reference buffers.
             </summary>
         </member>
-        <member name="T:OdinSerializer.OdinSerializeAttribute">
-            <summary>
-            Indicates that an instance field or auto-property should be serialized by Odin.
-            </summary>
-            <seealso cref="T:System.Attribute" />
-        </member>
-        <member name="T:OdinSerializer.TwoWaySerializationBinder">
-            <summary>
-            Binds types to strings during serialization, and strings to types during deserialization.
-            </summary>
-        </member>
-        <member name="F:OdinSerializer.TwoWaySerializationBinder.Default">
-            <summary>
-            Provides a default, catch-all <see cref="T:OdinSerializer.TwoWaySerializationBinder"/> implementation. This binder only includes assembly names, without versions and tokens, in order to increase compatibility.
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.TwoWaySerializationBinder.BindToName(System.Type,OdinSerializer.DebugContext)">
-            <summary>
-            Bind a type to a name.
-            </summary>
-            <param name="type">The type to bind.</param>
-            <param name="debugContext">The debug context to log to.</param>
-            <returns>The name that the type has been bound to.</returns>
-        </member>
-        <member name="M:OdinSerializer.TwoWaySerializationBinder.BindToType(System.String,OdinSerializer.DebugContext)">
-            <summary>
-            Binds a name to a type.
-            </summary>
-            <param name="typeName">The name of the type to bind.</param>
-            <param name="debugContext">The debug context to log to.</param>
-            <returns>The type that the name has been bound to, or null if the type could not be resolved.</returns>
-        </member>
-        <member name="M:OdinSerializer.TwoWaySerializationBinder.ContainsType(System.String)">
-            <summary>
-            Determines whether the specified type name is mapped.
-            </summary>
-        </member>
         <member name="T:OdinSerializer.SerializationPolicies">
             <summary>
             Contains a set of default implementations of the <see cref="T:OdinSerializer.ISerializationPolicy"/> interface.
@@ -7561,6 +8198,315 @@
             There are two exceptions:
             <para/>1) All fields in private nested types marked as compiler generated (e.g. lambda capture classes) are also serialized.
             <para/>2) Virtual auto-properties are never serialized. Note that properties specified by an implemented interface are automatically marked virtual by the compiler.
+            </summary>
+        </member>
+        <member name="T:OdinSerializer.SerializationUtility">
+            <summary>
+            Provides an array of utility wrapper methods for easy serialization and deserialization of objects of any type.
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.SerializationUtility.CreateWriter(System.IO.Stream,OdinSerializer.SerializationContext,OdinSerializer.DataFormat)">
+            <summary>
+            Creates an <see cref="T:OdinSerializer.IDataWriter" /> for a given format.
+            </summary>
+            <param name="stream">The stream to write to.</param>
+            <param name="context">The serialization context to use.</param>
+            <param name="format">The format to write.</param>
+            <returns>
+            An <see cref="T:OdinSerializer.IDataWriter" /> for a given format.
+            </returns>
+            <exception cref="T:System.NotImplementedException"></exception>
+        </member>
+        <member name="M:OdinSerializer.SerializationUtility.CreateReader(System.IO.Stream,OdinSerializer.DeserializationContext,OdinSerializer.DataFormat)">
+            <summary>
+            Creates an <see cref="T:OdinSerializer.IDataReader" /> for a given format.
+            </summary>
+            <param name="stream">The stream to read from.</param>
+            <param name="context">The deserialization context to use.</param>
+            <param name="format">The format to read.</param>
+            <returns>
+            An <see cref="T:OdinSerializer.IDataReader" /> for a given format.
+            </returns>
+            <exception cref="T:System.NotImplementedException"></exception>
+        </member>
+        <member name="M:OdinSerializer.SerializationUtility.SerializeValueWeak(System.Object,OdinSerializer.IDataWriter)">
+            <summary>
+            Serializes the given value using the given writer.
+            </summary>
+            <param name="value">The value to serialize.</param>
+            <param name="writer">The writer to use.</param>
+        </member>
+        <member name="M:OdinSerializer.SerializationUtility.SerializeValueWeak(System.Object,OdinSerializer.IDataWriter,System.Collections.Generic.List{UnityEngine.Object}@)">
+            <summary>
+            Serializes the given value, using the given writer.
+            </summary>
+            <param name="value">The value to serialize.</param>
+            <param name="writer">The writer to use.</param>
+            <param name="unityObjects">A list of the Unity objects which were referenced during serialization.</param>
+        </member>
+        <member name="M:OdinSerializer.SerializationUtility.SerializeValue``1(``0,OdinSerializer.IDataWriter)">
+            <summary>
+            Serializes the given value using the given writer.
+            </summary>
+            <typeparam name="T">The type of the value to serialize.</typeparam>
+            <param name="value">The value to serialize.</param>
+            <param name="writer">The writer to use.</param>
+        </member>
+        <member name="M:OdinSerializer.SerializationUtility.SerializeValue``1(``0,OdinSerializer.IDataWriter,System.Collections.Generic.List{UnityEngine.Object}@)">
+            <summary>
+            Serializes the given value, using the given writer.
+            </summary>
+            <typeparam name="T">The type of the value to serialize.</typeparam>
+            <param name="value">The value to serialize.</param>
+            <param name="writer">The writer to use.</param>
+            <param name="unityObjects">A list of the Unity objects which were referenced during serialization.</param>
+        </member>
+        <member name="M:OdinSerializer.SerializationUtility.SerializeValueWeak(System.Object,System.IO.Stream,OdinSerializer.DataFormat,OdinSerializer.SerializationContext)">
+            <summary>
+            Serializes the given value to a given stream in the specified format.
+            </summary>
+            <param name="value">The value to serialize.</param>
+            <param name="stream">The stream to serialize to.</param>
+            <param name="format">The format to serialize in.</param>
+            <param name="context">The context.</param>
+        </member>
+        <member name="M:OdinSerializer.SerializationUtility.SerializeValueWeak(System.Object,System.IO.Stream,OdinSerializer.DataFormat,System.Collections.Generic.List{UnityEngine.Object}@,OdinSerializer.SerializationContext)">
+            <summary>
+            Serializes the given value to a given stream in the specified format.
+            </summary>
+            <param name="value">The value to serialize.</param>
+            <param name="stream">The stream to serialize to.</param>
+            <param name="format">The format to serialize in.</param>
+            <param name="unityObjects">A list of the Unity objects which were referenced during serialization.</param>
+            <param name="context">The context.</param>
+        </member>
+        <member name="M:OdinSerializer.SerializationUtility.SerializeValue``1(``0,System.IO.Stream,OdinSerializer.DataFormat,OdinSerializer.SerializationContext)">
+            <summary>
+            Serializes the given value to a given stream in the specified format.
+            </summary>
+            <typeparam name="T">The type of the value to serialize.</typeparam>
+            <param name="value">The value to serialize.</param>
+            <param name="stream">The stream to serialize to.</param>
+            <param name="format">The format to serialize in.</param>
+            <param name="context">The context.</param>
+        </member>
+        <member name="M:OdinSerializer.SerializationUtility.SerializeValue``1(``0,System.IO.Stream,OdinSerializer.DataFormat,System.Collections.Generic.List{UnityEngine.Object}@,OdinSerializer.SerializationContext)">
+            <summary>
+            Serializes the given value to a given stream in the specified format.
+            </summary>
+            <typeparam name="T">The type of the value to serialize.</typeparam>
+            <param name="value">The value to serialize.</param>
+            <param name="stream">The stream to serialize to.</param>
+            <param name="format">The format to serialize in.</param>
+            <param name="unityObjects">A list of the Unity objects which were referenced during serialization.</param>
+            <param name="context">The context.</param>
+        </member>
+        <member name="M:OdinSerializer.SerializationUtility.SerializeValueWeak(System.Object,OdinSerializer.DataFormat,OdinSerializer.SerializationContext)">
+            <summary>
+            Serializes the given value using the specified format, and returns the result as a byte array.
+            </summary>
+            <param name="value">The value to serialize.</param>
+            <param name="format">The format to use.</param>
+            <param name="context">The context.</param>
+            <returns>A byte array containing the serialized value.</returns>
+        </member>
+        <member name="M:OdinSerializer.SerializationUtility.SerializeValueWeak(System.Object,OdinSerializer.DataFormat,System.Collections.Generic.List{UnityEngine.Object}@)">
+            <summary>
+            Serializes the given value using the specified format, and returns the result as a byte array.
+            </summary>
+            <param name="value">The value to serialize.</param>
+            <param name="format">The format to use.</param>
+            <param name="unityObjects">A list of the Unity objects which were referenced during serialization.</param>
+            <returns>A byte array containing the serialized value.</returns>
+        </member>
+        <member name="M:OdinSerializer.SerializationUtility.SerializeValue``1(``0,OdinSerializer.DataFormat,OdinSerializer.SerializationContext)">
+            <summary>
+            Serializes the given value using the specified format, and returns the result as a byte array.
+            </summary>
+            <typeparam name="T">The type of the value to serialize.</typeparam>
+            <param name="value">The value to serialize.</param>
+            <param name="format">The format to use.</param>
+            <param name="context">The context to use.</param>
+            <returns>A byte array containing the serialized value.</returns>
+        </member>
+        <member name="M:OdinSerializer.SerializationUtility.SerializeValue``1(``0,OdinSerializer.DataFormat,System.Collections.Generic.List{UnityEngine.Object}@,OdinSerializer.SerializationContext)">
+            <summary>
+            Serializes the given value using the specified format and returns the result as a byte array.
+            </summary>
+            <typeparam name="T">The type of the value to serialize.</typeparam>
+            <param name="value">The value to serialize.</param>
+            <param name="format">The format to use.</param>
+            <param name="unityObjects">A list of the Unity objects which were referenced during serialization.</param>
+            <param name="context">The context to use.</param>
+            <returns>A byte array containing the serialized value.</returns>
+        </member>
+        <member name="M:OdinSerializer.SerializationUtility.DeserializeValueWeak(OdinSerializer.IDataReader)">
+            <summary>
+            Deserializes a value from the given reader. This might fail with primitive values, as they don't come with metadata.
+            </summary>
+            <param name="reader">The reader to use.</param>
+            <returns>The deserialized value.</returns>
+        </member>
+        <member name="M:OdinSerializer.SerializationUtility.DeserializeValueWeak(OdinSerializer.IDataReader,System.Collections.Generic.List{UnityEngine.Object})">
+            <summary>
+            Deserializes a value from the given reader, using the given list of Unity objects for external index reference resolution. This might fail with primitive values, as they don't come with type metadata.
+            </summary>
+            <param name="reader">The reader to use.</param>
+            <param name="referencedUnityObjects">The list of Unity objects to use for external index reference resolution.</param>
+            <returns>
+            The deserialized value.
+            </returns>
+        </member>
+        <member name="M:OdinSerializer.SerializationUtility.DeserializeValue``1(OdinSerializer.IDataReader)">
+            <summary>
+            Deserializes a value from the given reader.
+            </summary>
+            <typeparam name="T">The type to deserialize.</typeparam>
+            <param name="reader">The reader to use.</param>
+            <returns>The deserialized value.</returns>
+        </member>
+        <member name="M:OdinSerializer.SerializationUtility.DeserializeValue``1(OdinSerializer.IDataReader,System.Collections.Generic.List{UnityEngine.Object})">
+            <summary>
+            Deserializes a value of a given type from the given reader, using the given list of Unity objects for external index reference resolution.
+            </summary>
+            <typeparam name="T">The type to deserialize.</typeparam>
+            <param name="reader">The reader to use.</param>
+            <param name="referencedUnityObjects">The list of Unity objects to use for external index reference resolution.</param>
+            <returns>
+            The deserialized value.
+            </returns>
+        </member>
+        <member name="M:OdinSerializer.SerializationUtility.DeserializeValueWeak(System.IO.Stream,OdinSerializer.DataFormat,OdinSerializer.DeserializationContext)">
+            <summary>
+            Deserializes a value from the given stream in the given format. This might fail with primitive values, as they don't come with type metadata.
+            </summary>
+            <param name="stream">The reader to use.</param>
+            <param name="format">The format to read.</param>
+            <param name="context">The context.</param>
+            <returns>
+            The deserialized value.
+            </returns>
+        </member>
+        <member name="M:OdinSerializer.SerializationUtility.DeserializeValueWeak(System.IO.Stream,OdinSerializer.DataFormat,System.Collections.Generic.List{UnityEngine.Object},OdinSerializer.DeserializationContext)">
+            <summary>
+            Deserializes a value from the given stream in the given format, using the given list of Unity objects for external index reference resolution. This might fail with primitive values, as they don't come with type metadata.
+            </summary>
+            <param name="stream">The stream to read from.</param>
+            <param name="format">The format to read.</param>
+            <param name="referencedUnityObjects">The list of Unity objects to use for external index reference resolution.</param>
+            <param name="context">The context.</param>
+            <returns>
+            The deserialized value.
+            </returns>
+        </member>
+        <member name="M:OdinSerializer.SerializationUtility.DeserializeValue``1(System.IO.Stream,OdinSerializer.DataFormat,OdinSerializer.DeserializationContext)">
+            <summary>
+            Deserializes a value of a given type from the given stream in the given format.
+            </summary>
+            <typeparam name="T">The type to deserialize.</typeparam>
+            <param name="stream">The stream to read from.</param>
+            <param name="format">The format to read.</param>
+            <param name="context">The context.</param>
+            <returns>
+            The deserialized value.
+            </returns>
+        </member>
+        <member name="M:OdinSerializer.SerializationUtility.DeserializeValue``1(System.IO.Stream,OdinSerializer.DataFormat,System.Collections.Generic.List{UnityEngine.Object},OdinSerializer.DeserializationContext)">
+            <summary>
+            Deserializes a value of a given type from the given stream in the given format, using the given list of Unity objects for external index reference resolution.
+            </summary>
+            <typeparam name="T">The type to deserialize.</typeparam>
+            <param name="stream">The stream to read from.</param>
+            <param name="format">The format to read.</param>
+            <param name="referencedUnityObjects">The list of Unity objects to use for external index reference resolution.</param>
+            <param name="context">The context.</param>
+            <returns>
+            The deserialized value.
+            </returns>
+        </member>
+        <member name="M:OdinSerializer.SerializationUtility.DeserializeValueWeak(System.Byte[],OdinSerializer.DataFormat,OdinSerializer.DeserializationContext)">
+            <summary>
+            Deserializes a value from the given byte array in the given format. This might fail with primitive values, as they don't come with type metadata.
+            </summary>
+            <param name="bytes">The bytes to deserialize from.</param>
+            <param name="format">The format to read.</param>
+            <param name="context">The context.</param>
+            <returns>
+            The deserialized value.
+            </returns>
+        </member>
+        <member name="M:OdinSerializer.SerializationUtility.DeserializeValueWeak(System.Byte[],OdinSerializer.DataFormat,System.Collections.Generic.List{UnityEngine.Object})">
+            <summary>
+            Deserializes a value from the given byte array in the given format, using the given list of Unity objects for external index reference resolution. This might fail with primitive values, as they don't come with type metadata.
+            </summary>
+            <param name="bytes">The bytes to deserialize from.</param>
+            <param name="format">The format to read.</param>
+            <param name="referencedUnityObjects">The list of Unity objects to use for external index reference resolution.</param>
+            <returns>
+            The deserialized value.
+            </returns>
+        </member>
+        <member name="M:OdinSerializer.SerializationUtility.DeserializeValue``1(System.Byte[],OdinSerializer.DataFormat,OdinSerializer.DeserializationContext)">
+            <summary>
+            Deserializes a value of a given type from the given byte array in the given format.
+            </summary>
+            <typeparam name="T">The type to deserialize.</typeparam>
+            <param name="bytes">The bytes to deserialize from.</param>
+            <param name="format">The format to read.</param>
+            <param name="context">The context to use.</param>
+            <returns>
+            The deserialized value.
+            </returns>
+        </member>
+        <member name="M:OdinSerializer.SerializationUtility.DeserializeValue``1(System.Byte[],OdinSerializer.DataFormat,System.Collections.Generic.List{UnityEngine.Object},OdinSerializer.DeserializationContext)">
+            <summary>
+            Deserializes a value of a given type from the given byte array in the given format, using the given list of Unity objects for external index reference resolution.
+            </summary>
+            <typeparam name="T">The type to deserialize.</typeparam>
+            <param name="bytes">The bytes to deserialize from.</param>
+            <param name="format">The format to read.</param>
+            <param name="referencedUnityObjects">The list of Unity objects to use for external index reference resolution.</param>
+            <param name="context">The context to use.</param>
+            <returns>
+            The deserialized value.
+            </returns>
+        </member>
+        <member name="M:OdinSerializer.SerializationUtility.CreateCopy(System.Object)">
+            <summary>
+            Creates a deep copy of an object. Returns null if null. All Unity objects references will remain the same - they will not get copied.
+            Similarly, strings are not copied, nor are reflection types such as System.Type, or types derived from System.Reflection.MemberInfo,
+            System.Reflection.Assembly or System.Reflection.Module.
+            </summary>
+        </member>
+        <member name="T:OdinSerializer.TwoWaySerializationBinder">
+            <summary>
+            Binds types to strings during serialization, and strings to types during deserialization.
+            </summary>
+        </member>
+        <member name="F:OdinSerializer.TwoWaySerializationBinder.Default">
+            <summary>
+            Provides a default, catch-all <see cref="T:OdinSerializer.TwoWaySerializationBinder"/> implementation. This binder only includes assembly names, without versions and tokens, in order to increase compatibility.
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.TwoWaySerializationBinder.BindToName(System.Type,OdinSerializer.DebugContext)">
+            <summary>
+            Bind a type to a name.
+            </summary>
+            <param name="type">The type to bind.</param>
+            <param name="debugContext">The debug context to log to.</param>
+            <returns>The name that the type has been bound to.</returns>
+        </member>
+        <member name="M:OdinSerializer.TwoWaySerializationBinder.BindToType(System.String,OdinSerializer.DebugContext)">
+            <summary>
+            Binds a name to a type.
+            </summary>
+            <param name="typeName">The name of the type to bind.</param>
+            <param name="debugContext">The debug context to log to.</param>
+            <returns>The type that the name has been bound to, or null if the type could not be resolved.</returns>
+        </member>
+        <member name="M:OdinSerializer.TwoWaySerializationBinder.ContainsType(System.String)">
+            <summary>
+            Determines whether the specified type name is mapped.
             </summary>
         </member>
         <member name="T:OdinSerializer.BooleanSerializer">
@@ -8125,6 +9071,177 @@
             <param name="value">The value to write.</param>
             <param name="writer">The writer to use.</param>
         </member>
+        <member name="M:OdinSerializer.Editor.AOTSupportUtilities.ScanProjectForSerializedTypes(System.Collections.Generic.List{System.Type}@,System.Boolean,System.Boolean,System.Boolean,System.Boolean,System.Collections.Generic.List{System.String},System.Boolean)">
+            <summary>
+            Scans the project's build scenes and resources, plus their dependencies, for serialized types to support. Progress bars are shown during the scan.
+            </summary>
+            <param name="serializedTypes">The serialized types to support.</param>
+            <param name="scanBuildScenes">Whether to scan the project's build scenes.</param>
+            <param name="scanAllAssetBundles">Whether to scan all the project's asset bundles.</param>
+            <param name="scanPreloadedAssets">Whether to scan the project's preloaded assets.</param>
+            <param name="scanResources">Whether to scan the project's resources.</param>
+            <param name="resourcesToScan">An optional list of the resource paths to scan. Only has an effect if the scanResources argument is true. All the resources will be scanned if null.</param>
+            <returns>true if the scan succeeded, false if the scan failed or was cancelled</returns>
+        </member>
+        <member name="M:OdinSerializer.Editor.AOTSupportUtilities.GenerateDLL(System.String,System.String,System.Collections.Generic.List{System.Type},System.Boolean)">
+            <summary>
+            Generates an AOT DLL, using the given parameters.
+            </summary>
+        </member>
+        <member name="T:OdinSerializer.BaseDictionaryKeyPathProvider`1">
+            <summary>
+            Not yet documented.
+            </summary>
+            <typeparam name="T">Not yet documented.</typeparam>
+        </member>
+        <member name="P:OdinSerializer.BaseDictionaryKeyPathProvider`1.ProviderID">
+            <summary>
+            Not yet documented.
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.BaseDictionaryKeyPathProvider`1.GetKeyFromPathString(System.String)">
+            <summary>
+            Not yet documented.
+            </summary>
+            <param name="pathStr">Not yet documented.</param>
+            <returns>Not yet documented.</returns>
+        </member>
+        <member name="M:OdinSerializer.BaseDictionaryKeyPathProvider`1.GetPathStringFromKey(`0)">
+            <summary>
+            Not yet documented.
+            </summary>
+            <param name="key">Not yet documented.</param>
+            <returns>Not yet documented.</returns>
+        </member>
+        <member name="M:OdinSerializer.BaseDictionaryKeyPathProvider`1.Compare(`0,`0)">
+            <summary>
+            Not yet documented.
+            </summary>
+            <param name="x">Not yet documented.</param>
+            <param name="y">Not yet documented.</param>
+            <returns>Not yet documented.</returns>
+        </member>
+        <member name="T:OdinSerializer.DictionaryKeyUtility">
+            <summary>
+            Provides utility methods for handling dictionary keys in the prefab modification system.
+            </summary>
+        </member>
+        <member name="T:OdinSerializer.DictionaryKeyUtility.KeyComparer`1">
+            <summary>
+            A smart comparer for dictionary keys, that uses the most appropriate available comparison method for the given key types.
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.DictionaryKeyUtility.KeyComparer`1.Compare(`0,`0)">
+            <summary>
+            Not yet documented.
+            </summary>
+            <param name="x">Not yet documented.</param>
+            <param name="y">Not yet documented.</param>
+            <returns>Not yet documented.</returns>
+        </member>
+        <member name="M:OdinSerializer.DictionaryKeyUtility.GetPersistentPathKeyTypes">
+            <summary>
+            Not yet documented.
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.DictionaryKeyUtility.KeyTypeSupportsPersistentPaths(System.Type)">
+            <summary>
+            Not yet documented.
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.DictionaryKeyUtility.GetDictionaryKeyString(System.Object)">
+            <summary>
+            Not yet documented.
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.DictionaryKeyUtility.GetDictionaryKeyValue(System.String,System.Type)">
+            <summary>
+            Not yet documented.
+            </summary>
+        </member>
+        <member name="T:OdinSerializer.IDictionaryKeyPathProvider">
+            <summary>
+            Not yet documented.
+            </summary>
+        </member>
+        <member name="P:OdinSerializer.IDictionaryKeyPathProvider.ProviderID">
+            <summary>
+            Gets the provider identifier.
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.IDictionaryKeyPathProvider.GetPathStringFromKey(System.Object)">
+            <summary>
+            Gets the path string from key.
+            </summary>
+            <param name="key">The key.</param>
+        </member>
+        <member name="M:OdinSerializer.IDictionaryKeyPathProvider.GetKeyFromPathString(System.String)">
+            <summary>
+            Gets the key from path string.
+            </summary>
+            <param name="pathStr">The path string.</param>
+        </member>
+        <member name="M:OdinSerializer.IDictionaryKeyPathProvider.Compare(System.Object,System.Object)">
+            <summary>
+            Compares the specified x.
+            </summary>
+            <param name="x">The x.</param>
+            <param name="y">The y.</param>
+        </member>
+        <member name="T:OdinSerializer.IDictionaryKeyPathProvider`1">
+            <summary>
+            Not yet documented.
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.IDictionaryKeyPathProvider`1.GetPathStringFromKey(`0)">
+            <summary>
+            Gets the path string from key.
+            </summary>
+            <param name="key">The key.</param>
+        </member>
+        <member name="M:OdinSerializer.IDictionaryKeyPathProvider`1.GetKeyFromPathString(System.String)">
+            <summary>
+            Gets the key from path string.
+            </summary>
+            <param name="pathStr">The path string.</param>
+        </member>
+        <member name="M:OdinSerializer.IDictionaryKeyPathProvider`1.Compare(`0,`0)">
+            <summary>
+            Compares the specified x.
+            </summary>
+            <param name="x">The x.</param>
+            <param name="y">The y.</param>
+        </member>
+        <member name="T:OdinSerializer.Vector2DictionaryKeyPathProvider">
+            <summary>
+            Not yet documented.
+            </summary>
+        </member>
+        <member name="P:OdinSerializer.Vector2DictionaryKeyPathProvider.ProviderID">
+            <summary>
+            Not yet documented.
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.Vector2DictionaryKeyPathProvider.Compare(UnityEngine.Vector2,UnityEngine.Vector2)">
+            <summary>
+            Not yet documented.
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.Vector2DictionaryKeyPathProvider.GetKeyFromPathString(System.String)">
+            <summary>
+            Not yet documented.
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.Vector2DictionaryKeyPathProvider.GetPathStringFromKey(UnityEngine.Vector2)">
+            <summary>
+            Not yet documented.
+            </summary>
+        </member>
+        <member name="T:OdinSerializer.Vector3DictionaryKeyPathProvider">
+            <summary>
+            Dictionary key path provider for <see cref="T:UnityEngine.Vector3"/>
+            </summary>
+        </member>
         <member name="T:OdinSerializer.AnimationCurveFormatter">
             <summary>
             Custom formatter for the <see cref="T:UnityEngine.AnimationCurve"/> type.
@@ -8276,122 +9393,6 @@
             Does nothing.
             </summary>
         </member>
-        <member name="T:OdinSerializer.BaseDictionaryKeyPathProvider`1">
-            <summary>
-            Not yet documented.
-            </summary>
-            <typeparam name="T">Not yet documented.</typeparam>
-        </member>
-        <member name="P:OdinSerializer.BaseDictionaryKeyPathProvider`1.ProviderID">
-            <summary>
-            Not yet documented.
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.BaseDictionaryKeyPathProvider`1.GetKeyFromPathString(System.String)">
-            <summary>
-            Not yet documented.
-            </summary>
-            <param name="pathStr">Not yet documented.</param>
-            <returns>Not yet documented.</returns>
-        </member>
-        <member name="M:OdinSerializer.BaseDictionaryKeyPathProvider`1.GetPathStringFromKey(`0)">
-            <summary>
-            Not yet documented.
-            </summary>
-            <param name="key">Not yet documented.</param>
-            <returns>Not yet documented.</returns>
-        </member>
-        <member name="M:OdinSerializer.BaseDictionaryKeyPathProvider`1.Compare(`0,`0)">
-            <summary>
-            Not yet documented.
-            </summary>
-            <param name="x">Not yet documented.</param>
-            <param name="y">Not yet documented.</param>
-            <returns>Not yet documented.</returns>
-        </member>
-        <member name="T:OdinSerializer.IDictionaryKeyPathProvider">
-            <summary>
-            Not yet documented.
-            </summary>
-        </member>
-        <member name="P:OdinSerializer.IDictionaryKeyPathProvider.ProviderID">
-            <summary>
-            Gets the provider identifier.
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.IDictionaryKeyPathProvider.GetPathStringFromKey(System.Object)">
-            <summary>
-            Gets the path string from key.
-            </summary>
-            <param name="key">The key.</param>
-        </member>
-        <member name="M:OdinSerializer.IDictionaryKeyPathProvider.GetKeyFromPathString(System.String)">
-            <summary>
-            Gets the key from path string.
-            </summary>
-            <param name="pathStr">The path string.</param>
-        </member>
-        <member name="M:OdinSerializer.IDictionaryKeyPathProvider.Compare(System.Object,System.Object)">
-            <summary>
-            Compares the specified x.
-            </summary>
-            <param name="x">The x.</param>
-            <param name="y">The y.</param>
-        </member>
-        <member name="T:OdinSerializer.IDictionaryKeyPathProvider`1">
-            <summary>
-            Not yet documented.
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.IDictionaryKeyPathProvider`1.GetPathStringFromKey(`0)">
-            <summary>
-            Gets the path string from key.
-            </summary>
-            <param name="key">The key.</param>
-        </member>
-        <member name="M:OdinSerializer.IDictionaryKeyPathProvider`1.GetKeyFromPathString(System.String)">
-            <summary>
-            Gets the key from path string.
-            </summary>
-            <param name="pathStr">The path string.</param>
-        </member>
-        <member name="M:OdinSerializer.IDictionaryKeyPathProvider`1.Compare(`0,`0)">
-            <summary>
-            Compares the specified x.
-            </summary>
-            <param name="x">The x.</param>
-            <param name="y">The y.</param>
-        </member>
-        <member name="T:OdinSerializer.Vector2DictionaryKeyPathProvider">
-            <summary>
-            Not yet documented.
-            </summary>
-        </member>
-        <member name="P:OdinSerializer.Vector2DictionaryKeyPathProvider.ProviderID">
-            <summary>
-            Not yet documented.
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.Vector2DictionaryKeyPathProvider.Compare(UnityEngine.Vector2,UnityEngine.Vector2)">
-            <summary>
-            Not yet documented.
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.Vector2DictionaryKeyPathProvider.GetKeyFromPathString(System.String)">
-            <summary>
-            Not yet documented.
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.Vector2DictionaryKeyPathProvider.GetPathStringFromKey(UnityEngine.Vector2)">
-            <summary>
-            Not yet documented.
-            </summary>
-        </member>
-        <member name="T:OdinSerializer.Vector3DictionaryKeyPathProvider">
-            <summary>
-            Dictionary key path provider for <see cref="T:UnityEngine.Vector3"/>
-            </summary>
-        </member>
         <member name="T:OdinSerializer.GradientAlphaKeyFormatter">
             <summary>
             Custom formatter for the <see cref="T:UnityEngine.GradientAlphaKey"/> type.
@@ -8451,26 +9452,6 @@
             </summary>
             <param name="value">The value to write from.</param>
             <param name="writer">The writer to use.</param>
-        </member>
-        <member name="T:OdinSerializer.IOverridesSerializationFormat">
-            <summary>
-            Indicates that an Odin-serialized Unity object controls its own serialization format. Every time it is serialized, it will be asked which format to use.
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.IOverridesSerializationFormat.GetFormatToSerializeAs(System.Boolean)">
-            <summary>
-            Gets the format to use for serialization.
-            </summary>
-        </member>
-        <member name="T:OdinSerializer.ISupportsPrefabSerialization">
-            <summary>
-            Indicates that an Odin-serialized Unity object supports prefab serialization.
-            </summary>
-        </member>
-        <member name="P:OdinSerializer.ISupportsPrefabSerialization.SerializationData">
-            <summary>
-            Gets or sets the serialization data of the object.
-            </summary>
         </member>
         <member name="T:OdinSerializer.KeyframeFormatter">
             <summary>
@@ -8551,6 +9532,148 @@
             </summary>
             <param name="value">The value to write from.</param>
             <param name="writer">The writer to use.</param>
+        </member>
+        <member name="T:OdinSerializer.UnityEventFormatter`1">
+            <summary>
+            Custom generic formatter for the <see cref="T:UnityEngine.Events.UnityEvent`1"/>, <see cref="T:UnityEngine.Events.UnityEvent`2"/>, <see cref="T:UnityEngine.Events.UnityEvent`3"/> and <see cref="T:UnityEngine.Events.UnityEvent`4"/> types.
+            </summary>
+            <typeparam name="T">The type of UnityEvent that this formatter can serialize and deserialize.</typeparam>
+            <seealso cref="!:ReflectionFormatter&lt;UnityEngine.Events.UnityEvent&gt;" />
+        </member>
+        <member name="M:OdinSerializer.UnityEventFormatter`1.GetUninitializedObject">
+            <summary>
+            Get an uninitialized object of type <see cref="!:T" />.
+            </summary>
+            <returns>
+            An uninitialized object of type <see cref="!:T" />.
+            </returns>
+        </member>
+        <member name="T:OdinSerializer.Vector2Formatter">
+            <summary>
+            Custom formatter for the <see cref="T:UnityEngine.Vector2"/> type.
+            </summary>
+            <seealso cref="!:MinimalBaseFormatter&lt;UnityEngine.Vector2&gt;" />
+        </member>
+        <member name="M:OdinSerializer.Vector2Formatter.Read(UnityEngine.Vector2@,OdinSerializer.IDataReader)">
+            <summary>
+            Reads into the specified value using the specified reader.
+            </summary>
+            <param name="value">The value to read into.</param>
+            <param name="reader">The reader to use.</param>
+        </member>
+        <member name="M:OdinSerializer.Vector2Formatter.Write(UnityEngine.Vector2@,OdinSerializer.IDataWriter)">
+            <summary>
+            Writes from the specified value using the specified writer.
+            </summary>
+            <param name="value">The value to write from.</param>
+            <param name="writer">The writer to use.</param>
+        </member>
+        <member name="T:OdinSerializer.Vector3Formatter">
+            <summary>
+            Custom formatter for the <see cref="T:UnityEngine.Vector3"/> type.
+            </summary>
+            <seealso cref="!:MinimalBaseFormatter&lt;UnityEngine.Vector3&gt;" />
+        </member>
+        <member name="M:OdinSerializer.Vector3Formatter.Read(UnityEngine.Vector3@,OdinSerializer.IDataReader)">
+            <summary>
+            Reads into the specified value using the specified reader.
+            </summary>
+            <param name="value">The value to read into.</param>
+            <param name="reader">The reader to use.</param>
+        </member>
+        <member name="M:OdinSerializer.Vector3Formatter.Write(UnityEngine.Vector3@,OdinSerializer.IDataWriter)">
+            <summary>
+            Writes from the specified value using the specified writer.
+            </summary>
+            <param name="value">The value to write from.</param>
+            <param name="writer">The writer to use.</param>
+        </member>
+        <member name="T:OdinSerializer.Vector4Formatter">
+            <summary>
+            Custom formatter for the <see cref="T:UnityEngine.Vector4"/> type.
+            </summary>
+            <seealso cref="!:MinimalBaseFormatter&lt;UnityEngine.Vector4&gt;" />
+        </member>
+        <member name="M:OdinSerializer.Vector4Formatter.Read(UnityEngine.Vector4@,OdinSerializer.IDataReader)">
+            <summary>
+            Reads into the specified value using the specified reader.
+            </summary>
+            <param name="value">The value to read into.</param>
+            <param name="reader">The reader to use.</param>
+        </member>
+        <member name="M:OdinSerializer.Vector4Formatter.Write(UnityEngine.Vector4@,OdinSerializer.IDataWriter)">
+            <summary>
+            Writes from the specified value using the specified writer.
+            </summary>
+            <param name="value">The value to write from.</param>
+            <param name="writer">The writer to use.</param>
+        </member>
+        <member name="T:OdinSerializer.Vector2IntFormatter">
+            <summary>
+            Custom formatter for the <see cref="T:UnityEngine.Vector2Int"/> type.
+            </summary>
+            <seealso cref="!:Sirenix.Serialization.MinimalBaseFormatter&lt;UnityEngine.Vector2Int&gt;" />
+        </member>
+        <member name="M:OdinSerializer.Vector2IntFormatter.Read(UnityEngine.Vector2Int@,OdinSerializer.IDataReader)">
+            <summary>
+            Reads into the specified value using the specified reader.
+            </summary>
+            <param name="value">The value to read into.</param>
+            <param name="reader">The reader to use.</param>
+        </member>
+        <member name="M:OdinSerializer.Vector2IntFormatter.Write(UnityEngine.Vector2Int@,OdinSerializer.IDataWriter)">
+            <summary>
+            Writes from the specified value using the specified writer.
+            </summary>
+            <param name="value">The value to write from.</param>
+            <param name="writer">The writer to use.</param>
+        </member>
+        <member name="T:OdinSerializer.Vector3IntFormatter">
+            <summary>
+            Custom formatter for the <see cref="T:UnityEngine.Vector3Int"/> type.
+            </summary>
+            <seealso cref="!:Sirenix.Serialization.MinimalBaseFormatter&lt;UnityEngine.Vector3Int&gt;" />
+        </member>
+        <member name="M:OdinSerializer.Vector3IntFormatter.Read(UnityEngine.Vector3Int@,OdinSerializer.IDataReader)">
+            <summary>
+            Reads into the specified value using the specified reader.
+            </summary>
+            <param name="value">The value to read into.</param>
+            <param name="reader">The reader to use.</param>
+        </member>
+        <member name="M:OdinSerializer.Vector3IntFormatter.Write(UnityEngine.Vector3Int@,OdinSerializer.IDataWriter)">
+            <summary>
+            Writes from the specified value using the specified writer.
+            </summary>
+            <param name="value">The value to write from.</param>
+            <param name="writer">The writer to use.</param>
+        </member>
+        <member name="T:OdinSerializer.IOverridesSerializationFormat">
+            <summary>
+            Indicates that an Odin-serialized Unity object controls its own serialization format. Every time it is serialized, it will be asked which format to use.
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.IOverridesSerializationFormat.GetFormatToSerializeAs(System.Boolean)">
+            <summary>
+            Gets the format to use for serialization.
+            </summary>
+        </member>
+        <member name="T:OdinSerializer.IOverridesSerializationPolicy">
+            <summary>
+            Indicates that an Odin-serialized Unity object provides its own serialization policy rather than using the default policy.
+            <para/>
+            Note that THE VALUES RETURNED BY THIS INTERFACE WILL OVERRIDE THE PARAMETERS PASSED TO <see cref="M:OdinSerializer.UnitySerializationUtility.SerializeUnityObject(UnityEngine.Object,OdinSerializer.SerializationData@,System.Boolean,OdinSerializer.SerializationContext)"/> and <see cref="M:OdinSerializer.UnitySerializationUtility.DeserializeUnityObject(UnityEngine.Object,OdinSerializer.SerializationData@,OdinSerializer.DeserializationContext)"/>.
+            </summary>
+        </member>
+        <member name="T:OdinSerializer.ISupportsPrefabSerialization">
+            <summary>
+            Indicates that an Odin-serialized Unity object supports prefab serialization.
+            </summary>
+        </member>
+        <member name="P:OdinSerializer.ISupportsPrefabSerialization.SerializationData">
+            <summary>
+            Gets or sets the serialization data of the object.
+            </summary>
         </member>
         <member name="T:OdinSerializer.SerializationData">
             <summary>
@@ -8719,21 +9842,6 @@
             Invoked before serialization has taken place.
             </summary>
         </member>
-        <member name="T:OdinSerializer.UnityEventFormatter`1">
-            <summary>
-            Custom generic formatter for the <see cref="T:UnityEngine.Events.UnityEvent`1"/>, <see cref="T:UnityEngine.Events.UnityEvent`2"/>, <see cref="T:UnityEngine.Events.UnityEvent`3"/> and <see cref="T:UnityEngine.Events.UnityEvent`4"/> types.
-            </summary>
-            <typeparam name="T">The type of UnityEvent that this formatter can serialize and deserialize.</typeparam>
-            <seealso cref="!:ReflectionFormatter&lt;UnityEngine.Events.UnityEvent&gt;" />
-        </member>
-        <member name="M:OdinSerializer.UnityEventFormatter`1.GetUninitializedObject">
-            <summary>
-            Get an uninitialized object of type <see cref="!:T" />.
-            </summary>
-            <returns>
-            An uninitialized object of type <see cref="!:T" />.
-            </returns>
-        </member>
         <member name="T:OdinSerializer.UnityReferenceResolver">
             <summary>
             Resolves external index references to Unity objects.
@@ -8799,817 +9907,11 @@
             Initializes the Sirenix serialization system to be compatible with Unity.
             </summary>
         </member>
-        <member name="T:OdinSerializer.Vector2Formatter">
-            <summary>
-            Custom formatter for the <see cref="T:UnityEngine.Vector2"/> type.
-            </summary>
-            <seealso cref="!:MinimalBaseFormatter&lt;UnityEngine.Vector2&gt;" />
-        </member>
-        <member name="M:OdinSerializer.Vector2Formatter.Read(UnityEngine.Vector2@,OdinSerializer.IDataReader)">
-            <summary>
-            Reads into the specified value using the specified reader.
-            </summary>
-            <param name="value">The value to read into.</param>
-            <param name="reader">The reader to use.</param>
-        </member>
-        <member name="M:OdinSerializer.Vector2Formatter.Write(UnityEngine.Vector2@,OdinSerializer.IDataWriter)">
-            <summary>
-            Writes from the specified value using the specified writer.
-            </summary>
-            <param name="value">The value to write from.</param>
-            <param name="writer">The writer to use.</param>
-        </member>
-        <member name="T:OdinSerializer.Vector3Formatter">
-            <summary>
-            Custom formatter for the <see cref="T:UnityEngine.Vector3"/> type.
-            </summary>
-            <seealso cref="!:MinimalBaseFormatter&lt;UnityEngine.Vector3&gt;" />
-        </member>
-        <member name="M:OdinSerializer.Vector3Formatter.Read(UnityEngine.Vector3@,OdinSerializer.IDataReader)">
-            <summary>
-            Reads into the specified value using the specified reader.
-            </summary>
-            <param name="value">The value to read into.</param>
-            <param name="reader">The reader to use.</param>
-        </member>
-        <member name="M:OdinSerializer.Vector3Formatter.Write(UnityEngine.Vector3@,OdinSerializer.IDataWriter)">
-            <summary>
-            Writes from the specified value using the specified writer.
-            </summary>
-            <param name="value">The value to write from.</param>
-            <param name="writer">The writer to use.</param>
-        </member>
-        <member name="T:OdinSerializer.Vector4Formatter">
-            <summary>
-            Custom formatter for the <see cref="T:UnityEngine.Vector4"/> type.
-            </summary>
-            <seealso cref="!:MinimalBaseFormatter&lt;UnityEngine.Vector4&gt;" />
-        </member>
-        <member name="M:OdinSerializer.Vector4Formatter.Read(UnityEngine.Vector4@,OdinSerializer.IDataReader)">
-            <summary>
-            Reads into the specified value using the specified reader.
-            </summary>
-            <param name="value">The value to read into.</param>
-            <param name="reader">The reader to use.</param>
-        </member>
-        <member name="M:OdinSerializer.Vector4Formatter.Write(UnityEngine.Vector4@,OdinSerializer.IDataWriter)">
-            <summary>
-            Writes from the specified value using the specified writer.
-            </summary>
-            <param name="value">The value to write from.</param>
-            <param name="writer">The writer to use.</param>
-        </member>
-        <member name="T:OdinSerializer.Buffer`1">
-            <summary>
-            Provides a way of claiming and releasing cached array buffers.
-            </summary>
-            <typeparam name="T">The element type of the array to buffer.</typeparam>
-            <seealso cref="T:System.IDisposable" />
-        </member>
-        <member name="P:OdinSerializer.Buffer`1.Count">
-            <summary>
-            Gets the total element count of the buffered array. This will always be a power of two.
-            </summary>
-            <value>
-            The total element count of the buffered array.
-            </value>
-            <exception cref="T:System.InvalidOperationException">Cannot access a buffer while it is freed.</exception>
-        </member>
-        <member name="P:OdinSerializer.Buffer`1.Array">
-            <summary>
-            Gets the buffered array.
-            </summary>
-            <value>
-            The buffered array.
-            </value>
-            <exception cref="T:System.InvalidOperationException">Cannot access a buffer while it is freed.</exception>
-        </member>
-        <member name="P:OdinSerializer.Buffer`1.IsFree">
-            <summary>
-            Gets a value indicating whether this buffer is free.
-            </summary>
-            <value>
-              <c>true</c> if this buffer is free; otherwise, <c>false</c>.
-            </value>
-        </member>
-        <member name="M:OdinSerializer.Buffer`1.Claim(System.Int32)">
-            <summary>
-            Claims a buffer with the specified minimum capacity. Note: buffers always have a capacity equal to or larger than 256.
-            </summary>
-            <param name="minimumCapacity">The minimum capacity.</param>
-            <returns>A buffer which has a capacity equal to or larger than the specified minimum capacity.</returns>
-            <exception cref="T:System.ArgumentException">Requested size of buffer must be larger than 0.</exception>
-        </member>
-        <member name="M:OdinSerializer.Buffer`1.Free(OdinSerializer.Buffer{`0})">
-            <summary>
-            Frees the specified buffer.
-            </summary>
-            <param name="buffer">The buffer to free.</param>
-            <exception cref="T:System.ArgumentNullException">The buffer argument is null.</exception>
-        </member>
-        <member name="M:OdinSerializer.Buffer`1.Free">
-            <summary>
-            Frees this buffer.
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.Buffer`1.Dispose">
-            <summary>
-            Frees this buffer.
-            </summary>
-        </member>
-        <member name="T:OdinSerializer.FormatterLocator">
-            <summary>
-            Utility class for locating and caching formatters for all non-primitive types.
-            </summary>
-        </member>
-        <member name="E:OdinSerializer.FormatterLocator.OnLocatedEmittableFormatterForType">
-            <summary>
-            Editor-only event that fires whenever an emittable formatter has been located.
-            This event is used by the AOT formatter pre-emitter to locate types that need to have formatters pre-emitted.
-            </summary>
-        </member>
-        <member name="E:OdinSerializer.FormatterLocator.OnLocatedFormatter">
-            <summary>
-            Editor-only event that fires whenever a formatter has been located.
-            </summary>
-        </member>
-        <member name="E:OdinSerializer.FormatterLocator.FormatterResolve">
-            <summary>
-            This event is invoked before everything else when a formatter is being resolved for a given type. If any invoked delegate returns a valid formatter, that formatter is used and the resolve process stops there.
-            <para />
-            This can be used to hook into and extend the serialization system's formatter resolution logic.
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.FormatterLocator.GetFormatter``1(OdinSerializer.ISerializationPolicy)">
-            <summary>
-            Gets a formatter for the type <see cref="!:T" />.
-            </summary>
-            <typeparam name="T">The type to get a formatter for.</typeparam>
-            <param name="policy">The serialization policy to use if a formatter has to be emitted. If null, <see cref="P:OdinSerializer.SerializationPolicies.Strict"/> is used.</param>
-            <returns>
-            A formatter for the type <see cref="!:T" />.
-            </returns>
-        </member>
-        <member name="M:OdinSerializer.FormatterLocator.GetFormatter(System.Type,OdinSerializer.ISerializationPolicy)">
-            <summary>
-            Gets a formatter for a given type.
-            </summary>
-            <param name="type">The type to get a formatter for.</param>
-            <param name="policy">The serialization policy to use if a formatter has to be emitted. If null, <see cref="P:OdinSerializer.SerializationPolicies.Strict"/> is used.</param>
-            <returns>
-            A formatter for the given type.
-            </returns>
-            <exception cref="T:System.ArgumentNullException">The type argument is null.</exception>
-        </member>
-        <member name="T:OdinSerializer.FormatterUtilities">
-            <summary>
-            Provides an array of utility methods which are commonly used by serialization formatters.
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.FormatterUtilities.GetSerializableMembersMap(System.Type,OdinSerializer.ISerializationPolicy)">
-            <summary>
-            Gets a map of all serializable members on the given type. This will also properly map names extracted from <see cref="T:UnityEngine.Serialization.FormerlySerializedAsAttribute"/> and <see cref="T:OdinSerializer.PreviouslySerializedAsAttribute"/> to their corresponding members.
-            </summary>
-            <param name="type">The type to get a map for.</param>
-            <param name="policy">The serialization policy to use. If null, <see cref="P:OdinSerializer.SerializationPolicies.Strict"/> is used.</param>
-            <returns>A map of all serializable members on the given type.</returns>
-        </member>
-        <member name="M:OdinSerializer.FormatterUtilities.GetSerializableMembers(System.Type,OdinSerializer.ISerializationPolicy)">
-            <summary>
-            Gets an array of all serializable members on the given type.
-            </summary>
-            <param name="type">The type to get serializable members for.</param>
-            <param name="policy">The serialization policy to use. If null, <see cref="P:OdinSerializer.SerializationPolicies.Strict"/> is used.</param>
-            <returns>An array of all serializable members on the given type.</returns>
-        </member>
-        <member name="M:OdinSerializer.FormatterUtilities.CreateUnityNull(System.Type,System.Type)">
-            <summary>
-            Creates a fake Unity null value of a given type, for the given <see cref="T:UnityEngine.Object"/>-derived owning type.
-            <para />
-            Unity uses these kinds of values to indicate missing object references.
-            </summary>
-            <param name="nullType">Type of the null value.</param>
-            <param name="owningType">Type of the owning value. This is the value which changes the <see cref="T:UnityEngine.MissingReferenceException"/> which you get.</param>
-            <returns>A fake Unity null value of a given type.</returns>
-            <exception cref="T:System.ArgumentNullException">The nullType or owningType parameter is null.</exception>
-            <exception cref="T:System.ArgumentException">
-            The type given in the nullType parameter is not a Unity object.
-            or
-            The type given in the owningType parameter is not a Unity object.
-            </exception>
-        </member>
-        <member name="M:OdinSerializer.FormatterUtilities.IsPrimitiveType(System.Type)">
-            <summary>
-            Determines whether a given type is a primitive type to the serialization system.
-            <para />
-            The following criteria are checked: type.IsPrimitive or type.IsEnum, or type is a <see cref="T:System.Decimal"/>, <see cref="T:System.String"/> or <see cref="T:System.Guid"/>.
-            </summary>
-            <param name="type">The type to check.</param>
-            <returns><c>true</c> if the given type is a primitive type; otherwise, <c>false</c>.</returns>
-        </member>
-        <member name="M:OdinSerializer.FormatterUtilities.IsPrimitiveArrayType(System.Type)">
-            <summary>
-            Determines whether a given type is a primitive array type. Namely, arrays with primitive array types as elements are primitive arrays.
-            <para />
-            The following types are primitive array types: <see cref="T:System.Char"/>, <see cref="T:System.SByte"/>, <see cref="T:System.Int16"/>, <see cref="T:System.Int32"/>, <see cref="T:System.Int64"/>, <see cref="T:System.Byte"/>, <see cref="T:System.UInt16"/>, <see cref="T:System.UInt32"/>, <see cref="T:System.UInt64"/>, <see cref="T:System.Decimal"/>, <see cref="T:System.Boolean"/>, <see cref="T:System.Single"/>, <see cref="T:System.Double"/> and <see cref="T:System.Guid"/>.
-            </summary>
-            <param name="type">The type to check.</param>
-            <returns><c>true</c> if the given type is a primitive array type; otherwise, <c>false</c>.</returns>
-        </member>
-        <member name="M:OdinSerializer.FormatterUtilities.GetContainedType(System.Reflection.MemberInfo)">
-            <summary>
-            Gets the type contained in the given <see cref="T:System.Reflection.MemberInfo"/>. Currently only <see cref="T:System.Reflection.FieldInfo"/> and <see cref="T:System.Reflection.PropertyInfo"/> is supported.
-            </summary>
-            <param name="member">The <see cref="T:System.Reflection.MemberInfo"/> to get the contained type of.</param>
-            <returns>The type contained in the given <see cref="T:System.Reflection.MemberInfo"/>.</returns>
-            <exception cref="T:System.ArgumentException">Can't get the contained type of the given <see cref="T:System.Reflection.MemberInfo"/> type.</exception>
-        </member>
-        <member name="M:OdinSerializer.FormatterUtilities.GetMemberValue(System.Reflection.MemberInfo,System.Object)">
-            <summary>
-            Gets the value contained in a given <see cref="T:System.Reflection.MemberInfo"/>. Currently only <see cref="T:System.Reflection.FieldInfo"/> and <see cref="T:System.Reflection.PropertyInfo"/> is supported.
-            </summary>
-            <param name="member">The <see cref="T:System.Reflection.MemberInfo"/> to get the value of.</param>
-            <param name="obj">The instance to get the value from.</param>
-            <returns>The value contained in the given <see cref="T:System.Reflection.MemberInfo"/>.</returns>
-            <exception cref="T:System.ArgumentException">Can't get the value of the given <see cref="T:System.Reflection.MemberInfo"/> type.</exception>
-        </member>
-        <member name="M:OdinSerializer.FormatterUtilities.SetMemberValue(System.Reflection.MemberInfo,System.Object,System.Object)">
-            <summary>
-            Sets the value of a given MemberInfo. Currently only <see cref="T:System.Reflection.FieldInfo"/> and <see cref="T:System.Reflection.PropertyInfo"/> is supported.
-            </summary>
-            <param name="member">The <see cref="T:System.Reflection.MemberInfo"/> to set the value of.</param>
-            <param name="obj">The object to set the value on.</param>
-            <param name="value">The value to set.</param>
-            <exception cref="T:System.ArgumentException">
-            Property has no setter
-            or
-            Can't set the value of the given <see cref="T:System.Reflection.MemberInfo"/> type.
-            </exception>
-        </member>
-        <member name="M:OdinSerializer.FormatterUtilities.GetPrivateMemberAlias(System.Reflection.MemberInfo,System.String,System.String)">
-            <summary>
-            Gets an aliased version of a member, with the declaring type name included in the member name, so that there are no conflicts with private fields and properties with the same name in different classes in the same inheritance hierarchy.
-            </summary>
-        </member>
-        <member name="T:OdinSerializer.DictionaryKeyUtility">
-            <summary>
-            Provides utility methods for handling dictionary keys in the prefab modification system.
-            </summary>
-        </member>
-        <member name="T:OdinSerializer.DictionaryKeyUtility.KeyComparer`1">
-            <summary>
-            A smart comparer for dictionary keys, that uses the most appropriate available comparison method for the given key types.
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.DictionaryKeyUtility.KeyComparer`1.Compare(`0,`0)">
-            <summary>
-            Not yet documented.
-            </summary>
-            <param name="x">Not yet documented.</param>
-            <param name="y">Not yet documented.</param>
-            <returns>Not yet documented.</returns>
-        </member>
-        <member name="M:OdinSerializer.DictionaryKeyUtility.GetPersistentPathKeyTypes">
-            <summary>
-            Not yet documented.
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.DictionaryKeyUtility.KeyTypeSupportsPersistentPaths(System.Type)">
-            <summary>
-            Not yet documented.
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.DictionaryKeyUtility.GetDictionaryKeyString(System.Object)">
-            <summary>
-            Not yet documented.
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.DictionaryKeyUtility.GetDictionaryKeyValue(System.String,System.Type)">
-            <summary>
-            Not yet documented.
-            </summary>
-        </member>
-        <member name="T:OdinSerializer.PrefabModification">
-            <summary>
-            An Odin-serialized prefab modification, containing all the information necessary to apply the modification.
-            </summary>
-        </member>
-        <member name="F:OdinSerializer.PrefabModification.ModificationType">
-            <summary>
-            The type of modification to be made.
-            </summary>
-        </member>
-        <member name="F:OdinSerializer.PrefabModification.Path">
-            <summary>
-            The deep reflection path at which to make the modification.
-            </summary>
-        </member>
-        <member name="F:OdinSerializer.PrefabModification.ReferencePaths">
-            <summary>
-            A list of all deep reflection paths in the target object where the value referenced by this modification was also located.
-            </summary>
-        </member>
-        <member name="F:OdinSerializer.PrefabModification.ModifiedValue">
-            <summary>
-            The modified value to set.
-            </summary>
-        </member>
-        <member name="F:OdinSerializer.PrefabModification.NewLength">
-            <summary>
-            The new list length to set.
-            </summary>
-        </member>
-        <member name="F:OdinSerializer.PrefabModification.DictionaryKeysAdded">
-            <summary>
-            The dictionary keys to add.
-            </summary>
-        </member>
-        <member name="F:OdinSerializer.PrefabModification.DictionaryKeysRemoved">
-            <summary>
-            The dictionary keys to remove.
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.PrefabModification.Apply(UnityEngine.Object)">
-            <summary>
-            Applies the modification to the given Object.
-            </summary>
-        </member>
-        <member name="T:OdinSerializer.PrefabModificationType">
-            <summary>
-            Types of prefab modification that can be applied.
-            </summary>
-        </member>
-        <member name="F:OdinSerializer.PrefabModificationType.Value">
-            <summary>
-            A value has been changed at a given path.
-            </summary>
-        </member>
-        <member name="F:OdinSerializer.PrefabModificationType.ListLength">
-            <summary>
-            A list length has been changed at a given path.
-            </summary>
-        </member>
-        <member name="F:OdinSerializer.PrefabModificationType.Dictionary">
-            <summary>
-            A dictionary has been changed at a given path.
-            </summary>
-        </member>
-        <member name="T:OdinSerializer.ProperBitConverter">
-            <summary>
-            Corresponds to the .NET <see cref="T:System.BitConverter"/> class, but works only with buffers and so never allocates garbage.
-            <para />
-            This class always writes and reads bytes in a little endian format, regardless of system architecture.
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.ProperBitConverter.BytesToHexString(System.Byte[],System.Boolean)">
-            <summary>
-            Converts a byte array into a hexadecimal string.
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.ProperBitConverter.HexStringToBytes(System.String)">
-            <summary>
-            Converts a hexadecimal string into a byte array.
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.ProperBitConverter.ToInt16(System.Byte[],System.Int32)">
-            <summary>
-            Reads two bytes from a buffer and converts them into a <see cref="T:System.Int16"/> value.
-            </summary>
-            <param name="buffer">The buffer to read from.</param>
-            <param name="index">The index to start reading at.</param>
-            <returns>The converted value.</returns>
-        </member>
-        <member name="M:OdinSerializer.ProperBitConverter.ToUInt16(System.Byte[],System.Int32)">
-            <summary>
-            Reads two bytes from a buffer and converts them into a <see cref="T:System.UInt16"/> value.
-            </summary>
-            <param name="buffer">The buffer to read from.</param>
-            <param name="index">The index to start reading at.</param>
-            <returns>The converted value.</returns>
-        </member>
-        <member name="M:OdinSerializer.ProperBitConverter.ToInt32(System.Byte[],System.Int32)">
-            <summary>
-            Reads four bytes from a buffer and converts them into an <see cref="T:System.Int32"/> value.
-            </summary>
-            <param name="buffer">The buffer to read from.</param>
-            <param name="index">The index to start reading at.</param>
-            <returns>The converted value.</returns>
-        </member>
-        <member name="M:OdinSerializer.ProperBitConverter.ToUInt32(System.Byte[],System.Int32)">
-            <summary>
-            Reads four bytes from a buffer and converts them into an <see cref="T:System.UInt32"/> value.
-            </summary>
-            <param name="buffer">The buffer to read from.</param>
-            <param name="index">The index to start reading at.</param>
-            <returns>The converted value.</returns>
-        </member>
-        <member name="M:OdinSerializer.ProperBitConverter.ToInt64(System.Byte[],System.Int32)">
-            <summary>
-            Reads eight bytes from a buffer and converts them into a <see cref="T:System.Int64"/> value.
-            </summary>
-            <param name="buffer">The buffer to read from.</param>
-            <param name="index">The index to start reading at.</param>
-            <returns>The converted value.</returns>
-        </member>
-        <member name="M:OdinSerializer.ProperBitConverter.ToUInt64(System.Byte[],System.Int32)">
-            <summary>
-            Reads eight bytes from a buffer and converts them into an <see cref="T:System.UInt64"/> value.
-            </summary>
-            <param name="buffer">The buffer to read from.</param>
-            <param name="index">The index to start reading at.</param>
-            <returns>The converted value.</returns>
-        </member>
-        <member name="M:OdinSerializer.ProperBitConverter.ToSingle(System.Byte[],System.Int32)">
-            <summary>
-            Reads four bytes from a buffer and converts them into an <see cref="T:System.Single"/> value.
-            </summary>
-            <param name="buffer">The buffer to read from.</param>
-            <param name="index">The index to start reading at.</param>
-            <returns>The converted value.</returns>
-        </member>
-        <member name="M:OdinSerializer.ProperBitConverter.ToDouble(System.Byte[],System.Int32)">
-            <summary>
-            Reads eight bytes from a buffer and converts them into an <see cref="T:System.Double"/> value.
-            </summary>
-            <param name="buffer">The buffer to read from.</param>
-            <param name="index">The index to start reading at.</param>
-            <returns>The converted value.</returns>
-        </member>
-        <member name="M:OdinSerializer.ProperBitConverter.ToDecimal(System.Byte[],System.Int32)">
-            <summary>
-            Reads sixteen bytes from a buffer and converts them into a <see cref="T:System.Decimal"/> value.
-            </summary>
-            <param name="buffer">The buffer to read from.</param>
-            <param name="index">The index to start reading at.</param>
-            <returns>The converted value.</returns>
-        </member>
-        <member name="M:OdinSerializer.ProperBitConverter.ToGuid(System.Byte[],System.Int32)">
-            <summary>
-            Reads sixteen bytes from a buffer and converts them into a <see cref="T:System.Guid"/> value.
-            </summary>
-            <param name="buffer">The buffer to read from.</param>
-            <param name="index">The index to start reading at.</param>
-            <returns>The converted value.</returns>
-        </member>
-        <member name="M:OdinSerializer.ProperBitConverter.GetBytes(System.Byte[],System.Int32,System.Int16)">
-            <summary>
-            Turns a <see cref="T:System.Int16"/> value into two bytes and writes those bytes to a given buffer.
-            </summary>
-            <param name="buffer">The buffer to write to.</param>
-            <param name="index">The index to start writing at.</param>
-            <param name="value">The value to write.</param>
-        </member>
-        <member name="M:OdinSerializer.ProperBitConverter.GetBytes(System.Byte[],System.Int32,System.UInt16)">
-            <summary>
-            Turns an <see cref="T:System.UInt16"/> value into two bytes and writes those bytes to a given buffer.
-            </summary>
-            <param name="buffer">The buffer to write to.</param>
-            <param name="index">The index to start writing at.</param>
-            <param name="value">The value to write.</param>
-        </member>
-        <member name="M:OdinSerializer.ProperBitConverter.GetBytes(System.Byte[],System.Int32,System.Int32)">
-            <summary>
-            Turns an <see cref="T:System.Int32"/> value into four bytes and writes those bytes to a given buffer.
-            </summary>
-            <param name="buffer">The buffer to write to.</param>
-            <param name="index">The index to start writing at.</param>
-            <param name="value">The value to write.</param>
-        </member>
-        <member name="M:OdinSerializer.ProperBitConverter.GetBytes(System.Byte[],System.Int32,System.UInt32)">
-            <summary>
-            Turns an <see cref="T:System.UInt32"/> value into four bytes and writes those bytes to a given buffer.
-            </summary>
-            <param name="buffer">The buffer to write to.</param>
-            <param name="index">The index to start writing at.</param>
-            <param name="value">The value to write.</param>
-        </member>
-        <member name="M:OdinSerializer.ProperBitConverter.GetBytes(System.Byte[],System.Int32,System.Int64)">
-            <summary>
-            Turns a <see cref="T:System.Int64"/> value into eight bytes and writes those bytes to a given buffer.
-            </summary>
-            <param name="buffer">The buffer to write to.</param>
-            <param name="index">The index to start writing at.</param>
-            <param name="value">The value to write.</param>
-        </member>
-        <member name="M:OdinSerializer.ProperBitConverter.GetBytes(System.Byte[],System.Int32,System.UInt64)">
-            <summary>
-            Turns an <see cref="T:System.UInt64"/> value into eight bytes and writes those bytes to a given buffer.
-            </summary>
-            <param name="buffer">The buffer to write to.</param>
-            <param name="index">The index to start writing at.</param>
-            <param name="value">The value to write.</param>
-        </member>
-        <member name="M:OdinSerializer.ProperBitConverter.GetBytes(System.Byte[],System.Int32,System.Single)">
-            <summary>
-            Turns a <see cref="T:System.Single"/> value into four bytes and writes those bytes to a given buffer.
-            </summary>
-            <param name="buffer">The buffer to write to.</param>
-            <param name="index">The index to start writing at.</param>
-            <param name="value">The value to write.</param>
-        </member>
-        <member name="M:OdinSerializer.ProperBitConverter.GetBytes(System.Byte[],System.Int32,System.Double)">
-            <summary>
-            Turns a <see cref="T:System.Double"/> value into eight bytes and writes those bytes to a given buffer.
-            </summary>
-            <param name="buffer">The buffer to write to.</param>
-            <param name="index">The index to start writing at.</param>
-            <param name="value">The value to write.</param>
-        </member>
-        <member name="M:OdinSerializer.ProperBitConverter.GetBytes(System.Byte[],System.Int32,System.Decimal)">
-            <summary>
-            Turns a <see cref="T:System.Decimal"/> value into sixteen bytes and writes those bytes to a given buffer.
-            </summary>
-            <param name="buffer">The buffer to write to.</param>
-            <param name="index">The index to start writing at.</param>
-            <param name="value">The value to write.</param>
-        </member>
-        <member name="M:OdinSerializer.ProperBitConverter.GetBytes(System.Byte[],System.Int32,System.Guid)">
-            <summary>
-            Turns a <see cref="T:System.Guid"/> value into sixteen bytes and writes those bytes to a given buffer.
-            </summary>
-            <param name="buffer">The buffer to write to.</param>
-            <param name="index">The index to start writing at.</param>
-            <param name="value">The value to write.</param>
-        </member>
-        <member name="T:OdinSerializer.SerializationUtility">
-            <summary>
-            Provides an array of utility wrapper methods for easy serialization and deserialization of objects of any type.
-            </summary>
-        </member>
-        <member name="M:OdinSerializer.SerializationUtility.CreateWriter(System.IO.Stream,OdinSerializer.SerializationContext,OdinSerializer.DataFormat)">
-            <summary>
-            Creates an <see cref="T:OdinSerializer.IDataWriter" /> for a given format.
-            </summary>
-            <param name="stream">The stream to write to.</param>
-            <param name="context">The serialization context to use.</param>
-            <param name="format">The format to write.</param>
-            <returns>
-            An <see cref="T:OdinSerializer.IDataWriter" /> for a given format.
-            </returns>
-            <exception cref="T:System.NotImplementedException"></exception>
-        </member>
-        <member name="M:OdinSerializer.SerializationUtility.CreateReader(System.IO.Stream,OdinSerializer.DeserializationContext,OdinSerializer.DataFormat)">
-            <summary>
-            Creates an <see cref="T:OdinSerializer.IDataReader" /> for a given format.
-            </summary>
-            <param name="stream">The stream to read from.</param>
-            <param name="context">The deserialization context to use.</param>
-            <param name="format">The format to read.</param>
-            <returns>
-            An <see cref="T:OdinSerializer.IDataReader" /> for a given format.
-            </returns>
-            <exception cref="T:System.NotImplementedException"></exception>
-        </member>
-        <member name="M:OdinSerializer.SerializationUtility.SerializeValueWeak(System.Object,OdinSerializer.IDataWriter)">
-            <summary>
-            Serializes the given value using the given writer.
-            </summary>
-            <param name="value">The value to serialize.</param>
-            <param name="writer">The writer to use.</param>
-        </member>
-        <member name="M:OdinSerializer.SerializationUtility.SerializeValueWeak(System.Object,OdinSerializer.IDataWriter,System.Collections.Generic.List{UnityEngine.Object}@)">
-            <summary>
-            Serializes the given value, using the given writer.
-            </summary>
-            <param name="value">The value to serialize.</param>
-            <param name="writer">The writer to use.</param>
-            <param name="unityObjects">A list of the Unity objects which were referenced during serialization.</param>
-        </member>
-        <member name="M:OdinSerializer.SerializationUtility.SerializeValue``1(``0,OdinSerializer.IDataWriter)">
-            <summary>
-            Serializes the given value using the given writer.
-            </summary>
-            <typeparam name="T">The type of the value to serialize.</typeparam>
-            <param name="value">The value to serialize.</param>
-            <param name="writer">The writer to use.</param>
-        </member>
-        <member name="M:OdinSerializer.SerializationUtility.SerializeValue``1(``0,OdinSerializer.IDataWriter,System.Collections.Generic.List{UnityEngine.Object}@)">
-            <summary>
-            Serializes the given value, using the given writer.
-            </summary>
-            <typeparam name="T">The type of the value to serialize.</typeparam>
-            <param name="value">The value to serialize.</param>
-            <param name="writer">The writer to use.</param>
-            <param name="unityObjects">A list of the Unity objects which were referenced during serialization.</param>
-        </member>
-        <member name="M:OdinSerializer.SerializationUtility.SerializeValueWeak(System.Object,System.IO.Stream,OdinSerializer.DataFormat,OdinSerializer.SerializationContext)">
-            <summary>
-            Serializes the given value to a given stream in the specified format.
-            </summary>
-            <param name="value">The value to serialize.</param>
-            <param name="stream">The stream to serialize to.</param>
-            <param name="format">The format to serialize in.</param>
-            <param name="context">The context.</param>
-        </member>
-        <member name="M:OdinSerializer.SerializationUtility.SerializeValueWeak(System.Object,System.IO.Stream,OdinSerializer.DataFormat,System.Collections.Generic.List{UnityEngine.Object}@,OdinSerializer.SerializationContext)">
-            <summary>
-            Serializes the given value to a given stream in the specified format.
-            </summary>
-            <param name="value">The value to serialize.</param>
-            <param name="stream">The stream to serialize to.</param>
-            <param name="format">The format to serialize in.</param>
-            <param name="unityObjects">A list of the Unity objects which were referenced during serialization.</param>
-            <param name="context">The context.</param>
-        </member>
-        <member name="M:OdinSerializer.SerializationUtility.SerializeValue``1(``0,System.IO.Stream,OdinSerializer.DataFormat,OdinSerializer.SerializationContext)">
-            <summary>
-            Serializes the given value to a given stream in the specified format.
-            </summary>
-            <typeparam name="T">The type of the value to serialize.</typeparam>
-            <param name="value">The value to serialize.</param>
-            <param name="stream">The stream to serialize to.</param>
-            <param name="format">The format to serialize in.</param>
-            <param name="context">The context.</param>
-        </member>
-        <member name="M:OdinSerializer.SerializationUtility.SerializeValue``1(``0,System.IO.Stream,OdinSerializer.DataFormat,System.Collections.Generic.List{UnityEngine.Object}@,OdinSerializer.SerializationContext)">
-            <summary>
-            Serializes the given value to a given stream in the specified format.
-            </summary>
-            <typeparam name="T">The type of the value to serialize.</typeparam>
-            <param name="value">The value to serialize.</param>
-            <param name="stream">The stream to serialize to.</param>
-            <param name="format">The format to serialize in.</param>
-            <param name="unityObjects">A list of the Unity objects which were referenced during serialization.</param>
-            <param name="context">The context.</param>
-        </member>
-        <member name="M:OdinSerializer.SerializationUtility.SerializeValueWeak(System.Object,OdinSerializer.DataFormat,OdinSerializer.SerializationContext)">
-            <summary>
-            Serializes the given value using the specified format, and returns the result as a byte array.
-            </summary>
-            <param name="value">The value to serialize.</param>
-            <param name="format">The format to use.</param>
-            <param name="context">The context.</param>
-            <returns>A byte array containing the serialized value.</returns>
-        </member>
-        <member name="M:OdinSerializer.SerializationUtility.SerializeValueWeak(System.Object,OdinSerializer.DataFormat,System.Collections.Generic.List{UnityEngine.Object}@)">
-            <summary>
-            Serializes the given value using the specified format, and returns the result as a byte array.
-            </summary>
-            <param name="value">The value to serialize.</param>
-            <param name="format">The format to use.</param>
-            <param name="unityObjects">A list of the Unity objects which were referenced during serialization.</param>
-            <returns>A byte array containing the serialized value.</returns>
-        </member>
-        <member name="M:OdinSerializer.SerializationUtility.SerializeValue``1(``0,OdinSerializer.DataFormat,OdinSerializer.SerializationContext)">
-            <summary>
-            Serializes the given value using the specified format, and returns the result as a byte array.
-            </summary>
-            <typeparam name="T">The type of the value to serialize.</typeparam>
-            <param name="value">The value to serialize.</param>
-            <param name="format">The format to use.</param>
-            <param name="context">The context to use.</param>
-            <returns>A byte array containing the serialized value.</returns>
-        </member>
-        <member name="M:OdinSerializer.SerializationUtility.SerializeValue``1(``0,OdinSerializer.DataFormat,System.Collections.Generic.List{UnityEngine.Object}@,OdinSerializer.SerializationContext)">
-            <summary>
-            Serializes the given value using the specified format and returns the result as a byte array.
-            </summary>
-            <typeparam name="T">The type of the value to serialize.</typeparam>
-            <param name="value">The value to serialize.</param>
-            <param name="format">The format to use.</param>
-            <param name="unityObjects">A list of the Unity objects which were referenced during serialization.</param>
-            <param name="context">The context to use.</param>
-            <returns>A byte array containing the serialized value.</returns>
-        </member>
-        <member name="M:OdinSerializer.SerializationUtility.DeserializeValueWeak(OdinSerializer.IDataReader)">
-            <summary>
-            Deserializes a value from the given reader. This might fail with primitive values, as they don't come with metadata.
-            </summary>
-            <param name="reader">The reader to use.</param>
-            <returns>The deserialized value.</returns>
-        </member>
-        <member name="M:OdinSerializer.SerializationUtility.DeserializeValueWeak(OdinSerializer.IDataReader,System.Collections.Generic.List{UnityEngine.Object})">
-            <summary>
-            Deserializes a value from the given reader, using the given list of Unity objects for external index reference resolution. This might fail with primitive values, as they don't come with type metadata.
-            </summary>
-            <param name="reader">The reader to use.</param>
-            <param name="referencedUnityObjects">The list of Unity objects to use for external index reference resolution.</param>
-            <returns>
-            The deserialized value.
-            </returns>
-        </member>
-        <member name="M:OdinSerializer.SerializationUtility.DeserializeValue``1(OdinSerializer.IDataReader)">
-            <summary>
-            Deserializes a value from the given reader.
-            </summary>
-            <typeparam name="T">The type to deserialize.</typeparam>
-            <param name="reader">The reader to use.</param>
-            <returns>The deserialized value.</returns>
-        </member>
-        <member name="M:OdinSerializer.SerializationUtility.DeserializeValue``1(OdinSerializer.IDataReader,System.Collections.Generic.List{UnityEngine.Object})">
-            <summary>
-            Deserializes a value of a given type from the given reader, using the given list of Unity objects for external index reference resolution.
-            </summary>
-            <typeparam name="T">The type to deserialize.</typeparam>
-            <param name="reader">The reader to use.</param>
-            <param name="referencedUnityObjects">The list of Unity objects to use for external index reference resolution.</param>
-            <returns>
-            The deserialized value.
-            </returns>
-        </member>
-        <member name="M:OdinSerializer.SerializationUtility.DeserializeValueWeak(System.IO.Stream,OdinSerializer.DataFormat,OdinSerializer.DeserializationContext)">
-            <summary>
-            Deserializes a value from the given stream in the given format. This might fail with primitive values, as they don't come with type metadata.
-            </summary>
-            <param name="stream">The reader to use.</param>
-            <param name="format">The format to read.</param>
-            <param name="context">The context.</param>
-            <returns>
-            The deserialized value.
-            </returns>
-        </member>
-        <member name="M:OdinSerializer.SerializationUtility.DeserializeValueWeak(System.IO.Stream,OdinSerializer.DataFormat,System.Collections.Generic.List{UnityEngine.Object},OdinSerializer.DeserializationContext)">
-            <summary>
-            Deserializes a value from the given stream in the given format, using the given list of Unity objects for external index reference resolution. This might fail with primitive values, as they don't come with type metadata.
-            </summary>
-            <param name="stream">The stream to read from.</param>
-            <param name="format">The format to read.</param>
-            <param name="referencedUnityObjects">The list of Unity objects to use for external index reference resolution.</param>
-            <param name="context">The context.</param>
-            <returns>
-            The deserialized value.
-            </returns>
-        </member>
-        <member name="M:OdinSerializer.SerializationUtility.DeserializeValue``1(System.IO.Stream,OdinSerializer.DataFormat,OdinSerializer.DeserializationContext)">
-            <summary>
-            Deserializes a value of a given type from the given stream in the given format.
-            </summary>
-            <typeparam name="T">The type to deserialize.</typeparam>
-            <param name="stream">The stream to read from.</param>
-            <param name="format">The format to read.</param>
-            <param name="context">The context.</param>
-            <returns>
-            The deserialized value.
-            </returns>
-        </member>
-        <member name="M:OdinSerializer.SerializationUtility.DeserializeValue``1(System.IO.Stream,OdinSerializer.DataFormat,System.Collections.Generic.List{UnityEngine.Object},OdinSerializer.DeserializationContext)">
-            <summary>
-            Deserializes a value of a given type from the given stream in the given format, using the given list of Unity objects for external index reference resolution.
-            </summary>
-            <typeparam name="T">The type to deserialize.</typeparam>
-            <param name="stream">The stream to read from.</param>
-            <param name="format">The format to read.</param>
-            <param name="referencedUnityObjects">The list of Unity objects to use for external index reference resolution.</param>
-            <param name="context">The context.</param>
-            <returns>
-            The deserialized value.
-            </returns>
-        </member>
-        <member name="M:OdinSerializer.SerializationUtility.DeserializeValueWeak(System.Byte[],OdinSerializer.DataFormat,OdinSerializer.DeserializationContext)">
-            <summary>
-            Deserializes a value from the given byte array in the given format. This might fail with primitive values, as they don't come with type metadata.
-            </summary>
-            <param name="bytes">The bytes to deserialize from.</param>
-            <param name="format">The format to read.</param>
-            <param name="context">The context.</param>
-            <returns>
-            The deserialized value.
-            </returns>
-        </member>
-        <member name="M:OdinSerializer.SerializationUtility.DeserializeValueWeak(System.Byte[],OdinSerializer.DataFormat,System.Collections.Generic.List{UnityEngine.Object})">
-            <summary>
-            Deserializes a value from the given byte array in the given format, using the given list of Unity objects for external index reference resolution. This might fail with primitive values, as they don't come with type metadata.
-            </summary>
-            <param name="bytes">The bytes to deserialize from.</param>
-            <param name="format">The format to read.</param>
-            <param name="referencedUnityObjects">The list of Unity objects to use for external index reference resolution.</param>
-            <returns>
-            The deserialized value.
-            </returns>
-        </member>
-        <member name="M:OdinSerializer.SerializationUtility.DeserializeValue``1(System.Byte[],OdinSerializer.DataFormat,OdinSerializer.DeserializationContext)">
-            <summary>
-            Deserializes a value of a given type from the given byte array in the given format.
-            </summary>
-            <typeparam name="T">The type to deserialize.</typeparam>
-            <param name="bytes">The bytes to deserialize from.</param>
-            <param name="format">The format to read.</param>
-            <param name="context">The context to use.</param>
-            <returns>
-            The deserialized value.
-            </returns>
-        </member>
-        <member name="M:OdinSerializer.SerializationUtility.DeserializeValue``1(System.Byte[],OdinSerializer.DataFormat,System.Collections.Generic.List{UnityEngine.Object},OdinSerializer.DeserializationContext)">
-            <summary>
-            Deserializes a value of a given type from the given byte array in the given format, using the given list of Unity objects for external index reference resolution.
-            </summary>
-            <typeparam name="T">The type to deserialize.</typeparam>
-            <param name="bytes">The bytes to deserialize from.</param>
-            <param name="format">The format to read.</param>
-            <param name="referencedUnityObjects">The list of Unity objects to use for external index reference resolution.</param>
-            <param name="context">The context to use.</param>
-            <returns>
-            The deserialized value.
-            </returns>
-        </member>
-        <member name="M:OdinSerializer.SerializationUtility.CreateCopy(System.Object)">
-            <summary>
-            Creates a deep copy of an object. Returns null if null. All Unity objects references will remain the same - they will not get copied.
-            </summary>
-        </member>
         <member name="T:OdinSerializer.UnitySerializationUtility">
             <summary>
             Provides an array of utility wrapper methods for easy serialization and deserialization of Unity objects of any type.
+            Note that, during serialization, it is always assumed that we are running on Unity's main thread. Deserialization can
+            happen on any thread, and all API's interacting with deserialization are thread-safe.
             <para />
             Note that setting the IndexReferenceResolver on contexts passed into methods on this class will have no effect, as it will always
             be set to a UnityReferenceResolver.
@@ -9618,6 +9920,11 @@
         <member name="F:OdinSerializer.UnitySerializationUtility.SBP_ContentPipelineType">
             <summary>
             From the new scriptable build pipeline package
+            </summary>
+        </member>
+        <member name="M:OdinSerializer.UnitySerializationUtility.PrefabDeserializeUtility.GetSceneObjectsToKeepSet(UnityEngine.Object,System.Boolean)">
+            <summary>
+            Note: it is assumed that code calling this is holding the DeserializePrefabCaches_LOCK lock, and will continue to hold it while the returned hashset is being modified
             </summary>
         </member>
         <member name="P:OdinSerializer.UnitySerializationUtility.ForceEditorModeSerialization">

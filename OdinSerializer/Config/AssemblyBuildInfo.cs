@@ -84,21 +84,10 @@ namespace OdinSerializer.Utilities.Editor
 
         public static readonly BuildTarget[] JITPlatforms = new BuildTarget[]
         {
-#if UNITY_2017_3_OR_NEWER
             BuildTarget.StandaloneOSX,
-#else
-            BuildTarget.StandaloneOSXIntel,
-            BuildTarget.StandaloneOSXIntel64,
-            BuildTarget.StandaloneOSXUniversal,
-#endif
-
             BuildTarget.StandaloneWindows,
             BuildTarget.StandaloneWindows64,
-
-            BuildTarget.StandaloneLinux,
             BuildTarget.StandaloneLinux64,
-            BuildTarget.StandaloneLinuxUniversal,
-
             BuildTarget.Android,
         };
 
