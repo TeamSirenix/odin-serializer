@@ -84,6 +84,14 @@ namespace OdinSerializer
         protected int NodeDepth { get { return this.nodesLength; } }
 
         /// <summary>
+        /// Gets the current nodes array. The amount of nodes contained in it is stored in the <see cref="NodeDepth"/> property. The remainder of the array's length is buffer space.
+        /// </summary>
+        /// <value>
+        /// The current node array.
+        /// </value>
+        protected NodeInfo[] NodesArray { get { return this.nodes; } }
+
+        /// <summary>
         /// Gets the current node, or <see cref="NodeInfo.Empty"/> if there is no current node.
         /// </summary>
         /// <value>

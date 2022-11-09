@@ -1825,18 +1825,19 @@ namespace OdinSerializer
                         var message = "Encountered invalid entry while reading serialization data for Unity object of type '" + unityObject.GetType().GetNiceFullName() + "'. " +
                             "This likely means that Unity has filled Odin's stored serialization data with garbage, which can randomly happen after upgrading the Unity version of the project, or when otherwise doing things that have a lot of fragile interactions with the asset database. " +
                             "Locating the asset which causes this error log and causing it to reserialize (IE, modifying it and then causing it to be saved to disk) is likely to 'fix' the issue and make this message go away. " +
-                            "Even so, DATA MAY HAVE BEEN LOST, and you should verify with your version control system (you're using one, right?!) that everything is alright, and if not, use it to rollback the asset to recover your data.\n\n\n";
+                            "Experience shows that this issue is particularly likely to occur on prefab instances, and if this is the case, the parent prefab is also under suspicion, and should be re-saved and re-imported. " +
+                            "Note that DATA MAY HAVE BEEN LOST, and you should verify with your version control system (you're using one, right?!) that everything is alright, and if not, use it to rollback the asset to recover your data.\n\n\n";
 
 #if UNITY_EDITOR
                         // Schedule a delayed log:
                         try
                         {
-                            message += "A delayed warning message containing the originating object's name, type and scene/asset path (if applicable) will be scheduled for logging on Unity's main thread. Search for \"DELAYED SERIALIZATION LOG\". " +
+                            message += "A delayed error message containing the originating object's name, type and scene/asset path (if applicable) will be scheduled for logging on Unity's main thread. Search for \"DELAYED SERIALIZATION LOG\". " +
                                 "This logging callback will also mark the object dirty if it is an asset, hopefully making the issue 'fix' itself. HOWEVER, THERE MAY STILL BE DATA LOSS.\n\n\n";
 
                             EditorApplication_delayCall_Alias += () =>
                             {
-                                var log = "DELAYED SERIALIZATION LOG: Name = " + unityObject.name + ", Type = " + unityObject.GetType().GetNiceFullName();
+                                var log = "DELAYED SERIALIZATION LOG: Name = " + (unityObject != null ? unityObject.name : "(DESTROYED UNITY OBJECT)") + ", Type = " + unityObject.GetType().GetNiceFullName();
 
                                 UnityEngine.Object toPing = unityObject;
 
@@ -1860,7 +1861,7 @@ namespace OdinSerializer
                                     UnityEditor.AssetDatabase.SaveAssets();
                                 }
 
-                                Debug.LogWarning(log, toPing);
+                                Debug.LogError(log, toPing);
                             };
                         }
                         catch

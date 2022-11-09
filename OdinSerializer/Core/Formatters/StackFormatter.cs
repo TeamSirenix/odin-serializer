@@ -165,9 +165,6 @@ namespace OdinSerializer
 
     public class WeakStackFormatter : WeakBaseFormatter
     {
-        private readonly object List_LOCK = new object();
-        private readonly List<object> List = new List<object>();
-
         private readonly Serializer ElementSerializer;
         private readonly bool IsPlainStack;
         private readonly MethodInfo PushMethod;
@@ -260,20 +257,21 @@ namespace OdinSerializer
 
                 writer.BeginArrayNode(collection.Count);
 
-                lock (List_LOCK)
+                using (var listCache = Cache<List<object>>.Claim())
                 {
-                    List.Clear();
+                    var list = listCache.Value;
+                    list.Clear();
 
                     foreach (var element in collection)
                     {
-                        List.Add(element);
+                        list.Add(element);
                     }
 
-                    for (int i = List.Count - 1; i >= 0; i--)
+                    for (int i = list.Count - 1; i >= 0; i--)
                     {
                         try
                         {
-                            this.ElementSerializer.WriteValueWeak(List[i], writer);
+                            this.ElementSerializer.WriteValueWeak(list[i], writer);
                         }
                         catch (Exception ex)
                         {

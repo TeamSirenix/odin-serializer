@@ -16,10 +16,12 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
-[assembly: Sirenix.Serialization.RegisterFormatter(typeof(Sirenix.Serialization.Vector2IntFormatter))]
-[assembly: Sirenix.Serialization.RegisterFormatter(typeof(Sirenix.Serialization.Vector3IntFormatter))]
+using OdinSerializer;
 
-namespace Sirenix.Serialization
+[assembly: RegisterFormatter(typeof(Vector2IntFormatter))]
+[assembly: RegisterFormatter(typeof(Vector3IntFormatter))]
+
+namespace OdinSerializer
 {
     using UnityEngine;
 
@@ -29,7 +31,7 @@ namespace Sirenix.Serialization
     /// <seealso cref="Sirenix.Serialization.MinimalBaseFormatter{UnityEngine.Vector2Int}" />
     public class Vector2IntFormatter : MinimalBaseFormatter<Vector2Int>
     {
-        private static readonly Serializer<int> Serializer = Serialization.Serializer.Get<int>();
+        private static readonly Serializer<int> Serializer = OdinSerializer.Serializer.Get<int>();
 
         /// <summary>
         /// Reads into the specified value using the specified reader.
@@ -60,7 +62,7 @@ namespace Sirenix.Serialization
     /// <seealso cref="Sirenix.Serialization.MinimalBaseFormatter{UnityEngine.Vector3Int}" />
     public class Vector3IntFormatter : MinimalBaseFormatter<Vector3Int>
     {
-        private static readonly Serializer<int> Serializer = Serialization.Serializer.Get<int>();
+        private static readonly Serializer<int> Serializer = OdinSerializer.Serializer.Get<int>();
 
         /// <summary>
         /// Reads into the specified value using the specified reader.

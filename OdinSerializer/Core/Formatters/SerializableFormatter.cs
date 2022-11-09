@@ -128,8 +128,15 @@ namespace OdinSerializer
         {
             if (SerializableFormatter<T>.ISerializableConstructor != null)
             {
+                // Don't have GetType() in the below lines as a strongly typed T value, since
+                // people can "override" (shadow) GetType() on derived classes with the "new"
+                // operator. By referencing the type as a System.Object, we ensure the correct
+                // GetType() method is always called.
+                //
+                // (Yes, this has actually happened, and this was done to fix it.)
+
                 var serializable = value as ISerializable;
-                var info = new SerializationInfo(value.GetType(), writer.Context.FormatterConverter);
+                var info = new SerializationInfo((value as object).GetType(), writer.Context.FormatterConverter);
 
                 try
                 {

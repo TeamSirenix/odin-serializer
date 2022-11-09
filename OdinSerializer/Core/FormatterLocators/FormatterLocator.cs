@@ -348,7 +348,7 @@ namespace OdinSerializer
                 "and ADD THEM MANUALLY): \n\n" + string.Join("\n", types) + "\n\nIF ALL THE TYPES ARE IN THE SUPPORT LIST AND YOU STILL GET THIS ERROR, PLEASE REPORT AN ISSUE." +
                 "The exception contained the following message: \n" + ex.Message);
 
-            throw new SerializationAbortException("AOT formatter support was missing for type '" + type.GetNiceFullName() + "'.");
+            throw new SerializationAbortException("AOT formatter support was missing for type '" + type.GetNiceFullName() + "'.", ex);
         }
 
         private static IEnumerable<string> GetAllPossibleMissingAOTTypes(Type type)

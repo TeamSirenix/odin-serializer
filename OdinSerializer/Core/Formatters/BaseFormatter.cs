@@ -373,6 +373,7 @@ namespace OdinSerializer
         /// <param name="value">The value to invoke the callbacks on.</param>
         /// <param name="context">The deserialization context.</param>
         [Obsolete("Use the InvokeOnDeserializingCallbacks variant that takes a ref T value instead. This is for struct compatibility reasons.", false)]
+        [System.ComponentModel.EditorBrowsable(System.ComponentModel.EditorBrowsableState.Never)]
         protected void InvokeOnDeserializingCallbacks(T value, DeserializationContext context)
         {
             this.InvokeOnDeserializingCallbacks(ref value, context);
