@@ -407,21 +407,21 @@ namespace OdinSerializer
                         name = new string(this.buffer, 0, valueSeparatorIndex);
                     }
 
-                    if (string.Equals(name, JsonConfig.REGULAR_ARRAY_CONTENT_SIG, StringComparison.InvariantCulture) && hintEntry == EntryType.StartOfArray)
+                    if (StringComparer.Ordinal.Equals(name, JsonConfig.REGULAR_ARRAY_CONTENT_SIG) && hintEntry == EntryType.StartOfArray)
                     {
                         valueContent = null;
                         entry = EntryType.StartOfArray;
                         return;
                     }
 
-                    if (string.Equals(name, JsonConfig.PRIMITIVE_ARRAY_CONTENT_SIG, StringComparison.InvariantCulture) && hintEntry == EntryType.StartOfArray)
+                    if (StringComparer.Ordinal.Equals(name, JsonConfig.PRIMITIVE_ARRAY_CONTENT_SIG) && hintEntry == EntryType.StartOfArray)
                     {
                         valueContent = null;
                         entry = EntryType.PrimitiveArray;
                         return;
                     }
 
-                    if (string.Equals(name, JsonConfig.INTERNAL_REF_SIG, StringComparison.InvariantCulture))
+                    if (StringComparer.Ordinal.Equals(name, JsonConfig.INTERNAL_REF_SIG))
                     {
                         // It's an object reference without a name
                         // The content is the whole buffer
@@ -431,7 +431,7 @@ namespace OdinSerializer
                         return;
                     }
 
-                    if (string.Equals(name, JsonConfig.EXTERNAL_INDEX_REF_SIG, StringComparison.InvariantCulture))
+                    if (StringComparer.Ordinal.Equals(name, JsonConfig.EXTERNAL_INDEX_REF_SIG))
                     {
                         // It's an external index reference without a name
                         // The content is the whole buffer
@@ -441,7 +441,7 @@ namespace OdinSerializer
                         return;
                     }
 
-                    if (string.Equals(name, JsonConfig.EXTERNAL_GUID_REF_SIG, StringComparison.InvariantCulture))
+                    if (StringComparer.Ordinal.Equals(name, JsonConfig.EXTERNAL_GUID_REF_SIG))
                     {
                         // It's an external guid reference without a name
                         // The content is the whole buffer
@@ -451,7 +451,7 @@ namespace OdinSerializer
                         return;
                     }
 
-                    if (string.Equals(name, JsonConfig.EXTERNAL_STRING_REF_SIG_OLD, StringComparison.InvariantCulture))
+                    if (StringComparer.Ordinal.Equals(name, JsonConfig.EXTERNAL_STRING_REF_SIG_OLD))
                     {
                         // It's an external guid reference without a name, of the old broken kind
                         // The content is the whole buffer
@@ -461,7 +461,7 @@ namespace OdinSerializer
                         return;
                     }
 
-                    if (string.Equals(name, JsonConfig.EXTERNAL_STRING_REF_SIG_FIXED, StringComparison.InvariantCulture))
+                    if (StringComparer.Ordinal.Equals(name, JsonConfig.EXTERNAL_STRING_REF_SIG_FIXED))
                     {
                         // It's an external guid reference without a name, of the new non-broken kind
                         // The content is the buffer, unquoted and unescaped
@@ -483,13 +483,13 @@ namespace OdinSerializer
                     if (valueContent != null)
                     {
                         // We can now try to see what the value content actually is, and as such determine the type of the entry
-                        if (string.Equals(name, JsonConfig.REGULAR_ARRAY_LENGTH_SIG, StringComparison.InvariantCulture)) // This is a special case for the length entry that must always come before an array
+                        if (StringComparer.Ordinal.Equals(name, JsonConfig.REGULAR_ARRAY_LENGTH_SIG)) // This is a special case for the length entry that must always come before an array
                         {
                             entry = EntryType.StartOfArray;
                             return;
                         }
 
-                        if (string.Equals(name, JsonConfig.PRIMITIVE_ARRAY_LENGTH_SIG, StringComparison.InvariantCulture)) // This is a special case for the length entry that must always come before an array
+                        if (StringComparer.Ordinal.Equals(name, JsonConfig.PRIMITIVE_ARRAY_LENGTH_SIG)) // This is a special case for the length entry that must always come before an array
                         {
                             entry = EntryType.PrimitiveArray;
                             return;
@@ -501,52 +501,52 @@ namespace OdinSerializer
                             return;
                         }
 
-                        if (string.Equals(valueContent, "null", StringComparison.InvariantCultureIgnoreCase))
+                        if (StringComparer.OrdinalIgnoreCase.Equals(valueContent, "null"))
                         {
                             entry = EntryType.Null;
                             return;
                         }
-                        else if (string.Equals(valueContent, "{", StringComparison.InvariantCulture))
+                        else if (StringComparer.Ordinal.Equals(valueContent, "{"))
                         {
                             entry = EntryType.StartOfNode;
                             return;
                         }
-                        else if (string.Equals(valueContent, "}", StringComparison.InvariantCulture))
+                        else if (StringComparer.Ordinal.Equals(valueContent, "}"))
                         {
                             entry = EntryType.EndOfNode;
                             return;
                         }
-                        else if (string.Equals(valueContent, "[", StringComparison.InvariantCulture))
+                        else if (StringComparer.Ordinal.Equals(valueContent, "["))
                         {
                             entry = EntryType.StartOfArray;
                             return;
                         }
-                        else if (string.Equals(valueContent, "]", StringComparison.InvariantCulture))
+                        else if (StringComparer.Ordinal.Equals(valueContent, "]"))
                         {
                             entry = EntryType.EndOfArray;
                             return;
                         }
-                        else if (valueContent.StartsWith(JsonConfig.INTERNAL_REF_SIG, StringComparison.InvariantCulture))
+                        else if (valueContent.StartsWith(JsonConfig.INTERNAL_REF_SIG, StringComparison.Ordinal))
                         {
                             entry = EntryType.InternalReference;
                             return;
                         }
-                        else if (valueContent.StartsWith(JsonConfig.EXTERNAL_INDEX_REF_SIG, StringComparison.InvariantCulture))
+                        else if (valueContent.StartsWith(JsonConfig.EXTERNAL_INDEX_REF_SIG, StringComparison.Ordinal))
                         {
                             entry = EntryType.ExternalReferenceByIndex;
                             return;
                         }
-                        else if (valueContent.StartsWith(JsonConfig.EXTERNAL_GUID_REF_SIG, StringComparison.InvariantCulture))
+                        else if (valueContent.StartsWith(JsonConfig.EXTERNAL_GUID_REF_SIG, StringComparison.Ordinal))
                         {
                             entry = EntryType.ExternalReferenceByGuid;
                             return;
                         }
-                        else if (valueContent.StartsWith(JsonConfig.EXTERNAL_STRING_REF_SIG_OLD, StringComparison.InvariantCulture))
+                        else if (valueContent.StartsWith(JsonConfig.EXTERNAL_STRING_REF_SIG_OLD, StringComparison.Ordinal))
                         {
                             entry = EntryType.ExternalReferenceByString;
                             return;
                         }
-                        else if (valueContent.StartsWith(JsonConfig.EXTERNAL_STRING_REF_SIG_FIXED, StringComparison.InvariantCulture))
+                        else if (valueContent.StartsWith(JsonConfig.EXTERNAL_STRING_REF_SIG_FIXED, StringComparison.Ordinal))
                         {
                             entry = EntryType.ExternalReferenceByString;
                             return;
@@ -666,7 +666,7 @@ namespace OdinSerializer
         private EntryType? GuessPrimitiveType(string content)
         {
             // This method tries to guess what kind of primitive type the current entry is, as cheaply as possible
-            if (string.Equals(content, "null", StringComparison.InvariantCultureIgnoreCase))
+            if (StringComparer.OrdinalIgnoreCase.Equals(content, "null"))
             {
                 return EntryType.Null;
             }
@@ -682,7 +682,7 @@ namespace OdinSerializer
             {
                 return EntryType.FloatingPoint;
             }
-            else if (string.Equals(content, "true", StringComparison.InvariantCultureIgnoreCase) || string.Equals(content, "false", StringComparison.InvariantCultureIgnoreCase))
+            else if (StringComparer.OrdinalIgnoreCase.Equals(content, "true") || StringComparer.OrdinalIgnoreCase.Equals(content, "false"))
             {
                 return EntryType.Boolean;
             }
