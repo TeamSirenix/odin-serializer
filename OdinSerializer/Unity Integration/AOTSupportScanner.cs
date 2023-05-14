@@ -30,6 +30,7 @@ namespace OdinSerializer.Editor
     using System.Reflection;
     using UnityEngine.SceneManagement;
     using System.Collections;
+    using UnityEditorInternal;
 
     public sealed class AOTSupportScanner : IDisposable
     {
@@ -693,8 +694,156 @@ namespace OdinSerializer.Editor
 
         private static bool IsEditorOnlyAssembly(Assembly assembly)
         {
-            return EditorAssemblyNames.Contains(assembly.GetName().Name);
+            if (EditorAssemblyNames.Contains(assembly.GetName().Name))
+            {
+                return true;
+            }
+
+            bool result;
+            if (!IsEditorOnlyAssembly_Cache.TryGetValue(assembly, out result))
+            {
+                try
+                {
+                    var name = assembly.GetName().Name;
+                    string[] guids = AssetDatabase.FindAssets(name);
+                    string[] paths = new string[guids.Length];
+
+                    int dllCount = 0;
+                    int dllIndex = 0;
+
+                    for (int i = 0; i < guids.Length; i++)
+                    {
+                        paths[i] = AssetDatabase.GUIDToAssetPath(guids[i]);
+                        if (paths[i].EndsWith(".dll", StringComparison.OrdinalIgnoreCase) || paths[i].EndsWith(".asmdef", StringComparison.OrdinalIgnoreCase))
+                        {
+                            dllCount++;
+                            dllIndex = i;
+                        }
+                    }
+
+                    if (dllCount == 1)
+                    {
+                        var path = paths[dllIndex];
+                        var assetImporter = AssetImporter.GetAtPath(path);
+
+                        if (assetImporter is PluginImporter)
+                        {
+                            var pluginImporter = assetImporter as PluginImporter;
+
+                            if (!pluginImporter.GetCompatibleWithEditor())
+                            {
+                                result = false;
+                            }
+                            else if (pluginImporter.DefineConstraints.Any(n => n == "UNITY_EDITOR"))
+                            {
+                                result = true;
+                            }
+                            else
+                            {
+                                bool isCompatibleWithAnyNonEditorPlatform = false;
+
+                                foreach (var member in typeof(BuildTarget).GetFields(BindingFlags.Public | BindingFlags.Static))
+                                {
+                                    BuildTarget platform = (BuildTarget)member.GetValue(null);
+
+                                    int asInt = Convert.ToInt32(platform);
+
+                                    if (member.IsDefined(typeof(ObsoleteAttribute)) || asInt < 0)
+                                        continue;
+
+                                    if (pluginImporter.GetCompatibleWithPlatform(platform))
+                                    {
+                                        isCompatibleWithAnyNonEditorPlatform = true;
+                                        break;
+                                    }
+                                }
+
+                                result = !isCompatibleWithAnyNonEditorPlatform;
+                            }
+                        }
+                        else if (assetImporter is AssemblyDefinitionImporter)
+                        {
+                            var asmDefImporter = assetImporter as AssemblyDefinitionImporter;
+                            var asset = AssetDatabase.LoadAssetAtPath<AssemblyDefinitionAsset>(path);
+
+                            if (asset == null)
+                            {
+                                result = false;
+                                goto HasResult;
+                            }
+
+                            var data = JsonUtility.FromJson<AssemblyDefinitionData>(asset.text);
+
+                            if (data != null)
+                            {
+                                if (data.defineConstraints != null)
+                                {
+                                    for (int i = 0; i < data.defineConstraints.Length; i++)
+                                    {
+                                        if (data.defineConstraints[i].Trim() == "UNITY_EDITOR")
+                                        {
+                                            result = true;
+                                            goto HasResult;
+                                        }
+                                    }
+                                }
+                            }
+
+                            result = false;
+                        }
+                        else
+                        {
+                            result = false;
+                        }
+                    }
+                    else
+                    {
+                        // There's either 0 or multiple of them; either way, we guess it will
+                        // be included in the build, so we return false, it's probably not
+                        // an editor only assembly.
+                        result = false;
+                    }
+
+                    HasResult:
+
+                    IsEditorOnlyAssembly_Cache.Add(assembly, result);
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogException(ex);
+                    IsEditorOnlyAssembly_Cache[assembly] = false;
+                }
+            }
+
+            return result;
         }
+
+        [Serializable]
+        class VersionDefine
+        {
+            public string name;
+            public string expression;
+            public string define;
+        }
+
+        [Serializable]
+        class AssemblyDefinitionData
+        {
+            public string name;
+            public string rootNamespace;
+            public string[] references;
+            public string[] includePlatforms;
+            public string[] excludePlatforms;
+            public bool allowUnsafeCode;
+            public bool overrideReferences;
+            public string[] precompiledReferences;
+            public bool autoReferenced;
+            public string[] defineConstraints;
+            public VersionDefine[] versionDefines;
+            public bool noEngineReferences;
+        }
+
+        private static Dictionary<Assembly, bool> IsEditorOnlyAssembly_Cache = new Dictionary<Assembly, bool>();
 
         private static HashSet<string> EditorAssemblyNames = new HashSet<string>()
         {
@@ -704,6 +853,9 @@ namespace OdinSerializer.Editor
             "Assembly-CSharp-Editor-firstpass",
             "Assembly-UnityScript-Editor-firstpass",
             "Assembly-Boo-Editor-firstpass",
+            "Sirenix.OdinInspector.Editor",
+            "Sirenix.Utilities.Editor",
+            "Sirenix.Reflection.Editor",
             typeof(Editor).Assembly.GetName().Name
         };
 

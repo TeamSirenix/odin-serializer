@@ -86,6 +86,10 @@
       <HintPath>..\Libraries\Unity\UnityEngine.AnimationModule.dll</HintPath>
       <Private>False</Private>
     </Reference>
+    <Reference Include="UnityEngine.JSONSerializeModule">
+      <HintPath>..\Libraries\Unity\UnityEngine.JSONSerializeModule.dll</HintPath>
+      <Private>False</Private>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="*.cs;.\**\*.cs" />
