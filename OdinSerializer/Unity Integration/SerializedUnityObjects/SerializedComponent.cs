@@ -18,6 +18,7 @@
 
 namespace OdinSerializer
 {
+    using Utilities;
     using UnityEngine;
 
     /// <summary>
@@ -36,12 +37,14 @@ namespace OdinSerializer
 
         void ISerializationCallbackReceiver.OnAfterDeserialize()
         {
+            if (this.SafeIsUnityNull()) return;
             UnitySerializationUtility.DeserializeUnityObject(this, ref this.serializationData);
             this.OnAfterDeserialize();
         }
 
         void ISerializationCallbackReceiver.OnBeforeSerialize()
         {
+            if (this.SafeIsUnityNull()) return;
             this.OnBeforeSerialize();
             UnitySerializationUtility.SerializeUnityObject(this, ref this.serializationData);
         }
