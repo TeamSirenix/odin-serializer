@@ -1928,7 +1928,9 @@ namespace OdinSerializer
             this.bufferIndex += 4;
         }
 
-        [MethodImpl((MethodImplOptions)0x100)]  // Set aggressive inlining flag, for the runtimes that understand that
+		// Set a no inlining flag; as of issue #913, Unity 2022.3+ IL2CPP targeting at least Android and iOS will write this long
+        // incorrectly when this method is inlined, resulting in the fifth byte of the long being set to a (seemingly) random value.
+		[MethodImpl((MethodImplOptions)8)] // No-inlining
         private void UNSAFE_WriteToBuffer_8_Int64(long value)
         {
             fixed (byte* basePtr = this.buffer)
@@ -1969,9 +1971,13 @@ namespace OdinSerializer
             this.bufferIndex += 8;
         }
 
-        [MethodImpl((MethodImplOptions)0x100)]  // Set aggressive inlining flag, for the runtimes that understand that
-        private void UNSAFE_WriteToBuffer_8_UInt64(ulong value)
-        {
+		// Set a no inlining flag; as of issue #913, Unity 2022.3+ IL2CPP targeting at least Android and iOS will write a long
+		// incorrectly when a method is inlined, resulting in the fifth byte of the long being set to a (seemingly) random value.
+		// This is only verified as being the case for UNSAFE_WriteToBuffer_8_Int64, but out of an abundance of caution, we are
+        // marking all > 8-byte writes as being non-inlinable.
+		[MethodImpl((MethodImplOptions)8)] // No-inlining
+		private void UNSAFE_WriteToBuffer_8_UInt64(ulong value)
+		{
             fixed (byte* basePtr = this.buffer)
             {
                 if (BitConverter.IsLittleEndian)
@@ -2010,8 +2016,12 @@ namespace OdinSerializer
             this.bufferIndex += 8;
         }
 
-        [MethodImpl((MethodImplOptions)0x100)]  // Set aggressive inlining flag, for the runtimes that understand that
-        private void UNSAFE_WriteToBuffer_8_Float64(double value)
+		// Set a no inlining flag; as of issue #913, Unity 2022.3+ IL2CPP targeting at least Android and iOS will write a long
+		// incorrectly when a method is inlined, resulting in the fifth byte of the long being set to a (seemingly) random value.
+		// This is only verified as being the case for UNSAFE_WriteToBuffer_8_Int64, but out of an abundance of caution, we are
+		// marking all > 8-byte writes as being non-inlinable.
+		[MethodImpl((MethodImplOptions)8)] // No-inlining
+		private void UNSAFE_WriteToBuffer_8_Float64(double value)
         {
             fixed (byte* basePtr = this.buffer)
             {
@@ -2051,8 +2061,12 @@ namespace OdinSerializer
             this.bufferIndex += 8;
         }
 
-        [MethodImpl((MethodImplOptions)0x100)]  // Set aggressive inlining flag, for the runtimes that understand that
-        private void UNSAFE_WriteToBuffer_16_Decimal(decimal value)
+		// Set a no inlining flag; as of issue #913, Unity 2022.3+ IL2CPP targeting at least Android and iOS will write a long
+		// incorrectly when a method is inlined, resulting in the fifth byte of the long being set to a (seemingly) random value.
+		// This is only verified as being the case for UNSAFE_WriteToBuffer_8_Int64, but out of an abundance of caution, we are
+		// marking all > 8-byte writes as being non-inlinable.
+		[MethodImpl((MethodImplOptions)8)] // No-inlining
+		private void UNSAFE_WriteToBuffer_16_Decimal(decimal value)
         {
             fixed (byte* basePtr = this.buffer)
             {
@@ -2100,10 +2114,14 @@ namespace OdinSerializer
             }
 
             this.bufferIndex += 16;
-        }
+		}
 
-        [MethodImpl((MethodImplOptions)0x100)]  // Set aggressive inlining flag, for the runtimes that understand that
-        private void UNSAFE_WriteToBuffer_16_Guid(Guid value)
+		// Set a no inlining flag; as of issue #913, Unity 2022.3+ IL2CPP targeting at least Android and iOS will write a long
+		// incorrectly when a method is inlined, resulting in the fifth byte of the long being set to a (seemingly) random value.
+		// This is only verified as being the case for UNSAFE_WriteToBuffer_8_Int64, but out of an abundance of caution, we are
+		// marking all > 8-byte writes as being non-inlinable.
+		[MethodImpl((MethodImplOptions)8)] // No-inlining
+		private void UNSAFE_WriteToBuffer_16_Guid(Guid value)
         {
             // First 10 bytes of a guid are always little endian
             // Last 6 bytes depend on architecture endianness
