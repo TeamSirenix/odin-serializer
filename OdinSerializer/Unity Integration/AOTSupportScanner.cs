@@ -634,9 +634,15 @@ namespace OdinSerializer.Editor
         {
             if (!this.scanning) throw new InvalidOperationException("Cannot end a scan when scanning has not begun.");
 
-            var result = this.seenSerializedTypes.ToList();
+            var results = new HashSet<Type>();
+
+            foreach (var type in this.seenSerializedTypes)
+            {
+                GatherValidAOTSupportTypes(type, results);
+            }
+
             this.Dispose();
-            return result;
+            return results.ToList();
         }
 
         public void Dispose()
@@ -655,26 +661,22 @@ namespace OdinSerializer.Editor
 
         private void OnLocatedEmitType(Type type)
         {
-            if (!AllowRegisterType(type)) return;
-
-            this.RegisterType(type);
+			if (!this.allowRegisteringScannedTypes) return;
+            this.seenSerializedTypes.Add(type);
         }
 
         private void OnSerializedType(Type type)
-        {
-            if (!AllowRegisterType(type)) return;
-
-            this.RegisterType(type);
-        }
+		{
+			if (!this.allowRegisteringScannedTypes) return;
+			this.seenSerializedTypes.Add(type);
+		}
 
         private void OnLocatedFormatter(IFormatter formatter)
         {
             var type = formatter.SerializedType;
-
-            if (type == null) return;
-            if (!AllowRegisterType(type)) return;
-            this.RegisterType(type);
-        }
+            if (type == null || !this.allowRegisteringScannedTypes) return;
+			this.seenSerializedTypes.Add(type);
+		}
 
         public static bool AllowRegisterType(Type type)
         {
@@ -859,24 +861,19 @@ namespace OdinSerializer.Editor
             typeof(Editor).Assembly.GetName().Name
         };
 
-        private void RegisterType(Type type)
+        private static void GatherValidAOTSupportTypes(Type type, HashSet<Type> results)
         {
-            if (!this.allowRegisteringScannedTypes) return;
-            //if (type.IsAbstract || type.IsInterface) return;
             if (type.IsGenericType && (type.IsGenericTypeDefinition || !type.IsFullyConstructedGenericType())) return;
+            if (!AllowRegisterType(type)) return;
 
-            //if (this.seenSerializedTypes.Add(type))
-            //{
-            //    Debug.Log("Added " + type.GetNiceFullName());
-            //}
-
-            this.seenSerializedTypes.Add(type);
-
-            if (type.IsGenericType)
+			if (results.Add(type))
             {
-                foreach (var arg in type.GetGenericArguments())
+                if (type.IsGenericType)
                 {
-                    this.RegisterType(arg);
+                    foreach (var arg in type.GetGenericArguments())
+                    {
+                        GatherValidAOTSupportTypes(arg, results);
+                    }
                 }
             }
         }
