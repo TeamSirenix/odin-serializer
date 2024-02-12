@@ -24,6 +24,7 @@ namespace OdinSerializer
     using System.Collections.Generic;
     using System.IO;
     using System.Runtime.CompilerServices;
+    using System.Runtime.InteropServices;
 
     /// <summary>
     /// Writes data to a stream that can be read by a <see cref="BinaryDataReader"/>.
@@ -1944,12 +1945,30 @@ namespace OdinSerializer
                     }
                     else
                     {
-                        // We do a slower but safer int-by-int write instead
-                        int* fromPtr = (int*)&value;
-                        int* toPtr = (int*)(basePtr + this.bufferIndex);
+                        // This used to be just using pointers directly, but this triggered subtle bugs
+                        // in the xcode 15 and above compiler. So now we're wasting a few cycles to set
+                        // the value into a union and then get the raw bytes from there.
+                        //
+                        // Our best theory for the xcode issue is that 1) it inlines this method despite it
+                        // being marked to be not inlined, since it has passed through IL2CPP where that
+                        // metadata has probably been lost or something.
+                        //
+                        // And 2), we think somebody at Apple got too clever about optimizing away the
+                        // "passing of parameters" to inlined methods where it thinks that parameter is not
+                        // being used anywhere in the inlined method. And then they forgot to count "taking
+                        // the address of a parameter" as using it. So the serialized value would contain
+                        // random garbage from the stack.
 
-                        *toPtr++ = *fromPtr++;
-                        *toPtr = *fromPtr;
+                        SixtyFourBitValueToByteUnion union = default(SixtyFourBitValueToByteUnion);
+                        union.longValue = value;
+                        this.buffer[this.bufferIndex] = union.b0;
+                        this.buffer[this.bufferIndex + 1] = union.b1;
+                        this.buffer[this.bufferIndex + 2] = union.b2;
+                        this.buffer[this.bufferIndex + 3] = union.b3;
+                        this.buffer[this.bufferIndex + 4] = union.b4;
+                        this.buffer[this.bufferIndex + 5] = union.b5;
+                        this.buffer[this.bufferIndex + 6] = union.b6;
+                        this.buffer[this.bufferIndex + 7] = union.b7;
                     }
                 }
                 else
@@ -1989,12 +2008,19 @@ namespace OdinSerializer
                     }
                     else
                     {
-                        // We do a slower but safer int-by-int write instead
-                        int* fromPtr = (int*)&value;
-                        int* toPtr = (int*)(basePtr + this.bufferIndex);
+                        // This used to be just raw pointers, but now it's a slightly slower union.
+                        // See comment in UNSAFE_WriteToBuffer_8_Int64 for why we're doing this now.
 
-                        *toPtr++ = *fromPtr++;
-                        *toPtr = *fromPtr;
+                        SixtyFourBitValueToByteUnion union = default(SixtyFourBitValueToByteUnion);
+                        union.ulongValue = value;
+                        this.buffer[this.bufferIndex] = union.b0;
+                        this.buffer[this.bufferIndex + 1] = union.b1;
+                        this.buffer[this.bufferIndex + 2] = union.b2;
+                        this.buffer[this.bufferIndex + 3] = union.b3;
+                        this.buffer[this.bufferIndex + 4] = union.b4;
+                        this.buffer[this.bufferIndex + 5] = union.b5;
+                        this.buffer[this.bufferIndex + 6] = union.b6;
+                        this.buffer[this.bufferIndex + 7] = union.b7;
                     }
                 }
                 else
@@ -2034,12 +2060,19 @@ namespace OdinSerializer
                     }
                     else
                     {
-                        // We do a slower but safer int-by-int write instead
-                        int* fromPtr = (int*)&value;
-                        int* toPtr = (int*)(basePtr + this.bufferIndex);
+                        // This used to be just raw pointers, but now it's a slightly slower union.
+                        // See comment in UNSAFE_WriteToBuffer_8_Int64 for why we're doing this now.
 
-                        *toPtr++ = *fromPtr++;
-                        *toPtr = *fromPtr;
+                        SixtyFourBitValueToByteUnion union = default(SixtyFourBitValueToByteUnion);
+                        union.doubleValue = value;
+                        this.buffer[this.bufferIndex] = union.b0;
+                        this.buffer[this.bufferIndex + 1] = union.b1;
+                        this.buffer[this.bufferIndex + 2] = union.b2;
+                        this.buffer[this.bufferIndex + 3] = union.b3;
+                        this.buffer[this.bufferIndex + 4] = union.b4;
+                        this.buffer[this.bufferIndex + 5] = union.b5;
+                        this.buffer[this.bufferIndex + 6] = union.b6;
+                        this.buffer[this.bufferIndex + 7] = union.b7;
                     }
                 }
                 else
@@ -2079,14 +2112,27 @@ namespace OdinSerializer
                     }
                     else
                     {
-                        // We do a slower but safer int-by-int write instead
-                        int* fromPtr = (int*)&value;
-                        int* toPtr = (int*)(basePtr + this.bufferIndex);
+                        // This used to be just raw pointers, but now it's a slightly slower union.
+                        // See comment in UNSAFE_WriteToBuffer_8_Int64 for why we're doing this now.
 
-                        *toPtr++ = *fromPtr++;
-                        *toPtr++ = *fromPtr++;
-                        *toPtr++ = *fromPtr++;
-                        *toPtr = *fromPtr;
+                        OneTwentyEightBitValueToByteUnion union = default(OneTwentyEightBitValueToByteUnion);
+                        union.decimalValue = value;
+                        this.buffer[this.bufferIndex] = union.b0;
+                        this.buffer[this.bufferIndex + 1] = union.b1;
+                        this.buffer[this.bufferIndex + 2] = union.b2;
+                        this.buffer[this.bufferIndex + 3] = union.b3;
+                        this.buffer[this.bufferIndex + 4] = union.b4;
+                        this.buffer[this.bufferIndex + 5] = union.b5;
+                        this.buffer[this.bufferIndex + 6] = union.b6;
+                        this.buffer[this.bufferIndex + 7] = union.b7;
+                        this.buffer[this.bufferIndex + 8] = union.b8;
+                        this.buffer[this.bufferIndex + 9] = union.b9;
+                        this.buffer[this.bufferIndex + 10] = union.b10;
+                        this.buffer[this.bufferIndex + 11] = union.b11;
+                        this.buffer[this.bufferIndex + 12] = union.b12;
+                        this.buffer[this.bufferIndex + 13] = union.b13;
+                        this.buffer[this.bufferIndex + 14] = union.b14;
+                        this.buffer[this.bufferIndex + 15] = union.b15;
                     }
                 }
                 else
@@ -2140,14 +2186,27 @@ namespace OdinSerializer
                     }
                     else
                     {
-                        // We do a slower but safer int-by-int write instead
-                        int* fromPtr = (int*)&value;
-                        int* toPtr = (int*)(basePtr + this.bufferIndex);
+                        // This used to be just raw pointers, but now it's a slightly slower union.
+                        // See comment in UNSAFE_WriteToBuffer_8_Int64 for why we're doing this now.
 
-                        *toPtr++ = *fromPtr++;
-                        *toPtr++ = *fromPtr++;
-                        *toPtr++ = *fromPtr++;
-                        *toPtr = *fromPtr;
+                        OneTwentyEightBitValueToByteUnion union = default(OneTwentyEightBitValueToByteUnion);
+                        union.guidValue = value;
+                        this.buffer[this.bufferIndex] = union.b0;
+                        this.buffer[this.bufferIndex + 1] = union.b1;
+                        this.buffer[this.bufferIndex + 2] = union.b2;
+                        this.buffer[this.bufferIndex + 3] = union.b3;
+                        this.buffer[this.bufferIndex + 4] = union.b4;
+                        this.buffer[this.bufferIndex + 5] = union.b5;
+                        this.buffer[this.bufferIndex + 6] = union.b6;
+                        this.buffer[this.bufferIndex + 7] = union.b7;
+                        this.buffer[this.bufferIndex + 8] = union.b8;
+                        this.buffer[this.bufferIndex + 9] = union.b9;
+                        this.buffer[this.bufferIndex + 10] = union.b10;
+                        this.buffer[this.bufferIndex + 11] = union.b11;
+                        this.buffer[this.bufferIndex + 12] = union.b12;
+                        this.buffer[this.bufferIndex + 13] = union.b13;
+                        this.buffer[this.bufferIndex + 14] = union.b14;
+                        this.buffer[this.bufferIndex + 15] = union.b15;
                     }
                 }
                 else
@@ -2213,5 +2272,77 @@ namespace OdinSerializer
 
             return true;
         }
+        
+        // Used for safe unaligned writes of 64-bit values
+        [StructLayout(LayoutKind.Explicit, Size = 8)]
+        private struct SixtyFourBitValueToByteUnion
+        {
+            [FieldOffset(0)]
+            public byte b0;
+            [FieldOffset(1)]
+            public byte b1;
+            [FieldOffset(2)]
+            public byte b2;
+            [FieldOffset(3)]
+            public byte b3;
+            [FieldOffset(4)]
+            public byte b4;
+            [FieldOffset(5)]
+            public byte b5;
+            [FieldOffset(6)]
+            public byte b6;
+            [FieldOffset(7)]
+            public byte b7;
+            [FieldOffset(0)]
+            public double doubleValue;
+            [FieldOffset(0)]
+            public ulong ulongValue;
+            [FieldOffset(0)]
+            public long longValue;
+        }
+
+        // Used for safe unaligned writes of 128-bit values
+        [StructLayout(LayoutKind.Explicit, Size = 16)]
+        private struct OneTwentyEightBitValueToByteUnion
+        {
+            [FieldOffset(0)]
+            public byte b0;
+            [FieldOffset(1)]
+            public byte b1;
+            [FieldOffset(2)]
+            public byte b2;
+            [FieldOffset(3)]
+            public byte b3;
+            [FieldOffset(4)]
+            public byte b4;
+            [FieldOffset(5)]
+            public byte b5;
+            [FieldOffset(6)]
+            public byte b6;
+            [FieldOffset(7)]
+            public byte b7;
+            [FieldOffset(8)]
+            public byte b8;
+            [FieldOffset(9)]
+            public byte b9;
+            [FieldOffset(10)]
+            public byte b10;
+            [FieldOffset(11)]
+            public byte b11;
+            [FieldOffset(12)]
+            public byte b12;
+            [FieldOffset(13)]
+            public byte b13;
+            [FieldOffset(14)]
+            public byte b14;
+            [FieldOffset(15)]
+            public byte b15;
+            
+            [FieldOffset(0)]
+            public Guid guidValue;
+            [FieldOffset(0)]
+            public decimal decimalValue;
+        }
+
     }
 }
