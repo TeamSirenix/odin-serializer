@@ -202,7 +202,6 @@ namespace OdinSerializer.Editor
                 if (groups == null) return true;
 
                 Type PlayerDataGroupSchema_Type = TwoWaySerializationBinder.Default.BindToType("UnityEditor.AddressableAssets.Settings.GroupSchemas.PlayerDataGroupSchema");
-                if (PlayerDataGroupSchema_Type == null) throw new NotSupportedException("PlayerDataGroupSchema type not found");
 
                 Type AddressableAssetGroup_Type = null;
                 MethodInfo AddressableAssetGroup_HasSchema = null;
@@ -231,7 +230,13 @@ namespace OdinSerializer.Editor
                         if (AddressableAssetGroup_GatherAllAssets == null) throw new NotSupportedException("AddressableAssetGroup.GatherAllAssets(List<AddressableAssetEntry> results, bool includeSelf, bool recurseAll, bool includeSubObjects, Func<AddressableAssetEntry, bool> entryFilter) method not found");
                     }
 
-                    bool hasPlayerDataGroupSchema = (bool)AddressableAssetGroup_HasSchema.Invoke(group, new object[] { PlayerDataGroupSchema_Type });
+                    bool hasPlayerDataGroupSchema = false;
+                    
+                    if (PlayerDataGroupSchema_Type != null)
+                    {
+                        hasPlayerDataGroupSchema = (bool)AddressableAssetGroup_HasSchema.Invoke(group, new object[] { PlayerDataGroupSchema_Type });
+                    }
+
                     if (hasPlayerDataGroupSchema) continue; // Skip this group, since it contains all the player data such as resources and build scenes, and we're scanning that separately
 
                     IList results = (IList)Activator.CreateInstance(List_AddressableAssetEntry_Type);
