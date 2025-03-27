@@ -612,9 +612,12 @@ namespace OdinSerializer
                                 if (j > 0) argsStr = argsStr + ", ";
                                 argsStr = argsStr + genericFormatterArgs[j].GetNiceFullName();
                             }
-
+#if DISABLE_UNITY
+                            throw new InvalidOperationException("No AOT support was generated for serialization formatter type '" + info.FormatterType.GetNiceFullName() + "' for the generic arguments <" + argsStr + ">, and no weak fallback formatter was specified.", aotEx);
+#else
                             Debug.LogError("No AOT support was generated for serialization formatter type '" + info.FormatterType.GetNiceFullName() + "' for the generic arguments <" + argsStr + ">, and no weak fallback formatter was specified.");
                             throw aotEx;
+#endif
                         }
                     }
 
