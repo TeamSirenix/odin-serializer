@@ -31,6 +31,7 @@ namespace OdinSerializer.Editor
     using System.Reflection;
     using UnityEngine.SceneManagement;
     using System.Collections;
+    using UnityEditorInternal;
 
     public sealed class AOTSupportScanner : IDisposable
     {
@@ -202,7 +203,6 @@ namespace OdinSerializer.Editor
                 if (groups == null) return true;
 
                 Type PlayerDataGroupSchema_Type = TwoWaySerializationBinder.Default.BindToType("UnityEditor.AddressableAssets.Settings.GroupSchemas.PlayerDataGroupSchema");
-                if (PlayerDataGroupSchema_Type == null) throw new NotSupportedException("PlayerDataGroupSchema type not found");
 
                 Type AddressableAssetGroup_Type = null;
                 MethodInfo AddressableAssetGroup_HasSchema = null;
@@ -231,7 +231,13 @@ namespace OdinSerializer.Editor
                         if (AddressableAssetGroup_GatherAllAssets == null) throw new NotSupportedException("AddressableAssetGroup.GatherAllAssets(List<AddressableAssetEntry> results, bool includeSelf, bool recurseAll, bool includeSubObjects, Func<AddressableAssetEntry, bool> entryFilter) method not found");
                     }
 
-                    bool hasPlayerDataGroupSchema = (bool)AddressableAssetGroup_HasSchema.Invoke(group, new object[] { PlayerDataGroupSchema_Type });
+                    bool hasPlayerDataGroupSchema = false;
+                    
+                    if (PlayerDataGroupSchema_Type != null)
+                    {
+                        hasPlayerDataGroupSchema = (bool)AddressableAssetGroup_HasSchema.Invoke(group, new object[] { PlayerDataGroupSchema_Type });
+                    }
+
                     if (hasPlayerDataGroupSchema) continue; // Skip this group, since it contains all the player data such as resources and build scenes, and we're scanning that separately
 
                     IList results = (IList)Activator.CreateInstance(List_AddressableAssetEntry_Type);
@@ -634,9 +640,15 @@ namespace OdinSerializer.Editor
         {
             if (!this.scanning) throw new InvalidOperationException("Cannot end a scan when scanning has not begun.");
 
-            var result = this.seenSerializedTypes.ToList();
+            var results = new HashSet<Type>();
+
+            foreach (var type in this.seenSerializedTypes)
+            {
+                GatherValidAOTSupportTypes(type, results);
+            }
+
             this.Dispose();
-            return result;
+            return results.ToList();
         }
 
         public void Dispose()
@@ -655,26 +667,22 @@ namespace OdinSerializer.Editor
 
         private void OnLocatedEmitType(Type type)
         {
-            if (!AllowRegisterType(type)) return;
-
-            this.RegisterType(type);
+			if (!this.allowRegisteringScannedTypes) return;
+            this.seenSerializedTypes.Add(type);
         }
 
         private void OnSerializedType(Type type)
-        {
-            if (!AllowRegisterType(type)) return;
-
-            this.RegisterType(type);
-        }
+		{
+			if (!this.allowRegisteringScannedTypes) return;
+			this.seenSerializedTypes.Add(type);
+		}
 
         private void OnLocatedFormatter(IFormatter formatter)
         {
             var type = formatter.SerializedType;
-
-            if (type == null) return;
-            if (!AllowRegisterType(type)) return;
-            this.RegisterType(type);
-        }
+            if (type == null || !this.allowRegisteringScannedTypes) return;
+			this.seenSerializedTypes.Add(type);
+		}
 
         public static bool AllowRegisterType(Type type)
         {
@@ -694,8 +702,156 @@ namespace OdinSerializer.Editor
 
         private static bool IsEditorOnlyAssembly(Assembly assembly)
         {
-            return EditorAssemblyNames.Contains(assembly.GetName().Name);
+            if (EditorAssemblyNames.Contains(assembly.GetName().Name))
+            {
+                return true;
+            }
+
+            bool result;
+            if (!IsEditorOnlyAssembly_Cache.TryGetValue(assembly, out result))
+            {
+                try
+                {
+                    var name = assembly.GetName().Name;
+                    string[] guids = AssetDatabase.FindAssets(name);
+                    string[] paths = new string[guids.Length];
+
+                    int dllCount = 0;
+                    int dllIndex = 0;
+
+                    for (int i = 0; i < guids.Length; i++)
+                    {
+                        paths[i] = AssetDatabase.GUIDToAssetPath(guids[i]);
+                        if (paths[i].EndsWith(".dll", StringComparison.OrdinalIgnoreCase) || paths[i].EndsWith(".asmdef", StringComparison.OrdinalIgnoreCase))
+                        {
+                            dllCount++;
+                            dllIndex = i;
+                        }
+                    }
+
+                    if (dllCount == 1)
+                    {
+                        var path = paths[dllIndex];
+                        var assetImporter = AssetImporter.GetAtPath(path);
+
+                        if (assetImporter is PluginImporter)
+                        {
+                            var pluginImporter = assetImporter as PluginImporter;
+
+                            if (!pluginImporter.GetCompatibleWithEditor())
+                            {
+                                result = false;
+                            }
+                            else if (pluginImporter.DefineConstraints.Any(n => n == "UNITY_EDITOR"))
+                            {
+                                result = true;
+                            }
+                            else
+                            {
+                                bool isCompatibleWithAnyNonEditorPlatform = false;
+
+                                foreach (var member in typeof(BuildTarget).GetFields(BindingFlags.Public | BindingFlags.Static))
+                                {
+                                    BuildTarget platform = (BuildTarget)member.GetValue(null);
+
+                                    int asInt = Convert.ToInt32(platform);
+
+                                    if (member.IsDefined(typeof(ObsoleteAttribute)) || asInt < 0)
+                                        continue;
+
+                                    if (pluginImporter.GetCompatibleWithPlatform(platform))
+                                    {
+                                        isCompatibleWithAnyNonEditorPlatform = true;
+                                        break;
+                                    }
+                                }
+
+                                result = !isCompatibleWithAnyNonEditorPlatform;
+                            }
+                        }
+                        else if (assetImporter is AssemblyDefinitionImporter)
+                        {
+                            var asmDefImporter = assetImporter as AssemblyDefinitionImporter;
+                            var asset = AssetDatabase.LoadAssetAtPath<AssemblyDefinitionAsset>(path);
+
+                            if (asset == null)
+                            {
+                                result = false;
+                                goto HasResult;
+                            }
+
+                            var data = JsonUtility.FromJson<AssemblyDefinitionData>(asset.text);
+
+                            if (data != null)
+                            {
+                                if (data.defineConstraints != null)
+                                {
+                                    for (int i = 0; i < data.defineConstraints.Length; i++)
+                                    {
+                                        if (data.defineConstraints[i].Trim() == "UNITY_EDITOR")
+                                        {
+                                            result = true;
+                                            goto HasResult;
+                                        }
+                                    }
+                                }
+                            }
+
+                            result = false;
+                        }
+                        else
+                        {
+                            result = false;
+                        }
+                    }
+                    else
+                    {
+                        // There's either 0 or multiple of them; either way, we guess it will
+                        // be included in the build, so we return false, it's probably not
+                        // an editor only assembly.
+                        result = false;
+                    }
+
+                    HasResult:
+
+                    IsEditorOnlyAssembly_Cache.Add(assembly, result);
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogException(ex);
+                    IsEditorOnlyAssembly_Cache[assembly] = false;
+                }
+            }
+
+            return result;
         }
+
+        [Serializable]
+        class VersionDefine
+        {
+            public string name;
+            public string expression;
+            public string define;
+        }
+
+        [Serializable]
+        class AssemblyDefinitionData
+        {
+            public string name;
+            public string rootNamespace;
+            public string[] references;
+            public string[] includePlatforms;
+            public string[] excludePlatforms;
+            public bool allowUnsafeCode;
+            public bool overrideReferences;
+            public string[] precompiledReferences;
+            public bool autoReferenced;
+            public string[] defineConstraints;
+            public VersionDefine[] versionDefines;
+            public bool noEngineReferences;
+        }
+
+        private static Dictionary<Assembly, bool> IsEditorOnlyAssembly_Cache = new Dictionary<Assembly, bool>();
 
         private static HashSet<string> EditorAssemblyNames = new HashSet<string>()
         {
@@ -705,27 +861,25 @@ namespace OdinSerializer.Editor
             "Assembly-CSharp-Editor-firstpass",
             "Assembly-UnityScript-Editor-firstpass",
             "Assembly-Boo-Editor-firstpass",
+            "Sirenix.OdinInspector.Editor",
+            "Sirenix.Utilities.Editor",
+            "Sirenix.Reflection.Editor",
             typeof(Editor).Assembly.GetName().Name
         };
 
-        private void RegisterType(Type type)
+        private static void GatherValidAOTSupportTypes(Type type, HashSet<Type> results)
         {
-            if (!this.allowRegisteringScannedTypes) return;
-            //if (type.IsAbstract || type.IsInterface) return;
             if (type.IsGenericType && (type.IsGenericTypeDefinition || !type.IsFullyConstructedGenericType())) return;
+            if (!AllowRegisterType(type)) return;
 
-            //if (this.seenSerializedTypes.Add(type))
-            //{
-            //    Debug.Log("Added " + type.GetNiceFullName());
-            //}
-
-            this.seenSerializedTypes.Add(type);
-
-            if (type.IsGenericType)
+			if (results.Add(type))
             {
-                foreach (var arg in type.GetGenericArguments())
+                if (type.IsGenericType)
                 {
-                    this.RegisterType(arg);
+                    foreach (var arg in type.GetGenericArguments())
+                    {
+                        GatherValidAOTSupportTypes(arg, results);
+                    }
                 }
             }
         }
