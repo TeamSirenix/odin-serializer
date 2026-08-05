@@ -68,11 +68,13 @@ namespace OdinSerializer.Utilities.Editor
             }
         }
 
+#if ODIN_TOOLS_MENU
         [MenuItem("Tools/Odin Serializer/Refresh Assembly Import Settings")]
         public static void RefreshAssemblyImportSettings()
         {
             Current.Apply();
         }
+#endif
     }
 
     public static class OdinAssemblyImportSettingsUtility
