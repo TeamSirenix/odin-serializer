@@ -2034,7 +2034,7 @@ namespace OdinSerializer
                         case BinaryEntryType.UnnamedExternalReferenceByGuid:
                         case BinaryEntryType.NamedDecimal:
                         case BinaryEntryType.UnnamedDecimal:
-                            this.SkipBuffer(8);
+                            this.SkipBuffer(16);
                             break;
 
                         case BinaryEntryType.NamedString:
