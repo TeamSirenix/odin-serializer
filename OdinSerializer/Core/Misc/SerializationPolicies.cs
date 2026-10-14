@@ -107,9 +107,10 @@ namespace OdinSerializer
         /// <summary>
         /// Public fields, as well as fields or auto-properties marked with <see cref="SerializeField"/> or <see cref="OdinSerializeAttribute"/> and not marked with <see cref="NonSerializedAttribute"/>, are serialized.
         /// <para />
-        /// There are two exceptions:
+        /// There are three exceptions:
         /// <para/>1) All fields in tuples, as well as in private nested types marked as compiler generated (e.g. lambda capture classes) are also serialized.
         /// <para/>2) Virtual auto-properties are never serialized. Note that properties specified by an implemented interface are automatically marked virtual by the compiler.
+        /// <para/>3) All fields not marked with <see cref="NonSerializedAttribute"/> in .NET's own [Serializable] types (in the System namespaces) are serialized, as .NET's serialization contract for them requires.
         /// </summary>
         public static ISerializationPolicy Unity
         {
@@ -146,6 +147,11 @@ namespace OdinSerializer
                                     return true;
                                 }
 
+                                if (member is FieldInfo && IsDotNetSerializableClassLibraryType(member.DeclaringType) && ((member as FieldInfo).Attributes & FieldAttributes.NotSerialized) == 0)
+                                {
+                                    return true;
+                                }
+
                                 return member.IsDefined<SerializeField>(false) || member.IsDefined<OdinSerializeAttribute>(false) || (UnitySerializationUtility.SerializeReferenceAttributeType != null && member.IsDefined(UnitySerializationUtility.SerializeReferenceAttributeType, false));
                             });
                         }
@@ -154,6 +160,19 @@ namespace OdinSerializer
 
                 return unityPolicy;
             }
+        }
+
+        /// <summary>
+        /// <para>Whether the type is one of .NET's own [Serializable] types: marked [Serializable], in the System namespaces (which Unity also
+        /// treats as .NET's own, see <see cref="UnitySerializationUtility.GuessIfUnityWillSerialize(Type)"/>).</para>
+        /// <para>The Unity policy serializes all of their fields except [NonSerialized] ones, like .NET's own serialization contract does. These
+        /// types keep their state in private fields, which the policy otherwise skips, so they would lose their state; for example the
+        /// CompareInfo inside a culture-aware StringComparer. .NET keeps these fields the same across the .NET Framework, Mono and .NET Core
+        /// for the sake of its own serializers, so the data is also compatible across runtimes.</para>
+        /// </summary>
+        private static bool IsDotNetSerializableClassLibraryType(Type type)
+        {
+            return (type.Attributes & TypeAttributes.Serializable) != 0 && type.FullName != null && type.FullName.StartsWith("System.", StringComparison.Ordinal);
         }
 
         /// <summary>
