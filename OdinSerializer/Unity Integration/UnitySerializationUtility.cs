@@ -576,7 +576,11 @@ namespace OdinSerializer
 
             // Unity does not serialize [Serializable] structs and classes if they are defined in mscorlib, System.dll or System.Core.dll if those are present
             // Checking against the assemblies that declare System.String, HashSet<T> and LinkedList<T> is a simple way to do this.
-            if (type.Assembly == String_Assembly || type.Assembly == HashSet_Assembly || type.Assembly == LinkedList_Assembly)
+            // Unity also never serializes types in the System namespaces (UnitySerializationLogic.IsNonSerialized checks for a full name starting
+            // with "System."). That check does not depend on which assembly the runtime's class library puts a type in, which differs between
+            // Mono and CoreCLR (System.Uri is in System.dll on Mono, and in System.Private.Uri.dll on CoreCLR).
+            if (type.Assembly == String_Assembly || type.Assembly == HashSet_Assembly || type.Assembly == LinkedList_Assembly
+                || (type.FullName != null && type.FullName.StartsWith("System.", StringComparison.Ordinal)))
             {
                 return false;
             }
