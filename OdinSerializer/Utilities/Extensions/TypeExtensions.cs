@@ -37,8 +37,6 @@ namespace OdinSerializer.Utilities
 
         private static readonly object GenericConstraintsSatisfaction_LOCK = new object();
         private static readonly Dictionary<Type, Type> GenericConstraintsSatisfactionInferredParameters = new Dictionary<Type, Type>();
-        private static readonly Dictionary<Type, Type> GenericConstraintsSatisfactionResolvedMap = new Dictionary<Type, Type>();
-        private static readonly HashSet<Type> GenericConstraintsSatisfactionProcessedParams = new HashSet<Type>();
         private static readonly HashSet<Type> GenericConstraintsSatisfactionTypesToCheck = new HashSet<Type>();
         private static readonly List<Type> GenericConstraintsSatisfactionTypesToCheck_ToAdd = new List<Type>();
 
@@ -1774,6 +1772,7 @@ namespace OdinSerializer.Utilities
         /// <summary>
         /// <para>Checks whether an array of types satisfy the constraints of a given generic type definition.</para>
         /// <para>If this method returns true, the given parameters can be safely used with <see cref="Type.MakeGenericType(Type[])"/> with the given generic type definition.</para>
+        /// <para>The rules are the ones the CoreCLR runtime enforces, which are stricter than Mono's, and the result is the same on every runtime.</para>
         /// </summary>
         /// <param name="genericType">The generic type definition to check.</param>
         /// <param name="parameters">The parameters to check validity for.</param>
@@ -1800,14 +1799,22 @@ namespace OdinSerializer.Utilities
                 throw new ArgumentException("The genericTypeDefinition parameter must be a generic type.");
             }
 
-            return AreGenericConstraintsSatisfiedBy(genericType.GetGenericArguments(), parameters);
+            if (genericType.IsGenericTypeDefinition)
+            {
+                return AreGenericConstraintsSatisfiedBy(genericType.GetGenericArguments(), parameters);
+            }
+
+            // A partially constructed type: the given arguments must match its fixed positions, and be valid for the definition itself.
+            return AreFixedGenericArgumentsMatchedBy(genericType.GetGenericArguments(), parameters)
+                && AreGenericConstraintsSatisfiedBy(genericType.GetGenericTypeDefinition().GetGenericArguments(), parameters);
         }
 
         /// <summary>
         /// <para>Checks whether an array of types satisfy the constraints of a given generic method definition.</para>
         /// <para>If this method returns true, the given parameters can be safely used with <see cref="MethodInfo.MakeGenericMethod(Type[])"/> with the given generic method definition.</para>
+        /// <para>The rules are the ones the CoreCLR runtime enforces, which are stricter than Mono's, and the result is the same on every runtime.</para>
         /// </summary>
-        /// <param name="genericType">The generic method definition to check.</param>
+        /// <param name="genericMethod">The generic method definition to check.</param>
         /// <param name="parameters">The parameters to check validity for.</param>
         /// <exception cref="System.ArgumentNullException">
         /// genericType is null
@@ -1832,49 +1839,64 @@ namespace OdinSerializer.Utilities
                 throw new ArgumentException("The genericMethod parameter must be a generic method.");
             }
 
-            return AreGenericConstraintsSatisfiedBy(genericMethod.GetGenericArguments(), parameters);
+            var methodInfo = genericMethod as MethodInfo;
+
+            if (genericMethod.IsGenericMethodDefinition || methodInfo == null)
+            {
+                return AreGenericConstraintsSatisfiedBy(genericMethod.GetGenericArguments(), parameters);
+            }
+
+            return AreFixedGenericArgumentsMatchedBy(genericMethod.GetGenericArguments(), parameters)
+                && AreGenericConstraintsSatisfiedBy(methodInfo.GetGenericMethodDefinition().GetGenericArguments(), parameters);
         }
 
+        /// <summary>
+        /// <para>Checks whether an array of types can be used as the arguments for the given generic parameters, which must be all the generic parameters of one generic type or method definition, in order.</para>
+        /// <para>Entries of <paramref name="definitions"/> that are not generic parameters must be matched exactly by the corresponding entry of <paramref name="parameters"/>.</para>
+        /// <para>The rules are the ones the CoreCLR runtime enforces, which are stricter than Mono's, and the result is the same on every runtime.</para>
+        /// </summary>
         public static bool AreGenericConstraintsSatisfiedBy(Type[] definitions, Type[] parameters)
         {
+            if (definitions == null)
+            {
+                throw new ArgumentNullException("definitions");
+            }
+
+            if (parameters == null)
+            {
+                throw new ArgumentNullException("parameters");
+            }
+
             if (definitions.Length != parameters.Length)
             {
                 return false;
             }
 
-            lock (GenericConstraintsSatisfaction_LOCK)
+            for (int i = 0; i < parameters.Length; i++)
             {
-                Dictionary<Type, Type> resolvedMap = GenericConstraintsSatisfactionResolvedMap;
-                resolvedMap.Clear();
-
-                for (int i = 0; i < definitions.Length; i++)
+                if (parameters[i] == null)
                 {
-                    Type definition = definitions[i];
-                    Type parameter = parameters[i];
-
-                    if (!definition.GenericParameterIsFulfilledBy(parameter, resolvedMap))
-                    {
-                        return false;
-                    }
+                    return false;
                 }
-
-                return true;
             }
-        }
 
-        public static bool GenericParameterIsFulfilledBy(this Type genericParameterDefinition, Type parameterType)
-        {
-            lock (GenericConstraintsSatisfaction_LOCK)
+            for (int i = 0; i < definitions.Length; i++)
             {
-                GenericConstraintsSatisfactionResolvedMap.Clear();
-                return genericParameterDefinition.GenericParameterIsFulfilledBy(parameterType, GenericConstraintsSatisfactionResolvedMap);
+                if (!IsGenericArgumentValidFor(definitions[i], parameters[i], definitions, parameters, false, 0))
+                {
+                    return false;
+                }
             }
+
+            return true;
         }
 
         /// <summary>
-        /// Before calling this method we must ALWAYS hold a lock on the GenericConstraintsSatisfaction_LOCK object, as that is an implicit assumption it works with.
+        /// <para>Checks whether a type can be used as the argument for a single generic parameter, when the arguments for the other generic parameters of its declaring type or method are not known.</para>
+        /// <para>Constraints that refer to other generic parameters are considered satisfied if those parameters can be inferred from the given type in a valid way;
+        /// for example, given <c>where T : IList&lt;U&gt;</c>, <c>List&lt;int&gt;</c> fulfills T by inferring that U is <c>int</c>.</para>
         /// </summary>
-        private static bool GenericParameterIsFulfilledBy(this Type genericParameterDefinition, Type parameterType, Dictionary<Type, Type> resolvedMap, HashSet<Type> processedParams = null)
+        public static bool GenericParameterIsFulfilledBy(this Type genericParameterDefinition, Type parameterType)
         {
             if (genericParameterDefinition == null)
             {
@@ -1886,167 +1908,688 @@ namespace OdinSerializer.Utilities
                 throw new ArgumentNullException("parameterType");
             }
 
-            if (resolvedMap == null)
+            if (!genericParameterDefinition.IsGenericParameter)
             {
-                throw new ArgumentNullException("resolvedMap");
+                return genericParameterDefinition == parameterType;
             }
 
-            if (genericParameterDefinition.IsGenericParameter == false && genericParameterDefinition == parameterType)
-            {
-                return true;
-            }
+            Type[] definitions = genericParameterDefinition.DeclaringMethod != null
+                ? genericParameterDefinition.DeclaringMethod.GetGenericArguments()
+                : genericParameterDefinition.DeclaringType.GetGenericArguments();
 
-            if (genericParameterDefinition.IsGenericParameter == false)
+            Type[] parameters = new Type[definitions.Length]; // Unknown arguments are null, and may be inferred while checking
+            parameters[genericParameterDefinition.GenericParameterPosition] = parameterType;
+
+            return IsGenericArgumentValidFor(genericParameterDefinition, parameterType, definitions, parameters, true, 0);
+        }
+
+        private const int MaxGenericConstraintCheckDepth = 32;
+
+        // Not exposed by the .NET Framework API: 'allows ref struct' on a generic parameter (.NET 9+).
+        private const GenericParameterAttributes AllowByRefLikeGenericParameterAttribute = (GenericParameterAttributes)0x20;
+
+        private static bool AreFixedGenericArgumentsMatchedBy(Type[] constructedArguments, Type[] parameters)
+        {
+            if (constructedArguments.Length != parameters.Length)
             {
                 return false;
             }
 
-            if (processedParams == null)
+            for (int i = 0; i < constructedArguments.Length; i++)
             {
-                processedParams = GenericConstraintsSatisfactionProcessedParams; // This is safe because we are currently holding the lock
-                processedParams.Clear();
-            }
+                var constructed = constructedArguments[i];
 
-            processedParams.Add(genericParameterDefinition);
-
-            // First, check up on the special constraint flags
-            GenericParameterAttributes specialConstraints = genericParameterDefinition.GenericParameterAttributes;
-
-            if (specialConstraints != GenericParameterAttributes.None)
-            {
-                // Struct constraint (must not be nullable)
-                if ((specialConstraints & GenericParameterAttributes.NotNullableValueTypeConstraint) == GenericParameterAttributes.NotNullableValueTypeConstraint)
+                if (parameters[i] == null)
                 {
-                    if (!parameterType.IsValueType || (parameterType.IsGenericType && parameterType.GetGenericTypeDefinition() == typeof(Nullable<>)))
+                    return false;
+                }
+
+                if (constructed.IsGenericParameter)
+                {
+                    // An open position of a partially constructed type may be a generic parameter of another declaration, with its own constraints.
+                    if (constructed != parameters[i] && !constructed.GenericParameterIsFulfilledBy(parameters[i]))
                     {
                         return false;
                     }
                 }
-                // Class constraint
-                else if ((specialConstraints & GenericParameterAttributes.ReferenceTypeConstraint) == GenericParameterAttributes.ReferenceTypeConstraint)
-                {
-                    if (parameterType.IsValueType)
-                    {
-                        return false;
-                    }
-                }
-
-                // Must have a public parameterless constructor
-                if ((specialConstraints & GenericParameterAttributes.DefaultConstructorConstraint) == GenericParameterAttributes.DefaultConstructorConstraint)
-                {
-                    if (parameterType.IsAbstract || (!parameterType.IsValueType && parameterType.GetConstructor(Type.EmptyTypes) == null))
-                    {
-                        return false;
-                    }
-                }
-            }
-
-            // If this parameter has already been resolved to a type, check if that resolved type is assignable with the argument type
-            if (resolvedMap.ContainsKey(genericParameterDefinition))
-            {
-                if (!parameterType.IsAssignableFrom(resolvedMap[genericParameterDefinition]))
+                else if (constructed != parameters[i])
                 {
                     return false;
                 }
             }
 
-            // Then, check up on the actual type constraints, of which there can be three kinds:
-            // Type inheritance, Interface implementation and fulfillment of another generic parameter.
-            Type[] constraints = genericParameterDefinition.GetGenericParameterConstraints();
+            return true;
+        }
+
+        /// <summary>
+        /// Whether <paramref name="argument"/> may be used for the generic parameter <paramref name="parameter"/>, which is one of <paramref name="definitions"/>,
+        /// when <paramref name="arguments"/> are the arguments for all of <paramref name="definitions"/>. If <paramref name="inferUnknown"/> is true, null entries
+        /// of <paramref name="arguments"/> are unknown and may be inferred (and filled in) while checking.
+        /// </summary>
+        private static bool IsGenericArgumentValidFor(Type parameter, Type argument, Type[] definitions, Type[] arguments, bool inferUnknown, int depth)
+        {
+            if (!parameter.IsGenericParameter)
+            {
+                return parameter == argument;
+            }
+
+            if (depth > MaxGenericConstraintCheckDepth)
+            {
+                return false;
+            }
+
+            if (!IsValidGenericArgumentKind(argument, parameter))
+            {
+                return false;
+            }
+
+            GenericParameterAttributes attributes = parameter.GenericParameterAttributes;
+
+            bool requiresValueType = (attributes & GenericParameterAttributes.NotNullableValueTypeConstraint) != 0;
+            bool requiresReferenceType = (attributes & GenericParameterAttributes.ReferenceTypeConstraint) != 0;
+            bool requiresDefaultConstructor = (attributes & GenericParameterAttributes.DefaultConstructorConstraint) != 0;
+
+            if (argument.IsGenericParameter)
+            {
+                // An open generic parameter only satisfies these through its own declared constraints.
+                if (requiresValueType && !IsGenericParameterConstrainedAsValueType(argument, 0)) return false;
+                if (requiresReferenceType && !IsGenericParameterConstrainedAsReferenceType(argument, 0)) return false;
+                if (requiresDefaultConstructor
+                    && (argument.GenericParameterAttributes & GenericParameterAttributes.DefaultConstructorConstraint) == 0
+                    && !IsGenericParameterConstrainedAsValueType(argument, 0)) return false;
+            }
+            else
+            {
+                if (requiresValueType && (!argument.IsValueType || IsNullableOfT(argument))) return false;
+                if (requiresReferenceType && argument.IsValueType) return false;
+                if (requiresDefaultConstructor && !HasPublicDefaultConstructor(argument)) return false;
+            }
+
+            Type[] constraints = parameter.GetGenericParameterConstraints();
+
+            for (int i = 0; i < constraints.Length; i++)
+            {
+                if (!CanCastToConstraint(argument, constraints[i], definitions, arguments, inferUnknown, depth + 1))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool CanCastToConstraint(Type argument, Type constraint, Type[] definitions, Type[] arguments, bool inferUnknown, int depth)
+        {
+            if (depth > MaxGenericConstraintCheckDepth)
+            {
+                return false;
+            }
+
+            if (constraint.IsGenericParameter)
+            {
+                int index = Array.IndexOf(definitions, constraint);
+
+                if (index >= 0 && arguments[index] == null)
+                {
+                    // Constrained to another, still unknown, parameter of the same declaration: infer it as the argument itself.
+                    if (!inferUnknown) return false;
+
+                    arguments[index] = argument;
+
+                    if (IsGenericArgumentValidFor(constraint, argument, definitions, arguments, inferUnknown, depth + 1))
+                    {
+                        return true;
+                    }
+
+                    arguments[index] = null;
+                    return false;
+                }
+            }
+
+            Type target = SubstituteGenericParameters(constraint, definitions, arguments);
+
+            if (target == null)
+            {
+                return false;
+            }
+
+            if (inferUnknown && target.ContainsGenericParameters && ContainsUnknownGenericParameter(target, definitions, arguments))
+            {
+                // E.g. 'where T : IList<U>' with U unknown: infer U from the matching type in the argument's type hierarchy.
+                if (!TryInferUnknownGenericParameters(argument, target, definitions, arguments, depth + 1))
+                {
+                    return false;
+                }
+
+                target = SubstituteGenericParameters(constraint, definitions, arguments);
+
+                if (target == null)
+                {
+                    return false;
+                }
+            }
+
+            return CanCastTo(argument, target, depth + 1);
+        }
+
+        /// <summary>
+        /// Whether a value of type <paramref name="from"/> can be cast to <paramref name="to"/>, for the purposes of satisfying a generic constraint.
+        /// Value types count as boxed, variance applies, and an open generic parameter can be cast to whatever its own constraints can be cast to.
+        /// </summary>
+        private static bool CanCastTo(Type from, Type to, int depth)
+        {
+            if (from == to)
+            {
+                return true;
+            }
+
+            if (depth > MaxGenericConstraintCheckDepth)
+            {
+                return false;
+            }
+
+            if (from.IsGenericParameter)
+            {
+                if (to == typeof(object))
+                {
+                    return true;
+                }
+
+                if (to == typeof(ValueType) && (from.GenericParameterAttributes & GenericParameterAttributes.NotNullableValueTypeConstraint) != 0)
+                {
+                    return true;
+                }
+
+                Type[] fromConstraints = from.GetGenericParameterConstraints();
+
+                for (int i = 0; i < fromConstraints.Length; i++)
+                {
+                    if (CanCastTo(fromConstraints[i], to, depth + 1))
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            if (to.IsGenericParameter)
+            {
+                // Only another generic parameter, constrained to this one, can be cast to an open generic parameter.
+                return false;
+            }
+
+            if (IsNullableOfT(to))
+            {
+                // Reflection considers T? assignable from T, but a T isn't castable to T? (boxing a T doesn't produce a T?).
+                return false;
+            }
+
+            if (from.ContainsGenericParameters || to.ContainsGenericParameters)
+            {
+                // Runtimes disagree on IsAssignableFrom for open types (Mono applies variance to type arguments that could be value types).
+                return CanCastOpenTypeTo(from, to, depth + 1);
+            }
+
+            return to.IsAssignableFrom(from);
+        }
+
+        private static bool CanCastOpenTypeTo(Type from, Type to, int depth)
+        {
+            if (to.IsInterface)
+            {
+                if (from.IsInterface && IsVariantCompatible(from, to, depth))
+                {
+                    return true;
+                }
+
+                foreach (Type interfaceType in from.GetInterfaces())
+                {
+                    if (IsVariantCompatible(interfaceType, to, depth))
+                    {
+                        return true;
+                    }
+                }
+
+                return false;
+            }
+
+            if (to.IsArray || from.IsArray)
+            {
+                return to.IsAssignableFrom(from);
+            }
+
+            // Classes and delegates: walk the base types (variance only applies to interfaces and delegates)
+            bool isDelegate = to.IsSubclassOf(typeof(Delegate));
+
+            for (Type current = from; current != null; current = current.BaseType)
+            {
+                if (current == to || (isDelegate && IsVariantCompatible(current, to, depth)))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool IsVariantCompatible(Type from, Type to, int depth)
+        {
+            if (from == to)
+            {
+                return true;
+            }
+
+            if (!from.IsGenericType || !to.IsGenericType || from.GetGenericTypeDefinition() != to.GetGenericTypeDefinition())
+            {
+                return false;
+            }
+
+            Type[] variance = to.GetGenericTypeDefinition().GetGenericArguments();
+            Type[] fromArguments = from.GetGenericArguments();
+            Type[] toArguments = to.GetGenericArguments();
+
+            for (int i = 0; i < variance.Length; i++)
+            {
+                Type a = fromArguments[i], b = toArguments[i];
+
+                if (a == b)
+                {
+                    continue;
+                }
+
+                GenericParameterAttributes v = variance[i].GenericParameterAttributes & GenericParameterAttributes.VarianceMask;
+
+                // Variance only applies to reference type arguments
+                if (v == GenericParameterAttributes.Covariant)
+                {
+                    if (!IsReferenceTypeForVariance(a) || !CanCastTo(a, b, depth + 1)) return false;
+                }
+                else if (v == GenericParameterAttributes.Contravariant)
+                {
+                    if (!IsReferenceTypeForVariance(b) || !CanCastTo(b, a, depth + 1)) return false;
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool IsReferenceTypeForVariance(Type type)
+        {
+            return type.IsGenericParameter ? IsGenericParameterConstrainedAsReferenceType(type, 0) : !type.IsValueType && !type.IsPointer && !type.IsByRef;
+        }
+
+        // Like the runtime, the special constraint flags (struct/class) only count on the parameter itself; a constraint to another parameter
+        // is followed through that parameter's type constraints only. E.g. 'T : U where U : class' isn't a reference type, 'T : U where U : Base' is.
+        private static bool IsGenericParameterConstrainedAsValueType(Type genericParameter, int depth)
+        {
+            if (depth == 0 && (genericParameter.GenericParameterAttributes & GenericParameterAttributes.NotNullableValueTypeConstraint) != 0)
+            {
+                return true;
+            }
+
+            if (depth > MaxGenericConstraintCheckDepth)
+            {
+                return false;
+            }
+
+            Type[] constraints = genericParameter.GetGenericParameterConstraints();
 
             for (int i = 0; i < constraints.Length; i++)
             {
                 Type constraint = constraints[i];
 
-                // Replace resolved constraint parameters with their resolved types
-                if (constraint.IsGenericParameter && resolvedMap.ContainsKey(constraint))
+                if (constraint.IsGenericParameter ? IsGenericParameterConstrainedAsValueType(constraint, depth + 1) : constraint.IsValueType)
                 {
-                    constraint = resolvedMap[constraint];
-                }
-
-                if (constraint.IsGenericParameter)
-                {
-                    if (!constraint.GenericParameterIsFulfilledBy(parameterType, resolvedMap, processedParams))
-                    {
-                        return false;
-                    }
-                }
-                else if (constraint.IsClass || constraint.IsInterface || constraint.IsValueType)
-                {
-                    if (constraint.IsGenericType)
-                    {
-                        Type constraintDefinition = constraint.GetGenericTypeDefinition();
-
-                        Type[] constraintParams = constraint.GetGenericArguments();
-                        Type[] paramParams;
-
-                        if (parameterType.IsGenericType && constraintDefinition == parameterType.GetGenericTypeDefinition())
-                        {
-                            paramParams = parameterType.GetGenericArguments();
-                        }
-                        else
-                        {
-                            if (constraintDefinition.IsClass)
-                            {
-                                if (parameterType.ImplementsOpenGenericClass(constraintDefinition))
-                                {
-                                    paramParams = parameterType.GetArgumentsOfInheritedOpenGenericClass(constraintDefinition);
-                                }
-                                else
-                                {
-                                    return false;
-                                }
-                            }
-                            else
-                            {
-                                if (parameterType.ImplementsOpenGenericInterface(constraintDefinition))
-                                {
-                                    paramParams = parameterType.GetArgumentsOfInheritedOpenGenericInterface(constraintDefinition);
-                                }
-                                else
-                                {
-                                    return false;
-                                }
-                            }
-                        }
-
-                        for (int j = 0; j < constraintParams.Length; j++)
-                        {
-                            var c = constraintParams[j];
-                            var p = paramParams[j];
-
-                            // Replace resolved constraint parameters with their resolved types
-                            if (c.IsGenericParameter && resolvedMap.ContainsKey(c))
-                            {
-                                c = resolvedMap[c];
-                            }
-
-                            if (c.IsGenericParameter)
-                            {
-                                if (!processedParams.Contains(c) && !GenericParameterIsFulfilledBy(c, p, resolvedMap, processedParams))
-                                {
-                                    return false;
-                                }
-                            }
-                            else if (c != p && !c.IsAssignableFrom(p))
-                            {
-                                return false;
-                            }
-                        }
-                    }
-                    else if (!constraint.IsAssignableFrom(parameterType))
-                    {
-                        return false;
-                    }
-                }
-                else
-                {
-                    throw new Exception("Unknown parameter constraint type! " + constraint.GetNiceName());
+                    return true;
                 }
             }
 
-            resolvedMap[genericParameterDefinition] = parameterType;
+            return false;
+        }
+
+        private static bool IsGenericParameterConstrainedAsReferenceType(Type genericParameter, int depth)
+        {
+            if (depth == 0 && (genericParameter.GenericParameterAttributes & GenericParameterAttributes.ReferenceTypeConstraint) != 0)
+            {
+                return true;
+            }
+
+            if (depth > MaxGenericConstraintCheckDepth)
+            {
+                return false;
+            }
+
+            Type[] constraints = genericParameter.GetGenericParameterConstraints();
+
+            for (int i = 0; i < constraints.Length; i++)
+            {
+                Type constraint = constraints[i];
+
+                if (constraint.IsGenericParameter)
+                {
+                    if (IsGenericParameterConstrainedAsReferenceType(constraint, depth + 1))
+                    {
+                        return true;
+                    }
+                }
+                else if (!constraint.IsInterface && !constraint.IsValueType
+                    && constraint != typeof(object) && constraint != typeof(ValueType) && constraint != typeof(Enum))
+                {
+                    // A class constraint, except the ones value types also satisfy.
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static bool HasPublicDefaultConstructor(Type type)
+        {
+            if (type.IsValueType)
+            {
+                return true;
+            }
+
+            return !type.IsAbstract && !type.IsArray && type.GetConstructor(Type.EmptyTypes) != null;
+        }
+
+        private static bool IsNullableOfT(Type type)
+        {
+            return type.IsGenericType && type.GetGenericTypeDefinition() == typeof(Nullable<>);
+        }
+
+        private static bool IsValidGenericArgumentKind(Type argument, Type parameter)
+        {
+            if (argument.IsByRef || argument.IsPointer || argument == typeof(void))
+            {
+                return false;
+            }
+
+            if (IsByRefLikeType(argument) && (parameter.GenericParameterAttributes & AllowByRefLikeGenericParameterAttribute) == 0)
+            {
+                return false;
+            }
+
             return true;
+        }
+
+        // Type.IsByRefLike doesn't exist in the .NET Framework API, so it's bound by reflection; without it, ref structs are recognized by their attribute.
+        private static readonly Func<Type, bool> Type_IsByRefLike = CreateIsByRefLikeGetter();
+        private static readonly Dictionary<Type, bool> IsByRefLikeTypeCache = new Dictionary<Type, bool>();
+
+        private static Func<Type, bool> CreateIsByRefLikeGetter()
+        {
+            var property = typeof(Type).GetProperty("IsByRefLike", BindingFlags.Public | BindingFlags.Instance);
+
+            if (property == null || property.PropertyType != typeof(bool))
+            {
+                return null;
+            }
+
+            return (Func<Type, bool>)Delegate.CreateDelegate(typeof(Func<Type, bool>), property.GetGetMethod());
+        }
+
+        private static bool IsByRefLikeType(Type type)
+        {
+            if (!type.IsValueType || type.IsGenericParameter)
+            {
+                return false;
+            }
+
+            if (type == typeof(TypedReference) || type == typeof(RuntimeArgumentHandle) || type.FullName == "System.ArgIterator")
+            {
+                // Byref-like without carrying the attribute on .NET Framework/Mono, where Type.IsByRefLike may also not report them.
+                return true;
+            }
+
+            if (Type_IsByRefLike != null)
+            {
+                return Type_IsByRefLike(type);
+            }
+
+            lock (IsByRefLikeTypeCache)
+            {
+                bool result;
+
+                if (!IsByRefLikeTypeCache.TryGetValue(type, out result))
+                {
+                    result = false;
+                    var definition = type.IsGenericType ? type.GetGenericTypeDefinition() : type;
+
+                    foreach (var attribute in definition.GetCustomAttributes(false))
+                    {
+                        if (attribute.GetType().FullName == "System.Runtime.CompilerServices.IsByRefLikeAttribute")
+                        {
+                            result = true;
+                            break;
+                        }
+                    }
+
+                    IsByRefLikeTypeCache[type] = result;
+                }
+
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// Replaces the generic parameters in <paramref name="definitions"/> with the corresponding known <paramref name="arguments"/>, anywhere within <paramref name="type"/>.
+        /// Unknown (null) arguments leave their parameter in place. Returns null if the resulting type can't be constructed.
+        /// </summary>
+        private static Type SubstituteGenericParameters(Type type, Type[] definitions, Type[] arguments)
+        {
+            if (!type.ContainsGenericParameters)
+            {
+                return type;
+            }
+
+            if (type.IsGenericParameter)
+            {
+                int index = Array.IndexOf(definitions, type);
+                return index >= 0 && arguments[index] != null ? arguments[index] : type;
+            }
+
+            try
+            {
+                if (type.IsArray)
+                {
+                    Type element = SubstituteGenericParameters(type.GetElementType(), definitions, arguments);
+                    if (element == null) return null;
+                    int rank = type.GetArrayRank();
+                    return rank == 1 && type == type.GetElementType().MakeArrayType() ? element.MakeArrayType() : element.MakeArrayType(rank);
+                }
+
+                if (type.IsByRef)
+                {
+                    Type element = SubstituteGenericParameters(type.GetElementType(), definitions, arguments);
+                    return element == null ? null : element.MakeByRefType();
+                }
+
+                if (type.IsPointer)
+                {
+                    Type element = SubstituteGenericParameters(type.GetElementType(), definitions, arguments);
+                    return element == null ? null : element.MakePointerType();
+                }
+
+                if (type.IsGenericType)
+                {
+                    Type[] typeArguments = type.GetGenericArguments();
+                    bool changed = false;
+
+                    for (int i = 0; i < typeArguments.Length; i++)
+                    {
+                        Type substituted = SubstituteGenericParameters(typeArguments[i], definitions, arguments);
+                        if (substituted == null) return null;
+                        changed |= substituted != typeArguments[i];
+                        typeArguments[i] = substituted;
+                    }
+
+                    return changed ? type.GetGenericTypeDefinition().MakeGenericType(typeArguments) : type;
+                }
+            }
+            catch (ArgumentException)
+            {
+                return null;
+            }
+            catch (TypeLoadException)
+            {
+                return null;
+            }
+
+            return type;
+        }
+
+        private static bool ContainsUnknownGenericParameter(Type type, Type[] definitions, Type[] arguments)
+        {
+            if (type.IsGenericParameter)
+            {
+                int index = Array.IndexOf(definitions, type);
+                return index >= 0 && arguments[index] == null;
+            }
+
+            if (type.HasElementType)
+            {
+                return ContainsUnknownGenericParameter(type.GetElementType(), definitions, arguments);
+            }
+
+            if (type.IsGenericType)
+            {
+                Type[] typeArguments = type.GetGenericArguments();
+
+                for (int i = 0; i < typeArguments.Length; i++)
+                {
+                    if (ContainsUnknownGenericParameter(typeArguments[i], definitions, arguments))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Infers unknown generic parameters within <paramref name="target"/> from the type in <paramref name="argument"/>'s hierarchy (itself, its base types or its
+        /// interfaces) with the same generic type definition, and validates each inferred argument for its parameter.
+        /// </summary>
+        private static bool TryInferUnknownGenericParameters(Type argument, Type target, Type[] definitions, Type[] arguments, int depth)
+        {
+            if (!target.IsGenericType || argument.IsGenericParameter)
+            {
+                return false;
+            }
+
+            Type targetDefinition = target.GetGenericTypeDefinition();
+            Type[] targetArguments = target.GetGenericArguments();
+
+            foreach (Type candidate in GetSelfBaseTypesAndInterfaces(argument))
+            {
+                if (!candidate.IsGenericType || candidate.GetGenericTypeDefinition() != targetDefinition)
+                {
+                    continue;
+                }
+
+                Type[] backup = (Type[])arguments.Clone();
+                Type[] candidateArguments = candidate.GetGenericArguments();
+                bool matched = true;
+
+                for (int i = 0; i < targetArguments.Length && matched; i++)
+                {
+                    matched = TryUnify(targetArguments[i], candidateArguments[i], definitions, arguments);
+                }
+
+                if (matched)
+                {
+                    for (int i = 0; i < definitions.Length && matched; i++)
+                    {
+                        if (backup[i] == null && arguments[i] != null)
+                        {
+                            matched = IsGenericArgumentValidFor(definitions[i], arguments[i], definitions, arguments, true, depth + 1);
+                        }
+                    }
+                }
+
+                if (matched)
+                {
+                    return true;
+                }
+
+                Array.Copy(backup, arguments, arguments.Length);
+            }
+
+            return false;
+        }
+
+        private static bool TryUnify(Type pattern, Type actual, Type[] definitions, Type[] arguments)
+        {
+            if (pattern.IsGenericParameter)
+            {
+                int index = Array.IndexOf(definitions, pattern);
+
+                if (index >= 0)
+                {
+                    if (arguments[index] == null)
+                    {
+                        arguments[index] = actual;
+                        return true;
+                    }
+
+                    return arguments[index] == actual;
+                }
+
+                return pattern == actual;
+            }
+
+            if (!pattern.ContainsGenericParameters)
+            {
+                return pattern == actual;
+            }
+
+            if (pattern.IsArray)
+            {
+                return actual.IsArray && pattern.GetArrayRank() == actual.GetArrayRank() && TryUnify(pattern.GetElementType(), actual.GetElementType(), definitions, arguments);
+            }
+
+            if (pattern.IsGenericType)
+            {
+                if (!actual.IsGenericType || pattern.GetGenericTypeDefinition() != actual.GetGenericTypeDefinition())
+                {
+                    return false;
+                }
+
+                Type[] patternArguments = pattern.GetGenericArguments();
+                Type[] actualArguments = actual.GetGenericArguments();
+
+                for (int i = 0; i < patternArguments.Length; i++)
+                {
+                    if (!TryUnify(patternArguments[i], actualArguments[i], definitions, arguments))
+                    {
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+
+            return pattern == actual;
+        }
+
+        private static IEnumerable<Type> GetSelfBaseTypesAndInterfaces(Type type)
+        {
+            for (Type current = type; current != null; current = current.BaseType)
+            {
+                yield return current;
+            }
+
+            foreach (Type interfaceType in type.GetInterfaces())
+            {
+                yield return interfaceType;
+            }
         }
 
         /// <summary>
