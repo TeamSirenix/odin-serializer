@@ -91,13 +91,18 @@ namespace OdinSerializer
 
         static DefaultSerializationBinder()
         {
-            AppDomain.CurrentDomain.AssemblyLoad += (sender, args) =>
+            AssemblyLoadEventHandler onAssemblyLoad = (sender, args) =>
             {
                 lock (ASSEMBLY_REGISTER_QUEUE_LOCK)
                 {
                     assemblyLoadEventsQueuedForRegister.Add(args);
                 }
             };
+
+            AppDomain.CurrentDomain.AssemblyLoad += onAssemblyLoad;
+
+            // The AppDomain outlives a domain reload on CoreCLR, and its subscription would keep this code alive after it is unloaded.
+            AssemblyLoadContextUtilities.RegisterUnloadingCallback(() => AppDomain.CurrentDomain.AssemblyLoad -= onAssemblyLoad);
 
             foreach (var assembly in AssemblyLoadContextUtilities.GetLoadedAssemblies())
             {
