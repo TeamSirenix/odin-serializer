@@ -90,6 +90,54 @@ namespace OdinSerializer.Editor
             return true;
         }
 
+        // Emitting an assembly to disk is done differently per runtime, and neither way is part of .NET Standard 2.1, so both are bound by reflection:
+        //  - .NET Framework/Mono: AppDomain.DefineDynamicAssembly(name, AssemblyBuilderAccess.Save, directory), then AssemblyBuilder.Save(fileName).
+        //  - CoreCLR (.NET 9+):   new PersistedAssemblyBuilder(name, coreAssembly), then PersistedAssemblyBuilder.Save(path).
+        // Everything in between is the regular System.Reflection.Emit API, shared by both.
+        private static readonly MethodInfo AppDomain_DefineDynamicAssembly_WithDir = typeof(AppDomain).GetMethod("DefineDynamicAssembly", new Type[] { typeof(AssemblyName), typeof(AssemblyBuilderAccess), typeof(string) });
+        private static readonly MethodInfo AssemblyBuilder_Save = typeof(AssemblyBuilder).GetMethod("Save", new Type[] { typeof(string) });
+
+        private static readonly Type PersistedAssemblyBuilder_Type = Type.GetType("System.Reflection.Emit.PersistedAssemblyBuilder, System.Reflection.Emit", false);
+        private static readonly ConstructorInfo PersistedAssemblyBuilder_Constructor = PersistedAssemblyBuilder_Type == null ? null : PersistedAssemblyBuilder_Type.GetConstructor(new Type[] { typeof(AssemblyName), typeof(Assembly), typeof(IEnumerable<CustomAttributeBuilder>) });
+        private static readonly MethodInfo PersistedAssemblyBuilder_Save = PersistedAssemblyBuilder_Type == null ? null : PersistedAssemblyBuilder_Type.GetMethod("Save", new Type[] { typeof(string) });
+
+        private static bool CanSaveWithAppDomainAssemblyBuilder
+        {
+            get { return AppDomain_DefineDynamicAssembly_WithDir != null && AssemblyBuilder_Save != null && Enum.IsDefined(typeof(AssemblyBuilderAccess), "Save"); }
+        }
+
+        private static AssemblyBuilder DefineSavableDynamicAssembly(AssemblyName name, string dirPath)
+        {
+            if (CanSaveWithAppDomainAssemblyBuilder)
+            {
+                var saveAccess = (AssemblyBuilderAccess)Enum.Parse(typeof(AssemblyBuilderAccess), "Save");
+                return (AssemblyBuilder)AppDomain_DefineDynamicAssembly_WithDir.Invoke(AppDomain.CurrentDomain, new object[] { name, saveAccess, dirPath });
+            }
+
+            if (PersistedAssemblyBuilder_Constructor != null && PersistedAssemblyBuilder_Save != null)
+            {
+                return (AssemblyBuilder)PersistedAssemblyBuilder_Constructor.Invoke(new object[] { name, typeof(object).Assembly, null });
+            }
+
+            throw new NotSupportedException("Generating AOT dlls is not supported on the current scripting runtime, as it cannot save dynamic assemblies to disk.");
+        }
+
+        /// <summary>
+        /// Saves an assembly created by <see cref="DefineSavableDynamicAssembly"/> as the file <paramref name="fileName"/> in <paramref name="dirPath"/>.
+        /// </summary>
+        private static void SaveDynamicAssembly(AssemblyBuilder assembly, string dirPath, string fileName)
+        {
+            if (PersistedAssemblyBuilder_Type != null && PersistedAssemblyBuilder_Type.IsInstanceOfType(assembly))
+            {
+                PersistedAssemblyBuilder_Save.Invoke(assembly, new object[] { dirPath + fileName });
+            }
+            else
+            {
+                // The directory was given when the assembly was defined
+                AssemblyBuilder_Save.Invoke(assembly, new object[] { fileName });
+            }
+        }
+
         /// <summary>
         /// Generates an AOT DLL, using the given parameters.
         /// </summary>
@@ -100,7 +148,7 @@ namespace OdinSerializer.Editor
             var newDllPath = dirPath + assemblyName;
             var fullDllPath = newDllPath + ".dll";
 
-            var assembly = AppDomain.CurrentDomain.DefineDynamicAssembly(new AssemblyName() { Name = assemblyName }, AssemblyBuilderAccess.Save, dirPath);
+            var assembly = DefineSavableDynamicAssembly(new AssemblyName() { Name = assemblyName }, dirPath);
             var module = assembly.DefineDynamicModule(assemblyName);
 
             assembly.SetCustomAttribute(new CustomAttributeBuilder(typeof(EmittedAssemblyAttribute).GetConstructor(new Type[0]), new object[0]));
@@ -355,7 +403,7 @@ namespace OdinSerializer.Editor
                 // Sigh, Unity 5.3.0
             }
 
-            assembly.Save(assemblyName);
+            SaveDynamicAssembly(assembly, dirPath, assemblyName);
 
             File.Move(newDllPath, fullDllPath);
 
