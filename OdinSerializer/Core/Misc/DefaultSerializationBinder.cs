@@ -257,7 +257,11 @@ namespace OdinSerializer
             {
                 if (nameMap.TryGetValue(type, out result) == false)
                 {
-                    if (type.IsGenericType)
+                    if (CoreLibraryForwardedFrom != null && (type.IsGenericTypeDefinition || !type.ContainsGenericParameters))
+                    {
+                        result = BindToNameWithForwardedFromAssemblies(type);
+                    }
+                    else if (type.IsGenericType)
                     {
                         // We track down all assemblies in the generic type definition
                         List<Type> toResolve = type.GetGenericArguments().ToList();
@@ -297,6 +301,149 @@ namespace OdinSerializer
             }
 
             return result;
+        }
+
+        /// <summary>
+        /// <para>On runtimes whose core library is not mscorlib, such as CoreCLR (Unity 7 and up), the class library types live in different
+        /// assemblies than on Mono and the .NET Framework: System.Int32 is in System.Private.CoreLib, System.Uri in System.Private.Uri, and so on.
+        /// Writing those assembly names would make the same data differ between runtimes, and Mono can only resolve them by searching every
+        /// loaded assembly.</para>
+        /// <para>So type names are written with the assembly a type comes from on the .NET Framework, as given by its [TypeForwardedFrom]
+        /// attribute, which the class library provides for exactly this purpose. Core library types without it come from the same assembly
+        /// as System.Object. This is the assembly name of System.Object's [TypeForwardedFrom] attribute (mscorlib), or null on runtimes where
+        /// System.Object is already in that assembly, such as Mono.</para>
+        /// </summary>
+        private static readonly string CoreLibraryForwardedFrom = GetCoreLibraryForwardedFrom();
+
+        private static string GetCoreLibraryForwardedFrom()
+        {
+            try
+            {
+                var forwardedFrom = GetForwardedFromAttributeAssembly(typeof(object));
+
+                if (forwardedFrom != null && GetSimpleAssemblyName(forwardedFrom) != typeof(object).Assembly.GetName().Name)
+                {
+                    return forwardedFrom;
+                }
+            }
+            catch { }
+
+            return null;
+        }
+
+        private static string GetForwardedFromAttributeAssembly(Type type)
+        {
+            var attribute = (TypeForwardedFromAttribute)Attribute.GetCustomAttribute(type, typeof(TypeForwardedFromAttribute), false);
+            return attribute != null && !string.IsNullOrEmpty(attribute.AssemblyFullName) ? attribute.AssemblyFullName : null;
+        }
+
+        private static string GetSimpleAssemblyName(string assemblyFullName)
+        {
+            int comma = assemblyFullName.IndexOf(',');
+            return comma < 0 ? assemblyFullName.Trim() : assemblyFullName.Substring(0, comma).Trim();
+        }
+
+        /// <summary>
+        /// The full name of the assembly a type is written with; see <see cref="CoreLibraryForwardedFrom"/>.
+        /// </summary>
+        private static string GetForwardedFromAssemblyFullName(Type type)
+        {
+            while (type.HasElementType)
+            {
+                type = type.GetElementType();
+            }
+
+            if (type.IsGenericType && !type.IsGenericTypeDefinition)
+            {
+                type = type.GetGenericTypeDefinition();
+            }
+
+            if (type.IsGenericParameter)
+            {
+                return type.Assembly.FullName;
+            }
+
+            // Nested types come from the same assembly as their outermost declaring type, which is the one with the attribute.
+            while (type.DeclaringType != null)
+            {
+                type = type.DeclaringType;
+            }
+
+            var forwardedFrom = GetForwardedFromAttributeAssembly(type);
+
+            if (forwardedFrom != null) return forwardedFrom;
+            if (type.Assembly == typeof(object).Assembly) return CoreLibraryForwardedFrom;
+
+            return type.Assembly.FullName;
+        }
+
+        /// <summary>
+        /// Produces the same name as BindToName does on Mono, with the assembly names given by <see cref="GetForwardedFromAssemblyFullName"/>
+        /// instead of the actual ones. As there, assemblies of generic arguments are written as simple names when the type is generic,
+        /// and as full names otherwise (such as in arrays of generic types), which is how Type.FullName writes them.
+        /// </summary>
+        private static string BindToNameWithForwardedFromAssemblies(Type type)
+        {
+            HashSet<string> simpleNamedAssemblies = new HashSet<string>();
+
+            if (type.IsGenericType)
+            {
+                List<Type> toResolve = type.GetGenericArguments().ToList();
+
+                while (toResolve.Count > 0)
+                {
+                    var t = toResolve[0];
+
+                    if (t.IsGenericType)
+                    {
+                        toResolve.AddRange(t.GetGenericArguments());
+                    }
+
+                    simpleNamedAssemblies.Add(GetForwardedFromAssemblyFullName(t));
+                    toResolve.RemoveAt(0);
+                }
+            }
+
+            return GetFullNameWithForwardedFromAssemblies(type, simpleNamedAssemblies) + ", " + GetSimpleAssemblyName(GetForwardedFromAssemblyFullName(type));
+        }
+
+        /// <summary>
+        /// Type.FullName, with the assemblies of generic arguments given by <see cref="GetForwardedFromAssemblyFullName"/>.
+        /// </summary>
+        private static string GetFullNameWithForwardedFromAssemblies(Type type, HashSet<string> simpleNamedAssemblies)
+        {
+            if (type.HasElementType)
+            {
+                // The suffix is "[]", "[*]", "[,]", "*" or "&", as in the type's name.
+                var elementType = type.GetElementType();
+                return GetFullNameWithForwardedFromAssemblies(elementType, simpleNamedAssemblies) + type.Name.Substring(elementType.Name.Length);
+            }
+
+            if (!type.IsGenericType || type.IsGenericTypeDefinition)
+            {
+                return type.FullName;
+            }
+
+            var args = type.GetGenericArguments();
+            var result = new System.Text.StringBuilder(type.GetGenericTypeDefinition().FullName);
+
+            result.Append('[');
+
+            for (int i = 0; i < args.Length; i++)
+            {
+                if (i > 0) result.Append(',');
+
+                var assembly = GetForwardedFromAssemblyFullName(args[i]);
+
+                result.Append('[')
+                      .Append(GetFullNameWithForwardedFromAssemblies(args[i], simpleNamedAssemblies))
+                      .Append(", ")
+                      .Append(simpleNamedAssemblies.Contains(assembly) ? GetSimpleAssemblyName(assembly) : assembly)
+                      .Append(']');
+            }
+
+            result.Append(']');
+            return result.ToString();
         }
 
         /// <summary>
