@@ -1085,7 +1085,7 @@ namespace OdinSerializer
             {
                 try
                 {
-                    if (float.TryParse(this.peekedEntryContent, NumberStyles.Any, CultureInfo.InvariantCulture, out value))
+                    if (Utilities.FloatingPointFormatting.TryParse(this.peekedEntryContent, NumberStyles.Any, out value))
                     {
                         return true;
                     }
@@ -1127,7 +1127,7 @@ namespace OdinSerializer
             {
                 try
                 {
-                    if (double.TryParse(this.peekedEntryContent, NumberStyles.Any, CultureInfo.InvariantCulture, out value))
+                    if (Utilities.FloatingPointFormatting.TryParse(this.peekedEntryContent, NumberStyles.Any, out value))
                     {
                         return true;
                     }

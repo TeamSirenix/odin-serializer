@@ -449,8 +449,8 @@ namespace OdinSerializer
             if (keyStr.EndsWith("si}")) return int.Parse(keyStr.Substring(1, keyStr.Length - 4), NumberStyles.Any);
             if (keyStr.EndsWith("ul}")) return ulong.Parse(keyStr.Substring(1, keyStr.Length - 4), NumberStyles.Any);
             if (keyStr.EndsWith("sl}")) return long.Parse(keyStr.Substring(1, keyStr.Length - 4), NumberStyles.Any);
-            if (keyStr.EndsWith("fl}")) return float.Parse(keyStr.Substring(1, keyStr.Length - 4), NumberStyles.Any, CultureInfo.InvariantCulture);
-            if (keyStr.EndsWith("dl}")) return double.Parse(keyStr.Substring(1, keyStr.Length - 4), NumberStyles.Any, CultureInfo.InvariantCulture);
+            if (keyStr.EndsWith("fl}")) return FloatingPointFormatting.ParseSingle(keyStr.Substring(1, keyStr.Length - 4), NumberStyles.Any);
+            if (keyStr.EndsWith("dl}")) return FloatingPointFormatting.ParseDouble(keyStr.Substring(1, keyStr.Length - 4), NumberStyles.Any);
             if (keyStr.EndsWith("dc}")) return decimal.Parse(keyStr.Substring(1, keyStr.Length - 4), NumberStyles.Any, CultureInfo.InvariantCulture);
             if (keyStr.EndsWith("gu}")) return new Guid(keyStr.Substring(1, keyStr.Length - 4));
             if (keyStr.EndsWith("es}")) return Enum.ToObject(expectedType, long.Parse(keyStr.Substring(1, keyStr.Length - 4), NumberStyles.Any));

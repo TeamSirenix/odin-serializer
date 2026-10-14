@@ -433,7 +433,7 @@ namespace OdinSerializer
             {
                 try
                 {
-                    if (!double.TryParse(this.peekedEntryData, NumberStyles.Any, CultureInfo.InvariantCulture, out value))
+                    if (!Utilities.FloatingPointFormatting.TryParse(this.peekedEntryData, NumberStyles.Any, out value))
                     {
                         this.Context.Config.DebugContext.LogError("Failed to parse double value from entry data '" + this.peekedEntryData + "'.");
                         return false;
@@ -838,7 +838,7 @@ namespace OdinSerializer
             {
                 try
                 {
-                    if (!float.TryParse(this.peekedEntryData, NumberStyles.Any, CultureInfo.InvariantCulture, out value))
+                    if (!Utilities.FloatingPointFormatting.TryParse(this.peekedEntryData, NumberStyles.Any, out value))
                     {
                         this.Context.Config.DebugContext.LogError("Failed to parse float value from entry data '" + this.peekedEntryData + "'.");
                         return false;

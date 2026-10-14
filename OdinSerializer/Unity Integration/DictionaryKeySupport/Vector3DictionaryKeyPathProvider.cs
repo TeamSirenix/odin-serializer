@@ -64,7 +64,7 @@ namespace OdinSerializer
         // Key path strings are written with invariant culture formatting, with '.' replaced by ','.
         private static float ParseComponent(string str)
         {
-            return float.Parse(str.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture);
+            return Utilities.FloatingPointFormatting.ParseSingle(str.Replace(',', '.'), NumberStyles.Float);
         }
 
         public override string GetPathStringFromKey(Vector3 key)

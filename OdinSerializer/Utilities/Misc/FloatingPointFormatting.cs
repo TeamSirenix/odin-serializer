@@ -27,6 +27,8 @@ namespace OdinSerializer.Utilities
     /// text that parses back to the same value. Both parse back correctly, but the text differs for about half of all values, so the same data
     /// would be written differently depending on the runtime. This uses the .NET Framework definition everywhere, which keeps data written on
     /// Mono unchanged.</para>
+    /// <para>Negative zero is the exception: Mono and the .NET Framework write it as "0" and parse "-0" as positive zero, which loses its sign.
+    /// It is written as "-0" everywhere, and the parse methods here read "-0" as negative zero on every runtime.</para>
     /// </summary>
     internal static class FloatingPointFormatting
     {
@@ -38,6 +40,11 @@ namespace OdinSerializer.Utilities
         {
             if (SingleRoundTripIsLegacy)
             {
+                if (value == 0f && float.IsNegativeInfinity(1f / value))
+                {
+                    return "-0";
+                }
+
                 return value.ToString("R", CultureInfo.InvariantCulture);
             }
 
@@ -56,6 +63,11 @@ namespace OdinSerializer.Utilities
         {
             if (DoubleRoundTripIsLegacy)
             {
+                if (value == 0d && double.IsNegativeInfinity(1d / value))
+                {
+                    return "-0";
+                }
+
                 return value.ToString("R", CultureInfo.InvariantCulture);
             }
 
@@ -68,6 +80,62 @@ namespace OdinSerializer.Utilities
             }
 
             return value.ToString("G17", CultureInfo.InvariantCulture);
+        }
+
+        public static bool TryParse(string text, NumberStyles styles, out float value)
+        {
+            if (!float.TryParse(text, styles, CultureInfo.InvariantCulture, out value))
+            {
+                return false;
+            }
+
+            if (value == 0f && HasLeadingMinus(text))
+            {
+                value = -0f;
+            }
+
+            return true;
+        }
+
+        public static bool TryParse(string text, NumberStyles styles, out double value)
+        {
+            if (!double.TryParse(text, styles, CultureInfo.InvariantCulture, out value))
+            {
+                return false;
+            }
+
+            if (value == 0d && HasLeadingMinus(text))
+            {
+                value = -0d;
+            }
+
+            return true;
+        }
+
+        public static float ParseSingle(string text, NumberStyles styles)
+        {
+            float value = float.Parse(text, styles, CultureInfo.InvariantCulture);
+            return value == 0f && HasLeadingMinus(text) ? -0f : value;
+        }
+
+        public static double ParseDouble(string text, NumberStyles styles)
+        {
+            double value = double.Parse(text, styles, CultureInfo.InvariantCulture);
+            return value == 0d && HasLeadingMinus(text) ? -0d : value;
+        }
+
+        // Only called for values that parsed to zero, so it costs nothing for other values.
+        private static bool HasLeadingMinus(string text)
+        {
+            for (int i = 0; i < text.Length; i++)
+            {
+                if (!char.IsWhiteSpace(text[i]))
+                {
+                    return text[i] == '-';
+                }
+            }
+
+            return false;
         }
     }
 }
