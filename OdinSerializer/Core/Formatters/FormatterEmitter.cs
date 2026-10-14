@@ -248,8 +248,8 @@ namespace OdinSerializer
 
             Dictionary<Type, MethodInfo> serializerReadMethods;
             Dictionary<Type, MethodInfo> serializerWriteMethods;
-            Dictionary<Type, FieldBuilder> serializerFields;
-            FieldBuilder dictField;
+            Dictionary<Type, FieldInfo> serializerFields;
+            FieldInfo dictField;
             Dictionary<MemberInfo, List<string>> memberNames;
 
             BuildHelperType(
@@ -325,11 +325,11 @@ namespace OdinSerializer
 
             Dictionary<Type, MethodInfo> serializerReadMethods;
             Dictionary<Type, MethodInfo> serializerWriteMethods;
-            Dictionary<Type, FieldBuilder> serializerFields;
-            FieldBuilder dictField;
+            Dictionary<Type, FieldInfo> serializerFields;
+            FieldInfo dictField;
             Dictionary<MemberInfo, List<string>> memberNames;
 
-            BuildHelperType(
+            Type helperType = BuildHelperType(
                 moduleBuilder,
                 helperTypeName,
                 formattedType,
@@ -340,6 +340,15 @@ namespace OdinSerializer
                 out dictField,
                 out memberNames
             );
+
+            // The dynamic methods must reference the created helper type's fields, not their FieldBuilders; CoreCLR's
+            // DynamicMethod IL generator only accepts runtime fields ("FieldInfo must be a runtime FieldInfo object").
+            dictField = helperType.GetField(dictField.Name, Flags.StaticAnyVisibility);
+
+            foreach (var serializerType in serializerFields.Keys.ToList())
+            {
+                serializerFields[serializerType] = helperType.GetField(serializerFields[serializerType].Name, Flags.StaticAnyVisibility);
+            }
 
             Type formatterType = typeof(RuntimeEmittedFormatter<>).MakeGenericType(formattedType);
             Delegate del1, del2;
@@ -374,8 +383,8 @@ namespace OdinSerializer
             Dictionary<string, MemberInfo> serializableMembers,
             out Dictionary<Type, MethodInfo> serializerReadMethods,
             out Dictionary<Type, MethodInfo> serializerWriteMethods,
-            out Dictionary<Type, FieldBuilder> serializerFields,
-            out FieldBuilder dictField,
+            out Dictionary<Type, FieldInfo> serializerFields,
+            out FieldInfo dictField,
             out Dictionary<MemberInfo, List<string>> memberNames)
         {
             TypeBuilder helperTypeBuilder = moduleBuilder.DefineType(helperTypeName, TypeAttributes.Public | TypeAttributes.Sealed | TypeAttributes.Class);
@@ -401,7 +410,7 @@ namespace OdinSerializer
 
             serializerReadMethods = new Dictionary<Type, MethodInfo>(neededSerializers.Count);
             serializerWriteMethods = new Dictionary<Type, MethodInfo>(neededSerializers.Count);
-            serializerFields = new Dictionary<Type, FieldBuilder>(neededSerializers.Count);
+            serializerFields = new Dictionary<Type, FieldInfo>(neededSerializers.Count);
 
             foreach (var t in neededSerializers)
             {
@@ -472,7 +481,7 @@ namespace OdinSerializer
             ILGenerator gen,
             Type formattedType,
             FieldInfo dictField,
-            Dictionary<Type, FieldBuilder> serializerFields,
+            Dictionary<Type, FieldInfo> serializerFields,
             Dictionary<MemberInfo, List<string>> memberNames,
             Dictionary<Type, MethodInfo> serializerReadMethods)
         {
@@ -562,7 +571,7 @@ namespace OdinSerializer
         private static void EmitWriteMethodContents(
             ILGenerator gen,
             Type formattedType,
-            Dictionary<Type, FieldBuilder> serializerFields,
+            Dictionary<Type, FieldInfo> serializerFields,
             Dictionary<MemberInfo, List<string>> memberNames,
             Dictionary<Type, MethodInfo> serializerWriteMethods)
         {
