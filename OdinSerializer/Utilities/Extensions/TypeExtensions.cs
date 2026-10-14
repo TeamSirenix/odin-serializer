@@ -2378,10 +2378,11 @@ namespace OdinSerializer.Utilities
         }
 
         /// <summary>
-        /// Replaces the generic parameters in <paramref name="definitions"/> with the corresponding known <paramref name="arguments"/>, anywhere within <paramref name="type"/>.
-        /// Unknown (null) arguments leave their parameter in place. Returns null if the resulting type can't be constructed.
+        /// Replaces the generic parameters in <paramref name="definitions"/> with the corresponding <paramref name="arguments"/>, anywhere within <paramref name="type"/>.
+        /// For example, substituting T with int in <c>IList&lt;T[]&gt;</c> gives <c>IList&lt;int[]&gt;</c>. Null arguments, and arguments that are the parameter itself,
+        /// leave that parameter in place. Returns null if the resulting type can't be constructed.
         /// </summary>
-        private static Type SubstituteGenericParameters(Type type, Type[] definitions, Type[] arguments)
+        public static Type SubstituteGenericParameters(this Type type, Type[] definitions, Type[] arguments)
         {
             if (!type.ContainsGenericParameters)
             {
