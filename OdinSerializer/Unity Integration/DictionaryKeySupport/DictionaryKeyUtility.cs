@@ -133,7 +133,7 @@ namespace OdinSerializer
 
         static DictionaryKeyUtility()
         {
-            var attributes = AppDomain.CurrentDomain.GetAssemblies()
+            var attributes = AssemblyLoadContextUtilities.GetLoadedAssemblies()
                                                     .SelectMany(ass =>
                                                     {
                                                         return ass.SafeGetCustomAttributes(typeof(RegisterDictionaryKeyPathProviderAttribute), false)

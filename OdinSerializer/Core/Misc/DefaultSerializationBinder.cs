@@ -99,7 +99,7 @@ namespace OdinSerializer
                 }
             };
 
-            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            foreach (var assembly in AssemblyLoadContextUtilities.GetLoadedAssemblies())
             {
                 lock (ASSEMBLY_REGISTER_QUEUE_LOCK)
                 {
@@ -184,6 +184,9 @@ namespace OdinSerializer
                 name = assembly.GetName().Name;
             }
             catch { return; } // Assembly is invalid somehow
+
+            // Never register assemblies of a previous domain reload (CoreCLR) that is still being unloaded; the first registered assembly of a name wins.
+            if (!AssemblyLoadContextUtilities.IsCurrentAssembly(assembly)) return;
 
             bool wasAdded = false;
 
@@ -409,7 +412,7 @@ namespace OdinSerializer
                 }
 
                 // Try to check all assemblies for the type string
-                var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+                var assemblies = AssemblyLoadContextUtilities.GetLoadedAssemblies();
 
                 for (int i = 0; i < assemblies.Length; i++)
                 {

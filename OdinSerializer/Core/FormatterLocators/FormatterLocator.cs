@@ -76,7 +76,7 @@ namespace OdinSerializer
 
         static FormatterLocator()
         {
-            foreach (var ass in AppDomain.CurrentDomain.GetAssemblies())
+            foreach (var ass in AssemblyLoadContextUtilities.GetLoadedAssemblies())
             {
                 try
                 {

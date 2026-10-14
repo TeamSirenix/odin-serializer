@@ -218,7 +218,7 @@ namespace OdinSerializer.Editor
 
                 // Supplement with a hard-coded search for static serializer fields in all defined weak formatters,
                 // as the above will often not find those.
-                foreach (var loadedAssembly in AppDomain.CurrentDomain.GetAssemblies())
+                foreach (var loadedAssembly in AssemblyLoadContextUtilities.GetLoadedAssemblies())
                 {
                     foreach (var loadedType in loadedAssembly.SafeGetTypes())
                     {
