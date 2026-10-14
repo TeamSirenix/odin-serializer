@@ -93,6 +93,19 @@ namespace OdinSerializer
         {
             AssemblyLoadEventHandler onAssemblyLoad = (sender, args) =>
             {
+                // On CoreCLR, a domain reload loads the new code before this (previous) code's context starts unloading and unsubscribes
+                // this handler, so it also sees the new context's assemblies load. Queuing those would make this context's statics keep
+                // the new context alive for as long as this one lives; RegisterAssembly skips them anyway.
+                Assembly assembly;
+
+                try
+                {
+                    assembly = args.LoadedAssembly;
+                }
+                catch { return; } // Assembly is invalid, likely causing a type load or bad image format exception of some sort
+
+                if (!AssemblyLoadContextUtilities.IsCurrentAssembly(assembly)) return;
+
                 lock (ASSEMBLY_REGISTER_QUEUE_LOCK)
                 {
                     assemblyLoadEventsQueuedForRegister.Add(args);
