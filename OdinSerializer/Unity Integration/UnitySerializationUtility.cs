@@ -668,6 +668,13 @@ namespace OdinSerializer
                         var frame = stackFrames[i];
                         var method = frame.GetMethod();
 
+                        // Frames without a declaring type (such as the dynamic methods CoreCLR Unity calls managed code through)
+                        // can't be any of the methods we look for. Skipping them also keeps a missing SBP type (null) from matching them.
+                        if (method == null || method.DeclaringType == null)
+                        {
+                            continue;
+                        }
+
                         if (method.DeclaringType == buildPipelineType || method.DeclaringType == SBP_ContentPipelineType)
                         {
                             // We are currently building a player
