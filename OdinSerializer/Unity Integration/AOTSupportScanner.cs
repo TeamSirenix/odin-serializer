@@ -685,7 +685,13 @@ namespace OdinSerializer.Editor
 
         public static bool AllowRegisterType(Type type)
         {
+            if (type.IsArray)
+                return AllowRegisterType(type.GetElementType());
+
             if (IsEditorOnlyAssembly(type.Assembly))
+                return false;
+
+            if (IsNonPublicClassLibraryType(type))
                 return false;
 
             if (type.IsGenericType)
@@ -697,6 +703,30 @@ namespace OdinSerializer.Editor
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Whether the type is a non-public type of the .NET class library (the System namespaces, as for .NET's own types in
+        /// <see cref="SerializationPolicies.Unity"/>), such as HashSet&lt;T&gt;.Entry. These are implementation details of the editor's
+        /// class library, which can differ from the player's or be missing there, so AOT support doesn't reference them. They are only
+        /// reached through the private fields of .NET types. Generic arguments are checked separately, so List&lt;T&gt; of a private
+        /// type of your own is still registered.
+        /// </summary>
+        private static bool IsNonPublicClassLibraryType(Type type)
+        {
+            if (type.IsGenericType && !type.IsGenericTypeDefinition)
+                type = type.GetGenericTypeDefinition();
+
+            if (type.FullName == null || !type.FullName.StartsWith("System.", StringComparison.Ordinal))
+                return false;
+
+            for (var t = type; t != null; t = t.DeclaringType)
+            {
+                if (t.IsNested ? !t.IsNestedPublic : !t.IsPublic)
+                    return true;
+            }
+
+            return false;
         }
 
         private static bool IsEditorOnlyAssembly(Assembly assembly)
