@@ -16,7 +16,7 @@
 // </copyright>
 //-----------------------------------------------------------------------
 
-#if NET_STANDARD_2_0
+#if NET_STANDARD_2_0 && !NET_STANDARD_2_1
 #error Odin Inspector is incapable of compiling source code against the .NET Standard 2.0 API surface. You can change the API Compatibility Level in the Player settings.
 #endif
 
