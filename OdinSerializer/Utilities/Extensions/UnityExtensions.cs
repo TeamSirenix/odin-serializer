@@ -27,6 +27,7 @@ namespace OdinSerializer.Utilities
     public static class UnityExtensions
     {
         private static readonly ValueGetter<UnityEngine.Object, IntPtr> UnityObjectCachedPtrFieldGetter;
+        private static readonly Func<UnityEngine.Object, bool> UnityObjectHasLiveNativeObject;
 
         static UnityExtensions()
         {
@@ -35,6 +36,17 @@ namespace OdinSerializer.Utilities
             if (field != null)
             {
                 UnityObjectCachedPtrFieldGetter = EmitUtilities.CreateInstanceFieldGetter<UnityEngine.Object, IntPtr>(field);
+            }
+            else
+            {
+                // Unity 7 removed m_CachedPtr; the native object is found through the object's EntityId instead. HasLiveNativeObject() is the
+                // equivalent check, and like reading m_CachedPtr it is a purely managed lookup that is safe to call from any thread.
+                var method = typeof(UnityEngine.Object).GetMethod("HasLiveNativeObject", BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance, null, Type.EmptyTypes, null);
+
+                if (method != null && method.ReturnType == typeof(bool))
+                {
+                    UnityObjectHasLiveNativeObject = (Func<UnityEngine.Object, bool>)Delegate.CreateDelegate(typeof(Func<UnityEngine.Object, bool>), method);
+                }
             }
         }
 
@@ -55,13 +67,18 @@ namespace OdinSerializer.Utilities
                 return true;
             }
 
-            if (UnityObjectCachedPtrFieldGetter == null)
+            if (UnityObjectCachedPtrFieldGetter != null)
             {
-                throw new NotSupportedException("Could not find the field 'm_CachedPtr' in the class UnityEngine.Object; cannot perform a special null check.");
+                IntPtr ptr = UnityObjectCachedPtrFieldGetter(ref obj);
+                return ptr == IntPtr.Zero;
             }
 
-            IntPtr ptr = UnityObjectCachedPtrFieldGetter(ref obj);
-            return ptr == IntPtr.Zero;
+            if (UnityObjectHasLiveNativeObject != null)
+            {
+                return !UnityObjectHasLiveNativeObject(obj);
+            }
+
+            throw new NotSupportedException("Could not find the field 'm_CachedPtr' or the method 'HasLiveNativeObject' in the class UnityEngine.Object; cannot perform a special null check.");
         }
     }
 }
