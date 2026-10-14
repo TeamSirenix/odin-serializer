@@ -2069,62 +2069,74 @@ namespace OdinSerializer
                 writer.Context = context;
                 writer.Stream = stream.Value.MemoryStream;
                 writer.PrepareNewSerializationSession();
+
+                // The writer goes back to the cache afterwards, so its settings are restored for the next user.
+                bool formatAsReadable = writer.FormatAsReadable;
+                bool enableTypeOptimization = writer.EnableTypeOptimization;
                 writer.FormatAsReadable = false;
                 writer.EnableTypeOptimization = false;
 
-                resolver.Value.SetReferencedUnityObjects(referencedUnityObjects);
-                writer.Context.IndexReferenceResolver = resolver.Value;
-
-                for (int i = 0; i < modifications.Count; i++)
+                try
                 {
-                    var mod = modifications[i];
+                    resolver.Value.SetReferencedUnityObjects(referencedUnityObjects);
+                    writer.Context.IndexReferenceResolver = resolver.Value;
 
-                    if (mod.ModificationType == PrefabModificationType.ListLength)
+                    for (int i = 0; i < modifications.Count; i++)
                     {
-                        writer.MarkJustStarted();
-                        writer.WriteString("path", mod.Path);
-                        writer.WriteInt32("length", mod.NewLength);
+                        var mod = modifications[i];
 
-                        writer.FlushToStream();
-                        result.Add(GetStringFromStreamAndReset(stream.Value.MemoryStream));
-                    }
-                    else if (mod.ModificationType == PrefabModificationType.Value)
-                    {
-                        writer.MarkJustStarted();
-                        writer.WriteString("path", mod.Path);
-
-                        if (mod.ReferencePaths != null && mod.ReferencePaths.Count > 0)
+                        if (mod.ModificationType == PrefabModificationType.ListLength)
                         {
-                            writer.BeginStructNode("references", null);
+                            writer.MarkJustStarted();
+                            writer.WriteString("path", mod.Path);
+                            writer.WriteInt32("length", mod.NewLength);
+
+                            writer.FlushToStream();
+                            result.Add(GetStringFromStreamAndReset(stream.Value.MemoryStream));
+                        }
+                        else if (mod.ModificationType == PrefabModificationType.Value)
+                        {
+                            writer.MarkJustStarted();
+                            writer.WriteString("path", mod.Path);
+
+                            if (mod.ReferencePaths != null && mod.ReferencePaths.Count > 0)
                             {
-                                for (int j = 0; j < mod.ReferencePaths.Count; j++)
+                                writer.BeginStructNode("references", null);
                                 {
-                                    writer.WriteString(null, mod.ReferencePaths[j]);
+                                    for (int j = 0; j < mod.ReferencePaths.Count; j++)
+                                    {
+                                        writer.WriteString(null, mod.ReferencePaths[j]);
+                                    }
                                 }
+                                writer.EndNode("references");
                             }
-                            writer.EndNode("references");
+
+                            var serializer = Serializer.Get<object>();
+                            serializer.WriteValueWeak("value", mod.ModifiedValue, writer);
+
+                            writer.FlushToStream();
+                            result.Add(GetStringFromStreamAndReset(stream.Value.MemoryStream));
+                        }
+                        else if (mod.ModificationType == PrefabModificationType.Dictionary)
+                        {
+                            writer.MarkJustStarted();
+                            writer.WriteString("path", mod.Path);
+
+                            Serializer.Get<object[]>().WriteValue("add_keys", mod.DictionaryKeysAdded, writer);
+                            Serializer.Get<object[]>().WriteValue("remove_keys", mod.DictionaryKeysRemoved, writer);
+
+                            writer.FlushToStream();
+                            result.Add(GetStringFromStreamAndReset(stream.Value.MemoryStream));
                         }
 
-                        var serializer = Serializer.Get<object>();
-                        serializer.WriteValueWeak("value", mod.ModifiedValue, writer);
-
-                        writer.FlushToStream();
-                        result.Add(GetStringFromStreamAndReset(stream.Value.MemoryStream));
+                        // We don't want modifications to be able to reference each other
+                        writer.Context.ResetInternalReferences();
                     }
-                    else if (mod.ModificationType == PrefabModificationType.Dictionary)
-                    {
-                        writer.MarkJustStarted();
-                        writer.WriteString("path", mod.Path);
-
-                        Serializer.Get<object[]>().WriteValue("add_keys", mod.DictionaryKeysAdded, writer);
-                        Serializer.Get<object[]>().WriteValue("remove_keys", mod.DictionaryKeysRemoved, writer);
-
-                        writer.FlushToStream();
-                        result.Add(GetStringFromStreamAndReset(stream.Value.MemoryStream));
-                    }
-
-                    // We don't want modifications to be able to reference each other
-                    writer.Context.ResetInternalReferences();
+                }
+                finally
+                {
+                    writer.FormatAsReadable = formatAsReadable;
+                    writer.EnableTypeOptimization = enableTypeOptimization;
                 }
             }
 
