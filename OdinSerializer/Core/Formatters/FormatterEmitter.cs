@@ -192,7 +192,7 @@ namespace OdinSerializer
                 assemblyName.ProcessorArchitecture = ProcessorArchitecture.MSIL;
                 assemblyName.VersionCompatibility = System.Configuration.Assemblies.AssemblyVersionCompatibility.SameDomain;
 
-                runtimeEmittedAssembly = AppDomain.CurrentDomain.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
+                runtimeEmittedAssembly = AssemblyBuilder.DefineDynamicAssembly(assemblyName, AssemblyBuilderAccess.Run);
             }
 
             if (runtimeEmittedModule == null)
@@ -206,8 +206,21 @@ namespace OdinSerializer
                 emitSymbolInfo = false;
 #endif
 
-                runtimeEmittedModule = runtimeEmittedAssembly.DefineDynamicModule(RUNTIME_EMITTED_ASSEMBLY_NAME, emitSymbolInfo);
+                runtimeEmittedModule = DefineDynamicModule(runtimeEmittedAssembly, RUNTIME_EMITTED_ASSEMBLY_NAME, emitSymbolInfo);
             }
+        }
+
+        // DefineDynamicModule(string, bool) only exists on .NET Framework/Mono; it is not part of .NET Standard 2.1 or CoreCLR.
+        private static readonly MethodInfo AssemblyBuilder_DefineDynamicModule_WithSymbolInfo = typeof(AssemblyBuilder).GetMethod("DefineDynamicModule", new Type[] { typeof(string), typeof(bool) });
+
+        private static ModuleBuilder DefineDynamicModule(AssemblyBuilder assembly, string name, bool emitSymbolInfo)
+        {
+            if (AssemblyBuilder_DefineDynamicModule_WithSymbolInfo != null)
+            {
+                return (ModuleBuilder)AssemblyBuilder_DefineDynamicModule_WithSymbolInfo.Invoke(assembly, new object[] { name, emitSymbolInfo });
+            }
+
+            return assembly.DefineDynamicModule(name);
         }
 
         /// <summary>
