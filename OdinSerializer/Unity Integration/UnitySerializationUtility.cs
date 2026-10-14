@@ -49,7 +49,8 @@ namespace OdinSerializer
     /// </summary>
     public static class UnitySerializationUtility
     {
-        public static readonly Type SerializeReferenceAttributeType = typeof(SerializeField).Assembly.GetType("UnityEngine.SerializeReference");
+        // Not looked up in SerializeField's assembly: Unity 7 moved SerializeField to another module than SerializeReference.
+        public static readonly Type SerializeReferenceAttributeType = typeof(SerializeReference);
 
         private static readonly Assembly String_Assembly = typeof(string).Assembly;
         private static readonly Assembly HashSet_Assembly = typeof(HashSet<>).Assembly;
