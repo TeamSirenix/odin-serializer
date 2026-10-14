@@ -39,6 +39,7 @@ namespace OdinSerializer
         private static readonly Serializer<TValue> ValueReaderWriter = Serializer.Get<TValue>();
 
         private static readonly ConstructorInfo ComparerConstructor = typeof(TDictionary).GetConstructor(new Type[] { typeof(IEqualityComparer<TKey>) });
+        private static readonly IEqualityComparer<TKey> DefaultComparer = EqualityComparer<TKey>.Default;
 
         static DerivedDictionaryFormatter()
         {
@@ -80,6 +81,11 @@ namespace OdinSerializer
                 // There is a comparer serialized
                 comparer = EqualityComparerSerializer.ReadValue(reader);
                 entry = reader.PeekEntry(out name);
+
+                if (DictionaryComparerUtility.IsDefaultComparer(comparer, DefaultComparer, typeof(TKey)))
+                {
+                    comparer = null;
+                }
             }
 
             if (entry == EntryType.StartOfArray)
@@ -172,7 +178,7 @@ namespace OdinSerializer
         {
             try
             {
-                if (value.Comparer != null)
+                if (!DictionaryComparerUtility.IsDefaultComparer(value.Comparer, DefaultComparer, typeof(TKey)))
                 {
                     EqualityComparerSerializer.WriteValue("comparer", value.Comparer, writer);
                 }

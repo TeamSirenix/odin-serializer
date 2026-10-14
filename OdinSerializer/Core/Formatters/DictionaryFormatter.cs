@@ -41,6 +41,7 @@ namespace OdinSerializer
         private static readonly Serializer<IEqualityComparer<TKey>> EqualityComparerSerializer = Serializer.Get<IEqualityComparer<TKey>>();
         private static readonly Serializer<TKey> KeyReaderWriter = Serializer.Get<TKey>();
         private static readonly Serializer<TValue> ValueReaderWriter = Serializer.Get<TValue>();
+        private static readonly IEqualityComparer<TKey> DefaultComparer = EqualityComparer<TKey>.Default;
 
         static DictionaryFormatter()
         {
@@ -87,6 +88,11 @@ namespace OdinSerializer
                 // There is a comparer serialized
                 comparer = EqualityComparerSerializer.ReadValue(reader);
                 entry = reader.PeekEntry(out name);
+
+                if (DictionaryComparerUtility.IsDefaultComparer(comparer, DefaultComparer, typeof(TKey)))
+                {
+                    comparer = null;
+                }
             }
 
             if (entry == EntryType.StartOfArray)
@@ -174,7 +180,7 @@ namespace OdinSerializer
         {
             try
             {
-                if (value.Comparer != null)
+                if (!DictionaryComparerUtility.IsDefaultComparer(value.Comparer, DefaultComparer, typeof(TKey)))
                 {
                     EqualityComparerSerializer.WriteValue("comparer", value.Comparer, writer);
                 }
@@ -226,6 +232,7 @@ namespace OdinSerializer
 
         private readonly ConstructorInfo ComparerConstructor;
         private readonly PropertyInfo ComparerProperty;
+        private readonly object DefaultComparer;
         private readonly PropertyInfo CountProperty;
         private readonly Type KeyType;
         private readonly Type ValueType;
@@ -255,6 +262,7 @@ namespace OdinSerializer
                 this.EqualityComparerSerializer = Serializer.Get(equalityComparerType);
                 this.ComparerConstructor = serializedType.GetConstructor(new Type[] { equalityComparerType });
                 this.ComparerProperty = serializedType.GetProperty("Comparer");
+                this.DefaultComparer = typeof(EqualityComparer<>).MakeGenericType(this.KeyType).GetProperty("Default").GetValue(null, null);
             }
             catch (Exception)
             {
@@ -262,6 +270,7 @@ namespace OdinSerializer
                 this.EqualityComparerSerializer = Serializer.Get<object>();
                 this.ComparerConstructor = null;
                 this.ComparerProperty = null;
+                this.DefaultComparer = null;
             }
         }
 
@@ -282,6 +291,11 @@ namespace OdinSerializer
                 // There is a comparer serialized
                 comparer = EqualityComparerSerializer.ReadValueWeak(reader);
                 entry = reader.PeekEntry(out name);
+
+                if (DictionaryComparerUtility.IsDefaultComparer(comparer, this.DefaultComparer, this.KeyType))
+                {
+                    comparer = null;
+                }
             }
 
             if (entry == EntryType.StartOfArray)
@@ -377,7 +391,7 @@ namespace OdinSerializer
                 {
                     object comparer = this.ComparerProperty.GetValue(value, null);
 
-                    if (!object.ReferenceEquals(comparer, null))
+                    if (!DictionaryComparerUtility.IsDefaultComparer(comparer, this.DefaultComparer, this.KeyType))
                     {
                         EqualityComparerSerializer.WriteValueWeak("comparer", comparer, writer);
                     }
@@ -428,6 +442,46 @@ namespace OdinSerializer
             {
                 writer.EndArrayNode();
             }
+        }
+    }
+
+    /// <summary>
+    /// <para>Dictionaries write their comparer only when it is not the key type's default comparer, which is what a dictionary gets without
+    /// one anyway. The default comparers are internal types that differ between runtimes: for string keys, the default comparer is
+    /// GenericEqualityComparer&lt;string&gt; on Mono and StringEqualityComparer on CoreCLR (Unity 7 and up), which does not exist on Mono.</para>
+    /// <para>Comparers read from data are likewise replaced by the default when they are the default comparer of the runtime that wrote them.</para>
+    /// </summary>
+    internal static class DictionaryComparerUtility
+    {
+        /// <summary>
+        /// Whether the comparer is null, the same type as the given default comparer (EqualityComparer&lt;TKey&gt;.Default), or another
+        /// runtime's implementation of EqualityComparer&lt;TKey&gt;.Default: a subclass of EqualityComparer&lt;TKey&gt; in the core library
+        /// without any instance fields. Without state, such a comparer's behaviour is given by its type alone, which makes it a default
+        /// comparer implementation (unlike, for example, the comparers EqualityComparer&lt;T&gt;.Create makes from delegates).
+        /// </summary>
+        public static bool IsDefaultComparer(object comparer, object defaultComparer, Type keyType)
+        {
+            if (object.ReferenceEquals(comparer, null)) return true;
+
+            var type = comparer.GetType();
+
+            if (defaultComparer != null && type == defaultComparer.GetType()) return true;
+            if (type.Assembly != typeof(EqualityComparer<>).Assembly) return false;
+
+            for (var t = type; t != null; t = t.BaseType)
+            {
+                if (t.IsGenericType && t.GetGenericTypeDefinition() == typeof(EqualityComparer<>))
+                {
+                    return t.GetGenericArguments()[0] == keyType;
+                }
+
+                if (t.GetFields(BindingFlags.Instance | BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.DeclaredOnly).Length > 0)
+                {
+                    return false;
+                }
+            }
+
+            return false;
         }
     }
 }
