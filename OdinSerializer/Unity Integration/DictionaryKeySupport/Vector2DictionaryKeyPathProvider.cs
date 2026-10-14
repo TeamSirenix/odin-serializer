@@ -60,7 +60,13 @@ namespace OdinSerializer
             string x = pathStr.Substring(1, sep - 1).Trim();
             string y = pathStr.Substring(sep + 1, pathStr.Length - (sep + 2)).Trim();
 
-            return new Vector2(float.Parse(x), float.Parse(y));
+            return new Vector2(ParseComponent(x), ParseComponent(y));
+        }
+
+        // Key path strings are written with invariant culture formatting, with '.' replaced by ','.
+        private static float ParseComponent(string str)
+        {
+            return float.Parse(str.Replace(',', '.'), NumberStyles.Float, CultureInfo.InvariantCulture);
         }
 
         /// <summary>
