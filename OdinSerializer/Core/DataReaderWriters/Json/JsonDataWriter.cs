@@ -277,7 +277,7 @@ namespace OdinSerializer
         /// <param name="value">The value to write.</param>
         public override void WriteDouble(string name, double value)
         {
-            this.WriteEntry(name, value.ToString("R", CultureInfo.InvariantCulture));
+            this.WriteEntry(name, Utilities.FloatingPointFormatting.ToRoundTripString(value));
         }
 
         /// <summary>
@@ -346,7 +346,7 @@ namespace OdinSerializer
         /// <param name="value">The value to write.</param>
         public override void WriteSingle(string name, float value)
         {
-            this.WriteEntry(name, value.ToString("R", CultureInfo.InvariantCulture));
+            this.WriteEntry(name, Utilities.FloatingPointFormatting.ToRoundTripString(value));
         }
 
         /// <summary>

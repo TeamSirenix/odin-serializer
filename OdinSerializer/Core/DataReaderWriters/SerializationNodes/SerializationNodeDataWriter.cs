@@ -245,7 +245,7 @@ namespace OdinSerializer
             {
                 Name = name,
                 Entry = EntryType.FloatingPoint,
-                Data = value.ToString("R", CultureInfo.InvariantCulture)
+                Data = Utilities.FloatingPointFormatting.ToRoundTripString(value)
             });
         }
 
@@ -258,7 +258,7 @@ namespace OdinSerializer
             {
                 Name = name,
                 Entry = EntryType.FloatingPoint,
-                Data = value.ToString("R", CultureInfo.InvariantCulture)
+                Data = Utilities.FloatingPointFormatting.ToRoundTripString(value)
             });
         }
 

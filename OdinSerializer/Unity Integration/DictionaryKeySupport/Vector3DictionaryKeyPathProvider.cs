@@ -63,9 +63,9 @@ namespace OdinSerializer
 
         public override string GetPathStringFromKey(Vector3 key)
         {
-            var x = key.x.ToString("R", CultureInfo.InvariantCulture);
-            var y = key.y.ToString("R", CultureInfo.InvariantCulture);
-            var z = key.z.ToString("R", CultureInfo.InvariantCulture);
+            var x = Utilities.FloatingPointFormatting.ToRoundTripString(key.x);
+            var y = Utilities.FloatingPointFormatting.ToRoundTripString(key.y);
+            var z = Utilities.FloatingPointFormatting.ToRoundTripString(key.z);
             return ("(" + x + "|" + y + "|" + z + ")").Replace('.', ',');
         }
     }

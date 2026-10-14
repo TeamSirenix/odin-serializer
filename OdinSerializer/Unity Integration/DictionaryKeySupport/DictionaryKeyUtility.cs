@@ -378,8 +378,8 @@ namespace OdinSerializer
             if (type == typeof(int)) return "{" + ((int)key).ToString("D", CultureInfo.InvariantCulture) + "si}";
             if (type == typeof(ulong)) return "{" + ((ulong)key).ToString("D", CultureInfo.InvariantCulture) + "ul}";
             if (type == typeof(long)) return "{" + ((long)key).ToString("D", CultureInfo.InvariantCulture) + "sl}";
-            if (type == typeof(float)) return "{" + ((float)key).ToString("R", CultureInfo.InvariantCulture) + "fl}";
-            if (type == typeof(double)) return "{" + ((double)key).ToString("R", CultureInfo.InvariantCulture) + "dl}";
+            if (type == typeof(float)) return "{" + FloatingPointFormatting.ToRoundTripString(((float)key)) + "fl}";
+            if (type == typeof(double)) return "{" + FloatingPointFormatting.ToRoundTripString(((double)key)) + "dl}";
             if (type == typeof(decimal)) return "{" + ((decimal)key).ToString("G", CultureInfo.InvariantCulture) + "dc}";
             if (type == typeof(Guid)) return "{" + ((Guid)key).ToString("N", CultureInfo.InvariantCulture) + "gu}";
 
