@@ -25,6 +25,9 @@ x86/
 bld/
 [Bb]in/
 [Oo]bj/
+# Unity imports folders inside package folders and puts a .meta next to them; ignore those too, or the repo shows as modified
+[Bb]in.meta
+[Oo]bj.meta
 [Ll]og/
 [Ii]gnore/
 
